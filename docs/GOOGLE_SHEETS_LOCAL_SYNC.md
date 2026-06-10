@@ -1,101 +1,79 @@
-# Pipeline local: MOCK data → Google Sheets → Dashboard
+# Tự động đồng bộ dữ liệu spy → Google Sheets → Dashboard
 
-Hướng dẫn chạy script local `scripts/run-weekly-spy-and-sync.mjs` để **ghi dữ liệu spy ads
-(mock) lên Google Sheets**. Dashboard Vercel sẽ đọc lại qua `/api/sheets` (nút *Refresh Online Data*).
+```
+Agent spy ghi 5 CSV (outputs/)  ──►  npm run spy:sync  ──(Service Account)──►  Google Sheet  ──►  Apps Script doGet  ──►  Dashboard
+```
 
-> Bước này chỉ test **pipeline ghi Sheet** bằng mock data. Chưa pull ads thật.
-> Secret (service account JSON) nằm **ngoài repo**, không commit, không vào frontend.
+- Script local **đọc 5 CSV thật** trong `outputs/` rồi **ghi thẳng** vào 5 tab Google Sheets bằng **Service Account**.
+- Dashboard **đọc** Sheet qua **Apps Script Web App** (`doGet`, biến `VITE_GOOGLE_SHEETS_API_URL`).
+
+> Nếu org chặn tạo service account key: tạo key ở **một project Google Cloud cá nhân** (ngoài org),
+> rồi Share Sheet cho service account đó — vẫn ghi được. (Đã áp dụng.)
 
 ---
 
-## 1. Tạo Google Cloud Service Account
+## A. Thiết lập 1 lần
 
-1. Vào <https://console.cloud.google.com/> → tạo (hoặc chọn) một **Project**.
-2. **APIs & Services → Library** → tìm **Google Sheets API** → **Enable**.
-3. **APIs & Services → Credentials → Create Credentials → Service account**.
-   - Đặt tên (vd `seryn-sheets-writer`) → Create → Done.
-4. Mở service account vừa tạo → tab **Keys → Add key → Create new key → JSON** → tải file `.json` về.
+### 1) Service Account + key
+1. <https://console.cloud.google.com/> → chọn/tạo project (cá nhân nếu org chặn key).
+2. **APIs & Services → Library → Google Sheets API → Enable**.
+3. **Credentials → Create credentials → Service account** → tạo → tab **Keys → Add key → JSON** → tải file.
+4. Lưu file vào (ngoài repo, đã gitignore):
+   ```
+   C:\seryn-spy-agent\secrets\google-service-account.json
+   ```
+5. Mở file JSON lấy **`client_email`** → mở Google Sheet → **Share → email đó → Editor**.
 
-## 2. Lưu file credential (KHÔNG commit)
-
-Đặt file JSON vào đường dẫn (ngoài repo, đã được `.gitignore` bỏ qua):
-
-```
-C:/seryn-spy-agent/secrets/google-service-account.json
-```
-
-> Thư mục `secrets/` và mọi `*.json` lạ đã nằm trong `.gitignore` → an toàn, không bị commit.
-
-## 3. Share Google Sheet cho service account
-
-1. Mở file JSON, copy giá trị **`client_email`** (dạng `...@...iam.gserviceaccount.com`).
-2. Mở Google Sheet đích (ID `11WRRCa5AfIoWDK9qo3UqT3QvdrD0xCRY-zRd-8Ezj0Q`) →
-   **Share** → dán email service account → quyền **Editor** → Send.
-
-## 4. Tạo file `.env` từ `.env.example`
-
-Trong thư mục `web-react/`:
-
-```bash
-copy .env.example .env       # Windows (hoặc: cp .env.example .env)
-```
-
-Mở `.env`, đảm bảo 2 dòng sau đúng:
-
+### 2) `.env` (trong `web-react/`, không commit)
 ```
 GOOGLE_SHEET_ID=11WRRCa5AfIoWDK9qo3UqT3QvdrD0xCRY-zRd-8Ezj0Q
 GOOGLE_SERVICE_ACCOUNT_FILE=C:/seryn-spy-agent/secrets/google-service-account.json
+VITE_GOOGLE_SHEETS_API_URL=https://script.google.com/macros/s/XXXX/exec   # cho dashboard đọc
 ```
 
-> `.env` đã được `.gitignore` bỏ qua — không bao giờ commit.
+### 3) Dashboard đọc online (đã có)
+Apps Script `doGet` (file `docs/google-apps-script-web-api.js`) deploy as Web App (Anyone) →
+đặt `VITE_GOOGLE_SHEETS_API_URL` trên Vercel → Redeploy. Xem `README_GOOGLE_SHEETS_ONLINE_DATA.md`.
 
-## 5. Cài dependencies & chạy
-
+## B. Đồng bộ thủ công
 ```bash
 cd web-react
-npm install            # googleapis + dotenv (đã có trong package.json)
 npm run spy:sync
 ```
+Log: `[OK] Brand Weekly Snapshot: ghi 13 dòng ... Xong: 5/5 tab, tổng 537 dòng.`
+→ Mở dashboard bấm **Refresh Online Data** (hoặc reload).
 
-Kết quả mong đợi (log):
+> Thiếu CSV nào trong `outputs/` → script bỏ qua tab đó (báo `[!]`). Lỗi `caller does not have permission`
+> = chưa Share Sheet (Editor) cho `client_email` của service account.
 
-```
-SERYN Spy — sync MOCK -> Google Sheets
-Sheet ID : 11WRRCa5...
-week_date: 2026-06-xx
-  [OK] Brand Weekly Snapshot: ghi 5 dòng dữ liệu (+1 dòng header)
-  [OK] Ad Level Analysis: ghi 7 dòng ...
-  [OK] Scaled Content Analysis: ghi 5 dòng ...
-  [OK] Weekly Strategy Change: ghi 5 dòng ...
-  [OK] SERYN Content Recommendations: ghi 5 dòng ...
-Xong: 5/5 tab, tổng 27 dòng dữ liệu.
-```
+## C. Tự động hoá — "khi spy ads thì tự đồng bộ"
 
-## 6. Kiểm tra Google Sheet
+Agent pull ads (ghi `outputs/`) chạy trên máy bạn, nên lên lịch bằng **Windows Task Scheduler**:
 
-Mở Sheet → 5 tab phải có **header đúng schema ở dòng 1** và data mock từ dòng 2.
-Mỗi dòng mock có ghi chú `[MOCK]` ở `content_strategy_summary` / `notes` / `seryn_reframe`.
+1. Tạo `C:\seryn-spy-agent\sync.bat`:
+   ```bat
+   @echo off
+   cd /d C:\seryn-spy-agent\web-react
+   call npm run spy:sync >> C:\seryn-spy-agent\outputs\sync.log 2>&1
+   ```
+2. **Task Scheduler → Create Task** → Trigger **Weekly (Thứ Hai)** → Action chạy `sync.bat`.
+3. Trước đó cập nhật `outputs/` (chạy agent spy). Có thể gộp: agent → `npm run spy:sync` trong cùng batch.
 
-## 7. Kiểm tra Dashboard online
+> Quy trình "khi spy ads → tự đồng bộ": **chạy agent (ghi outputs/) ➜ `npm run spy:sync`**.
+> Dashboard online tự lấy bản mới mỗi lần mở / bấm Refresh.
 
-1. Trên Vercel, đảm bảo function `/api/sheets` đọc đúng Sheet:
-   - Cách A: env `GSHEET_ID = 11WRRCa5...` (Sheet share *Anyone with link: Viewer* — hoặc dùng Cách B Apps Script nếu muốn giữ riêng tư).
-   - Xem `README_DEPLOY_VERCEL.md` mục 7.
-2. Mở dashboard → tab **Nhập dữ liệu** → bấm **Refresh Online Data** → badge chuyển **ONLINE SHEET DATA**, 5 bảng hiển thị dữ liệu vừa ghi.
+## Nguồn ads THẬT (đã nối)
+Script đọc trực tiếp output thật của agent:
 
----
-
-## Lỗi thường gặp
-
-| Lỗi | Nguyên nhân & cách sửa |
+| Dataset | File |
 |---|---|
-| `Không tìm thấy service account JSON tại …` | Sai đường dẫn `GOOGLE_SERVICE_ACCOUNT_FILE` hoặc chưa tải file JSON về. |
-| `The caller does not have permission` | Chưa **Share Sheet (Editor)** cho `client_email` của service account. |
-| `Google Sheets API has not been used/enabled` | Chưa **Enable Google Sheets API** trong project Google Cloud. |
-| `Unable to parse range` | Tên tab sai — Sheet phải có đúng 5 tab (script tự tạo nếu thiếu). |
-| Dashboard không thấy dữ liệu | Kiểm tra env `GSHEET_ID`/`APPS_SCRIPT_URL` trên Vercel + quyền chia sẻ Sheet. |
+| Brand Weekly Snapshot | `outputs/weekly_snapshots/brand_weekly_snapshot.csv` |
+| Ad Level Analysis | `outputs/normalized_ads/ad_level_analysis.csv` |
+| Scaled Content Analysis | `outputs/normalized_ads/scaled_content_analysis.csv` |
+| Weekly Strategy Change | `outputs/weekly_snapshots/weekly_strategy_change.csv` |
+| SERYN Content Recommendations | `outputs/creative_briefs/seryn_content_recommendations.csv` |
 
-## Bước sau (chưa làm ở đây)
+Mỗi lần agent spy xong, chỉ cần `npm run spy:sync` là đẩy dữ liệu thật lên Sheet → dashboard cập nhật.
 
-Khi pipeline mock chạy ổn, sẽ nâng cấp: **nguồn ads thật → phân tích → thay mock bằng dữ liệu thật**
-trong cùng script (giữ nguyên phần ghi Google Sheets).
+> Ghi chú: `docs/google-apps-script-seed-mock.js` (seedMockData / doPost / trigger) là **phương án dự phòng**
+> (ghi qua Apps Script khi không có service account). Hiện KHÔNG dùng vì đã có service account.

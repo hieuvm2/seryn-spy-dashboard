@@ -1,8 +1,32 @@
 import React, { useState, useMemo } from "react";
 import { motion } from "motion/react";
-import { Search, Flame, Info } from "lucide-react";
-import type { SpyDashboardData, ScaledContentAnalysis } from "../../types";
+import { Search, Flame, Info, Bookmark, FileText, CheckCircle2 } from "lucide-react";
+import type { SpyDashboardData, ScaledContentAnalysis, SerynAction } from "../../types";
 import { normalizeNumber, orUnknown, scaleMeta, viLabel } from "../../utils/spyData";
+import { addSwipeItem, genId } from "../../utils/swipeFile";
+import { addCreativeBrief, generateBriefFromSwipeItem } from "../../utils/briefs";
+
+function scaledToSwipe(r: ScaledContentAnalysis) {
+  const action = (String(r.seryn_should_copy_adapt_counter_avoid || "monitor").toLowerCase() || "monitor") as SerynAction;
+  return {
+    id: genId(),
+    savedAt: new Date().toISOString(),
+    sourceType: "scaled_content" as const,
+    brand_name: r.brand_name,
+    hook: String(r.representative_hook || "").trim(),
+    service_or_product: r.service_or_product,
+    content_format: r.content_format,
+    content_angle: r.content_angle,
+    offer_detected: r.offer_detected,
+    proof_point: r.proof_point,
+    scale_level: r.scale_level,
+    reason_to_save: r.why_it_is_scaling,
+    action,
+    seryn_reframe: r.seryn_reframe,
+    notes: "",
+    tags: ["scaled"],
+  };
+}
 
 const TONE: Record<string, string> = {
   slate: "bg-slate-100 text-slate-600 border-slate-200",
@@ -25,8 +49,23 @@ function ScaleBadge({ level }: { level: ScaledContentAnalysis["scale_level"] }) 
   return <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${TONE[m.tone]}`}>C{n} · {m.label}</span>;
 }
 
-export default function ScaledContentView({ data }: { data: SpyDashboardData }) {
+export default function ScaledContentView({
+  data,
+  onGoToCreativeBriefs,
+}: {
+  data: SpyDashboardData;
+  onGoToCreativeBriefs?: () => void;
+}) {
   const [q, setQ] = useState("");
+  const [note, setNote] = useState<string | null>(null);
+  const flash = (m: string) => { setNote(m); window.setTimeout(() => setNote(null), 2600); };
+  const onSave = (r: ScaledContentAnalysis) => { addSwipeItem(scaledToSwipe(r)); flash(`Đã lưu vào Swipe File: ${r.brand_name}`); };
+  const onBrief = (r: ScaledContentAnalysis) => {
+    addCreativeBrief(generateBriefFromSwipeItem(scaledToSwipe(r)));
+    flash("Đã tạo Creative Brief. Mở tab Creative Briefs để xem.");
+    onGoToCreativeBriefs?.();
+  };
+
   const rows = useMemo(() => {
     const list = [...data.scaledContentAnalysis].sort(
       (a, b) => normalizeNumber(b.scale_level) - normalizeNumber(a.scale_level)
@@ -42,6 +81,12 @@ export default function ScaledContentView({ data }: { data: SpyDashboardData }) 
         <span className="text-[10px] uppercase font-mono tracking-widest text-rose-600 font-bold">NỘI DUNG NHÂN RỘNG</span>
         <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Đối thủ đang nhân rộng nội dung gì → SERYN phản ứng thế nào</h2>
       </div>
+
+      {note && (
+        <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200">
+          <CheckCircle2 className="w-4 h-4" /> {note}
+        </div>
+      )}
 
       <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-800 font-semibold">
         <Info className="w-4 h-4 shrink-0 mt-0.5" />
@@ -81,6 +126,14 @@ export default function ScaledContentView({ data }: { data: SpyDashboardData }) 
               <div className="flex items-start gap-2 pt-2 border-t border-slate-100">
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${CACA[caca] || CACA.monitor}`}>{viLabel(r.seryn_should_copy_adapt_counter_avoid)}</span>
                 <span className="text-xs text-slate-600 flex-1">{orUnknown(r.seryn_reframe)}</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button onClick={() => onSave(r)} className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer">
+                  <Bookmark className="w-3.5 h-3.5 text-cyan-600" /> Lưu Swipe File
+                </button>
+                <button onClick={() => onBrief(r)} className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition cursor-pointer">
+                  <FileText className="w-3.5 h-3.5" /> Tạo Brief
+                </button>
               </div>
             </div>
           );

@@ -1,6 +1,0 @@
-{
-  "name": "SaaS Report Analyzer Dashboard",
-  "description": "An interactive, beautiful SaaS dashboard designed to upload, parse and automatically analyze Markdown, CSV, Excel, TXT, and JSON report files, translating them into professional metrics, rankings, charts, tables, and AI insights.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

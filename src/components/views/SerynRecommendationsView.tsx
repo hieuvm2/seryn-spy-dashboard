@@ -1,8 +1,38 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
-import { Lightbulb, Target, Quote, ShieldCheck, Download, ClipboardCopy, CheckCircle2, Zap } from "lucide-react";
-import type { SpyDashboardData, SerynContentRecommendation } from "../../types";
+import { Lightbulb, Target, Quote, ShieldCheck, Download, ClipboardCopy, CheckCircle2, Zap, Bookmark, FileText } from "lucide-react";
+import type { SpyDashboardData, SerynContentRecommendation, SerynAction } from "../../types";
 import { orUnknown, splitChips, viLabel, isMissing, normalizeNumber } from "../../utils/spyData";
+import { addSwipeItem, genId } from "../../utils/swipeFile";
+import { addCreativeBrief, generateBriefFromRecommendation } from "../../utils/briefs";
+
+async function copyText(t: string): Promise<boolean> {
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = t; document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); ta.remove(); return true;
+    } catch { return false; }
+  }
+}
+
+function recToSwipe(r: SerynContentRecommendation) {
+  return {
+    id: genId(),
+    savedAt: new Date().toISOString(),
+    sourceType: "recommendation" as const,
+    brand_name: "SERYN",
+    hook: String(r.suggested_hook || "").trim(),
+    service_or_product: r.seryn_content_niche,
+    content_format: r.suggested_content_format,
+    reason_to_save: r.market_signal,
+    action: "adapt" as SerynAction,
+    seryn_reframe: r.main_message,
+    notes: "",
+    tags: ["recommendation"],
+  };
+}
 
 function inferAction(r: SerynContentRecommendation): string {
   if (!isMissing(r.recommended_action)) return String(r.recommended_action);
@@ -21,7 +51,19 @@ const PRIO_TONE: Record<string, string> = {
   low: "bg-slate-100 text-slate-500 border-slate-200",
 };
 
-function Card({ r }: { r: SerynContentRecommendation }) {
+function Card({
+  r,
+  onSave,
+  onBrief,
+  onCopyHook,
+  onCopyCta,
+}: {
+  r: SerynContentRecommendation;
+  onSave: (r: SerynContentRecommendation) => void;
+  onBrief: (r: SerynContentRecommendation) => void;
+  onCopyHook: (r: SerynContentRecommendation) => void;
+  onCopyCta: (r: SerynContentRecommendation) => void;
+}) {
   const prio = String(r.priority || "").toLowerCase();
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
@@ -62,6 +104,21 @@ function Card({ r }: { r: SerynContentRecommendation }) {
         <span className="text-[10px] uppercase font-bold text-slate-400">Hành động</span>
         <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">{inferAction(r)}</span>
       </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button onClick={() => onBrief(r)} className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition cursor-pointer">
+          <FileText className="w-3.5 h-3.5" /> Tạo Brief
+        </button>
+        <button onClick={() => onSave(r)} className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer">
+          <Bookmark className="w-3.5 h-3.5 text-cyan-600" /> Lưu Swipe File
+        </button>
+        <button onClick={() => onCopyHook(r)} className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer">
+          <ClipboardCopy className="w-3.5 h-3.5 text-indigo-600" /> Copy hook
+        </button>
+        <button onClick={() => onCopyCta(r)} className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer">
+          <ClipboardCopy className="w-3.5 h-3.5 text-cyan-600" /> Copy CTA
+        </button>
+      </div>
     </div>
   );
 }
@@ -76,8 +133,24 @@ function csvCell(v: unknown): string {
   return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
-export default function SerynRecommendationsView({ data }: { data: SpyDashboardData }) {
+export default function SerynRecommendationsView({
+  data,
+  onGoToCreativeBriefs,
+}: {
+  data: SpyDashboardData;
+  onGoToCreativeBriefs?: () => void;
+}) {
   const [note, setNote] = useState<string | null>(null);
+  const flash = (m: string) => { setNote(m); window.setTimeout(() => setNote(null), 2600); };
+
+  const onSaveRec = (r: SerynContentRecommendation) => { addSwipeItem(recToSwipe(r)); flash("Đã lưu gợi ý vào Swipe File."); };
+  const onBriefRec = (r: SerynContentRecommendation) => {
+    addCreativeBrief(generateBriefFromRecommendation(r));
+    flash("Đã tạo Creative Brief. Mở tab Creative Briefs để xem.");
+    onGoToCreativeBriefs?.();
+  };
+  const onCopyHook = async (r: SerynContentRecommendation) => { const ok = await copyText(String(r.suggested_hook || "")); flash(ok ? "Đã copy hook." : "Không copy được."); };
+  const onCopyCta = async (r: SerynContentRecommendation) => { const ok = await copyText(String(r.cta || "")); flash(ok ? "Đã copy CTA." : "Không copy được."); };
 
   const recs = [...data.serynContentRecommendations].sort((a, b) => {
     const ra = PRIO_ORDER[String(a.priority).toLowerCase()] ?? 3;
@@ -190,7 +263,7 @@ export default function SerynRecommendationsView({ data }: { data: SpyDashboardD
               <span className="text-xs text-slate-400 font-mono">({items.length})</span>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {items.map((r, i) => <React.Fragment key={i}><Card r={r} /></React.Fragment>)}
+              {items.map((r, i) => <React.Fragment key={i}><Card r={r} onSave={onSaveRec} onBrief={onBriefRec} onCopyHook={onCopyHook} onCopyCta={onCopyCta} /></React.Fragment>)}
             </div>
           </div>
         );

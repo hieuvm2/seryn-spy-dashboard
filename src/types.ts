@@ -1,96 +1,5 @@
-export type DashboardData = {
-  reportMeta: {
-    title: string;
-    reportDate: string;
-    market?: string;
-    source?: string;
-    reportType?: string;
-    summary?: string;
-  };
-
-  kpis: {
-    label: string;
-    value: string | number;
-    change?: string | number;
-    status?: "positive" | "negative" | "neutral" | "warning";
-    description?: string;
-  }[];
-
-  entities: {
-    id: string;
-    name: string;
-    category?: string;
-    status?: string;
-    metrics: Record<string, string | number>;
-    tags?: string[];
-    summary?: string;
-    observedInsights?: string[];
-    inferredInsights?: string[];
-    recommendations?: string[];
-  }[];
-
-  charts: {
-    id: string;
-    title: string;
-    type: "bar" | "line" | "pie" | "donut" | "area" | "heatmap" | "table";
-    data: any[];
-    xKey?: string;
-    yKey?: string;
-    categoryKey?: string;
-    description?: string;
-  }[];
-
-  rankings: {
-    title: string;
-    items: {
-      name: string;
-      value: number | string;
-      rank?: number;
-      description?: string;
-    }[];
-  }[];
-
-  insights: {
-    title: string;
-    type: "observed" | "inferred" | "warning" | "opportunity" | "recommendation";
-    content: string;
-    priority?: "high" | "medium" | "low";
-    evidence?: string;
-  }[];
-
-  recommendations: {
-    title: string;
-    reason: string;
-    action: string;
-    priority: "high" | "medium" | "low";
-    expectedImpact?: string;
-    kpiToTrack?: string;
-  }[];
-
-  rawTables?: any[];
-};
-
-export interface RawReportData {
-  title?: string;
-  date?: string;
-  market?: string;
-  source?: string;
-  summary?: string;
-  lines: string[];
-  tables: Record<string, string[][]>;
-  lists: { title: string; items: string[] }[];
-  content: string;
-}
-
-export interface DashboardConfig {
-  activeSection: string;
-  filterCategory: string;
-  filterStatus: string;
-  searchQuery: string;
-}
-
 /* ============================================================
-   SERYN SPY ADS — weekly competitor intelligence schema (v2)
+   SERYN SPY ADS — weekly competitor intelligence schema
    5 tables matching the agent CSV outputs.
    ============================================================ */
 
@@ -98,6 +7,9 @@ export type ViewId =
   | "overview"
   | "brands"
   | "scaled-content"
+  | "top-hooks"
+  | "swipe-file"
+  | "creative-briefs"
   | "weekly-changes"
   | "seryn-recommendations"
   | "data-import";
@@ -228,3 +140,73 @@ export type SpyDashboardData = {
 };
 
 export type SpyTableName = keyof SpyDashboardData;
+
+/* ============================================================
+   CONTENT INTELLIGENCE — Top Hooks · Swipe File · Creative Briefs
+   ============================================================ */
+
+export type SerynAction = "copy" | "adapt" | "counter" | "avoid" | "monitor" | string;
+
+export type TopHookItem = {
+  id: string;
+  source: "ad_level" | "scaled_content";
+  brand_name: string;
+  ad_id?: string;
+  ad_snapshot_url?: string;
+  hook_text: string;
+  hook_type?: string;
+  service_or_product?: string;
+  content_format?: string;
+  content_angle?: string;
+  offer_detected?: string;
+  proof_point?: string;
+  days_active?: number | string;
+  longest_days_active?: number | string;
+  scale_level?: number | string;
+  scale_reason?: string;
+  seryn_action?: SerynAction;
+  seryn_rewrite?: string;
+};
+
+export type SwipeFileItem = {
+  id: string;
+  savedAt: string;
+  sourceType: "hook" | "scaled_content" | "recommendation";
+  brand_name: string;
+  hook: string;
+  service_or_product?: string;
+  content_format?: string;
+  content_angle?: string;
+  offer_detected?: string;
+  proof_point?: string;
+  scale_level?: number | string;
+  reason_to_save?: string;
+  action: SerynAction;
+  seryn_reframe?: string;
+  notes?: string;
+  tags: string[];
+};
+
+export type CreativeBrief = {
+  id: string;
+  createdAt: string;
+  sourceType: "swipe_file" | "recommendation" | "scaled_content" | "hook";
+  title: string;
+  brand_name?: string;
+  objective: string;
+  market_signal: string;
+  competitor_evidence: string;
+  seryn_angle: string;
+  target_audience: string;
+  core_message: string;
+  hook_options: string[];
+  content_format: string;
+  script_outline: string[];
+  visual_direction: string;
+  proof_points: string[];
+  cta: string;
+  kpi: string;
+  dos: string[];
+  donts: string[];
+  markdown: string;
+};

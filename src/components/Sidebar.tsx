@@ -7,6 +7,9 @@ import {
   Lightbulb,
   Upload,
   Database,
+  Zap,
+  Bookmark,
+  FileText,
 } from "lucide-react";
 import type { ViewId } from "../types";
 
@@ -20,6 +23,9 @@ const menuItems: { id: ViewId; label: string; icon: any }[] = [
   { id: "overview", label: "Tổng quan", icon: LayoutDashboard },
   { id: "brands", label: "Đối thủ", icon: FileSpreadsheet },
   { id: "scaled-content", label: "Nội dung nhân rộng", icon: Flame },
+  { id: "top-hooks", label: "Top Hooks", icon: Zap },
+  { id: "swipe-file", label: "Swipe File", icon: Bookmark },
+  { id: "creative-briefs", label: "Creative Briefs", icon: FileText },
   { id: "weekly-changes", label: "Thay đổi tuần", icon: Layers },
   { id: "seryn-recommendations", label: "Gợi ý cho SERYN", icon: Lightbulb },
   { id: "data-import", label: "Nhập dữ liệu", icon: Upload },
