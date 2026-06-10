@@ -1,0 +1,236 @@
+import { DashboardData, SpyDashboardData } from "./types";
+
+export const sampleDashboardData: DashboardData = {
+  reportMeta: {
+    title: "Báo cáo Tình báo Chưa khởi tạo",
+    reportDate: new Date().toISOString().split('T')[0],
+    market: "Vietnam",
+    source: "ScrapeCreators Meta Spy",
+    reportType: "Quét Live",
+    summary: "Hệ thống đang sẵn sàng. Hãy chọn đối thủ từ danh sách và nhấn 'Quét Ads' để thu thập dữ liệu quảng cáo trực tiếp."
+  },
+
+  kpis: [
+    {
+      label: "Tổng đối thủ cấu hình",
+      value: 13,
+      change: "Chờ quét",
+      status: "neutral",
+      description: "Thương hiệu thẩm mỹ được giám sát"
+    },
+    {
+      label: "Đối thủ đang chạy Ads",
+      value: "0 / 13",
+      change: "0%",
+      status: "neutral",
+      description: "Chưa quét dữ liệu hoạt động"
+    },
+    {
+      label: "Tổng lượng Ads Spied",
+      value: "Chưa quét",
+      change: "0 Ads",
+      status: "neutral",
+      description: "Chưa có dữ liệu tin đăng"
+    },
+    {
+      label: "Dịch vụ Ads lớn nhất",
+      value: "N/A",
+      change: "Chờ quét",
+      status: "neutral",
+      description: "Phân tích sau khi thu thập"
+    },
+    {
+      label: "Nhà chạy ad lớn nhất",
+      value: "N/A",
+      change: "Chờ quét",
+      status: "neutral",
+      description: "Phân tích sau khi thu thập"
+    },
+    {
+      label: "Format scale mạnh nhất",
+      value: "N/A",
+      change: "Chờ quét",
+      status: "neutral",
+      description: "Phân tích sau khi thu thập"
+    }
+  ],
+
+  entities: [],
+  charts: [],
+  rankings: [],
+  insights: [],
+  recommendations: [],
+  rawTables: []
+};
+
+/* ============================================================
+   DEMO DATA — SERYN Weekly Competitor Ads Intelligence
+   13 thương hiệu thẩm mỹ, ~459 active ads (số minh họa).
+   ĐÂY LÀ DỮ LIỆU DEMO — không phải số liệu live thật.
+   ============================================================ */
+const WK = "2026-06-09";
+
+export const sampleSpyDashboardData: SpyDashboardData = {
+  brandWeeklySnapshot: [
+    {
+      week_date: WK, brand_name: "Kangnam", page_ids: "359285057508884", total_active_ads: 50, total_ads_collected: 50, num_pages_running: 1,
+      services_running: "facial_rejuvenation|filler_botox|hair_removal", prices_detected: "unknown", offers_detected: "trợ giá theo buổi",
+      main_content_formats: "doctor_explainer|kol_review|before_after", main_hooks: "doctor_authority|transformation_led", main_angles: "transformation|medical_authority",
+      main_proof_points: "doctor_expert|KOL_celebrity|before_after", main_ctas: "Send Message|Call Now",
+      scaled_content_count: 5, new_ads_count: 26, stopped_ads_count: 24,
+      content_strategy_summary: "Lõi trẻ hóa 43/50; mạnh cắt mí + trẻ hóa vùng mắt.", weekly_change_summary: "+2 ad, xoay creative (26 mới / 24 dừng).",
+      seryn_opportunity: "Adapt giáo dục trẻ hóa vùng mắt không phẫu thuật theo cấu trúc.",
+    },
+    {
+      week_date: WK, brand_name: "Thu Cúc", page_ids: "938714509514807|500793556456269|101804119684503", total_active_ads: 144, total_ads_collected: 144, num_pages_running: 3,
+      services_running: "surgery|facial_rejuvenation|lifting_firming|filler_botox", prices_detected: "13.5tr|6.5tr", offers_detected: "giảm sốc 50%|tặng suất giá gốc",
+      main_content_formats: "service_demo|offer_promotion|doctor_explainer", main_hooks: "offer_led|transformation_led", main_angles: "price_promotion|transformation",
+      main_proof_points: "doctor_expert|technology_machine|customer_testimonial", main_ctas: "Send Message|Sign Up",
+      scaled_content_count: 7, new_ads_count: 56, stopped_ads_count: 57,
+      content_strategy_summary: "Lõi trẻ hóa 33/144; phần lớn phẫu thuật giá sốc + HiFU/LiFU nâng cơ.", weekly_change_summary: "−1 ad (đủ 3 page), xoay creative mạnh.",
+      seryn_opportunity: "Counter mảng phẫu thuật giá sốc; adapt giáo dục HiFU theo khung sinh học.",
+    },
+    {
+      week_date: WK, brand_name: "Đông Á", page_ids: "102483108454334", total_active_ads: 15, total_ads_collected: 15, num_pages_running: 1,
+      services_running: "pigmentation_treatment|hair_removal", prices_detected: "588K", offers_detected: "đồng giá 588K",
+      main_content_formats: "offer_promotion|service_demo", main_hooks: "offer_led", main_angles: "price_promotion",
+      main_proof_points: "no_clear_proof", main_ctas: "Send Message",
+      scaled_content_count: 1, new_ads_count: 15, stopped_ads_count: 0,
+      content_strategy_summary: "Bật ad lại qua page Bắc Ninh; 0 ad trẻ hóa-core (toàn phun mày/môi, triệt lông).", weekly_change_summary: "came_online (+15 từ 0).",
+      seryn_opportunity: "Avoid/monitor — không chạm phân khúc trẻ hóa cao cấp của SERYN.",
+    },
+    {
+      week_date: WK, brand_name: "Ngọc Dung", page_ids: "372398605948395", total_active_ads: 0, total_ads_collected: 0, num_pages_running: 0,
+      services_running: "unknown", prices_detected: "unknown", offers_detected: "unknown",
+      main_content_formats: "unknown", main_hooks: "unknown", main_angles: "unknown", main_proof_points: "unknown", main_ctas: "unknown",
+      scaled_content_count: 0, new_ads_count: 0, stopped_ads_count: 0,
+      content_strategy_summary: "Không có ad active (đã dò ≥4 vector A/B/C/E).", weekly_change_summary: "still_dark (0 → 0).",
+      seryn_opportunity: "Khoảng trống định vị trẻ hóa y khoa khi nhóm này im ắng; theo dõi tuần sau.",
+    },
+    {
+      week_date: WK, brand_name: "JW Hàn Quốc", page_ids: "400844936646543|101055868985301", total_active_ads: 57, total_ads_collected: 57, num_pages_running: 2,
+      services_running: "facial_rejuvenation|surgery|hormone_biology_assessment|lifting_firming", prices_detected: "chỉ từ 7 triệu|trợ giá 20 triệu", offers_detected: "trợ giá theo triệu|miễn phí 100%",
+      main_content_formats: "doctor_explainer|customer_testimonial|service_demo", main_hooks: "doctor_authority|education_led", main_angles: "medical_authority|education",
+      main_proof_points: "doctor_expert|customer_testimonial|media_coverage", main_ctas: "Send Message|Call Now",
+      scaled_content_count: 6, new_ads_count: 9, stopped_ads_count: 10,
+      content_strategy_summary: "Bác sĩ Tú Dung dẫn dắt; đang dịch khỏi trẻ hóa mặt sang nâng vòng 1 + giải mã gen.", weekly_change_summary: "−1 ad, ổn định nhưng xoay trục dịch vụ.",
+      seryn_opportunity: "JW rời trẻ hóa mặt → tăng tốc own định vị nền tảng sinh học toàn thân.",
+    },
+    {
+      week_date: WK, brand_name: "Gangwhoo", page_ids: "112411351351957", total_active_ads: 10, total_ads_collected: 10, num_pages_running: 1,
+      services_running: "body_slimming", prices_detected: "unknown", offers_detected: "giảm sốc 50%",
+      main_content_formats: "offer_promotion|service_demo", main_hooks: "offer_led", main_angles: "price_promotion",
+      main_proof_points: "no_clear_proof|technology_machine", main_ctas: "Send Message",
+      scaled_content_count: 0, new_ads_count: 2, stopped_ads_count: 2,
+      content_strategy_summary: "Toàn giảm mỡ/nọng cằm giá sốc — không phải lõi trẻ hóa.", weekly_change_summary: "stable (0).",
+      seryn_opportunity: "Bỏ qua, monitor — không cùng sân định vị.",
+    },
+    {
+      week_date: WK, brand_name: "Shynh House", page_ids: "422033221305938", total_active_ads: 48, total_ads_collected: 48, num_pages_running: 1,
+      services_running: "facial_rejuvenation|lifting_firming|acne_treatment|pigmentation_treatment", prices_detected: "799K", offers_detected: "trợ giá|giá gốc",
+      main_content_formats: "customer_testimonial|doctor_explainer|offer_promotion", main_hooks: "doctor_authority|social_proof", main_angles: "education|social_proof",
+      main_proof_points: "doctor_expert|customer_testimonial|technology_machine", main_ctas: "Sign Up|Send Message",
+      scaled_content_count: 4, new_ads_count: 32, stopped_ads_count: 32,
+      content_strategy_summary: "Hi-Trulift Pro + New Perfect Skin; KOC review dày.", weekly_change_summary: "stable_creative_refresh (xoay creative).",
+      seryn_opportunity: "Adapt giáo dục nâng cơ y khoa, nhấn cá nhân hóa.",
+    },
+    {
+      week_date: WK, brand_name: "Lavender By Chang", page_ids: "887334961357859", total_active_ads: 50, total_ads_collected: 50, num_pages_running: 1,
+      services_running: "facial_rejuvenation|lifting_firming|pigmentation_treatment", prices_detected: "unknown", offers_detected: "off tới 55%|quà 70 triệu",
+      main_content_formats: "kol_review|service_demo|customer_testimonial", main_hooks: "premium_positioning|social_proof", main_angles: "premium_luxury|celebrity_proof",
+      main_proof_points: "KOL_celebrity|technology_machine|customer_testimonial", main_ctas: "Send Message|Call Now",
+      scaled_content_count: 5, new_ads_count: 4, stopped_ads_count: 4,
+      content_strategy_summary: "KOL hạng A (Khánh Thi, Đan Trường, Minh Hằng) + công nghệ cao cấp Thermage/Nanocell.", weekly_change_summary: "stable (0).",
+      seryn_opportunity: "Đối thủ định vị gần SERYN nhất — counter bằng nền tảng sinh học + dữ liệu, tránh hype 'da không tuổi'.",
+    },
+    {
+      week_date: WK, brand_name: "Seoul Center", page_ids: "322462184801000", total_active_ads: 50, total_ads_collected: 50, num_pages_running: 1,
+      services_running: "facial_rejuvenation|pigmentation_treatment|dental_aesthetics", prices_detected: "đồng giá 159K|290K", offers_detected: "đồng giá 159K|OFF 50% giờ vàng",
+      main_content_formats: "offer_promotion|customer_testimonial|doctor_explainer", main_hooks: "offer_led|social_proof", main_angles: "price_promotion|urgency",
+      main_proof_points: "customer_testimonial|price_proof", main_ctas: "Sign Up|Send Message",
+      scaled_content_count: 2, new_ads_count: 40, stopped_ads_count: 40,
+      content_strategy_summary: "Đồng giá 159K/290K, mảng nám/meso, tệp phổ thông.", weekly_change_summary: "stable_creative_refresh.",
+      seryn_opportunity: "Counter bằng premium, không đồng giá.",
+    },
+    {
+      week_date: WK, brand_name: "Lux Beauty Center", page_ids: "102187195024006", total_active_ads: 0, total_ads_collected: 0, num_pages_running: 0,
+      services_running: "unknown", prices_detected: "unknown", offers_detected: "unknown",
+      main_content_formats: "unknown", main_hooks: "unknown", main_angles: "unknown", main_proof_points: "unknown", main_ctas: "unknown",
+      scaled_content_count: 0, new_ads_count: 0, stopped_ads_count: 0,
+      content_strategy_summary: "Không có ad active (đã dò ≥4 vector A/C/E/F).", weekly_change_summary: "still_dark (0 → 0).",
+      seryn_opportunity: "Theo dõi tuần sau.",
+    },
+    {
+      week_date: WK, brand_name: "SeoulSpa", page_ids: "108687825073367", total_active_ads: 0, total_ads_collected: 0, num_pages_running: 0,
+      services_running: "unknown", prices_detected: "unknown", offers_detected: "unknown",
+      main_content_formats: "unknown", main_hooks: "unknown", main_angles: "unknown", main_proof_points: "unknown", main_ctas: "unknown",
+      scaled_content_count: 0, new_ads_count: 0, stopped_ads_count: 0,
+      content_strategy_summary: "Không có ad active (đã dò ≥4 vector A/C/E).", weekly_change_summary: "still_dark (0 → 0).",
+      seryn_opportunity: "Theo dõi tuần sau.",
+    },
+    {
+      week_date: WK, brand_name: "LG Clinic", page_ids: "138495609852248", total_active_ads: 50, total_ads_collected: 50, num_pages_running: 1,
+      services_running: "hair_removal|pigmentation_treatment|acne_treatment|lifting_firming", prices_detected: "449K|600K", offers_detected: "10 buổi 600K (gốc 2.200K)|449K hết thâm",
+      main_content_formats: "offer_promotion|technology_proof|service_demo", main_hooks: "offer_led|transformation_led", main_angles: "price_promotion|technology",
+      main_proof_points: "technology_machine|guarantee|price_proof", main_ctas: "Send Message|Sign Up",
+      scaled_content_count: 4, new_ads_count: 22, stopped_ads_count: 22,
+      content_strategy_summary: "Triệt lông -8°C, trị thâm/sẹo giá sốc; trẻ hóa (CFU Élife) thiểu số 18/50.", weekly_change_summary: "stable_creative_refresh.",
+      seryn_opportunity: "Avoid sân giá sốc; chiếm khoảng trống trẻ hóa cao cấp LG bỏ ngỏ.",
+    },
+    {
+      week_date: WK, brand_name: "Pensilia", page_ids: "108600987972847", total_active_ads: 0, total_ads_collected: 0, num_pages_running: 0,
+      services_running: "unknown", prices_detected: "unknown", offers_detected: "unknown",
+      main_content_formats: "unknown", main_hooks: "unknown", main_angles: "unknown", main_proof_points: "unknown", main_ctas: "unknown",
+      scaled_content_count: 0, new_ads_count: 0, stopped_ads_count: 0,
+      content_strategy_summary: "Không có ad active (đã dò ≥4 vector A/C/E).", weekly_change_summary: "still_dark (0 → 0).",
+      seryn_opportunity: "Theo dõi tuần sau.",
+    },
+  ],
+
+  adLevelAnalysis: [
+    { week_date: WK, brand_name: "JW Hàn Quốc", page_id: "101055868985301", page_name: "TS.BS Nguyễn Phan Tú Dung - BV JW", ad_id: "JW-AD-001", status: "ACTIVE", start_date: "2026-03-20", days_active: 81, media_type: "video", hook_text: "Trẻ hóa không bắt đầu từ việc chọn liệu trình, mà từ việc hiểu cấu trúc của bạn", hook_type: "doctor_authority", service_or_product: "facial_rejuvenation", offer_detected: "tư vấn miễn phí", content_format: "doctor_explainer", content_angle: "medical_authority", proof_point: "doctor_expert", cta: "Send Message", funnel_stage: "consideration", is_new_this_week: "false", was_seen_previous_week: "true", is_likely_scaled: "true", scale_level: 4, scale_reason: "evergreen >60 ngày + nhiều biến thể cùng angle" },
+    { week_date: WK, brand_name: "JW Hàn Quốc", page_id: "400844936646543", page_name: "Bệnh Viện JW", ad_id: "JW-AD-022", status: "ACTIVE", start_date: "2026-05-30", days_active: 10, media_type: "image", hook_text: "Giải mã gen tầm soát ung thư - hiểu cơ thể trước khi trẻ hóa", hook_type: "education_led", service_or_product: "hormone_biology_assessment", offer_detected: "miễn phí 100%", content_format: "educational_post", content_angle: "education", proof_point: "media_coverage", cta: "Send Message", funnel_stage: "awareness", is_new_this_week: "true", was_seen_previous_week: "false", is_likely_scaled: "false", scale_level: 1, scale_reason: "days_active<14 (testing)" },
+    { week_date: WK, brand_name: "Thu Cúc", page_id: "500793556456269", page_name: "Thu Cúc Hà Nội", ad_id: "TC-AD-103", status: "ACTIVE", start_date: "2025-11-02", days_active: 219, media_type: "video", hook_text: "Trẻ hơn mỗi ngày - Nâng cơ không xâm lấn", hook_type: "transformation_led", service_or_product: "lifting_firming", offer_detected: "trợ giá", content_format: "doctor_explainer", content_angle: "transformation", proof_point: "technology_machine", cta: "Send Message", funnel_stage: "consideration", is_new_this_week: "false", was_seen_previous_week: "true", is_likely_scaled: "true", scale_level: 4, scale_reason: "evergreen 219 ngày + 7 biến thể" },
+    { week_date: WK, brand_name: "Thu Cúc", page_id: "101804119684503", page_name: "Thu Cúc Sài Gòn", ad_id: "TC-AD-061", status: "ACTIVE", start_date: "2026-05-12", days_active: 28, media_type: "image", hook_text: "Nâng mũi chưa bằng một chiếc 17 Pro Max", hook_type: "offer_led", service_or_product: "surgery", price_detected: "13.5tr", offer_detected: "giảm sốc", content_format: "offer_promotion", content_angle: "price_promotion", proof_point: "no_clear_proof", cta: "Sign Up", funnel_stage: "conversion", is_new_this_week: "true", was_seen_previous_week: "false", is_likely_scaled: "true", scale_level: 2, scale_reason: "14-29 ngày, ~30 biến thể" },
+    { week_date: WK, brand_name: "LG Clinic", page_id: "138495609852248", page_name: "Viện Thẩm Mỹ LG Clinic", ad_id: "LG-AD-007", status: "ACTIVE", start_date: "2026-04-28", days_active: 42, media_type: "image", hook_text: "Trị nám chỉ 449K (Gốc 5.000K)", hook_type: "offer_led", service_or_product: "pigmentation_treatment", price_detected: "449K", offer_detected: "449K (gốc 5.000K)", content_format: "offer_promotion", content_angle: "price_promotion", proof_point: "price_proof", cta: "Send Message", funnel_stage: "conversion", is_new_this_week: "false", was_seen_previous_week: "true", is_likely_scaled: "true", scale_level: 3, scale_reason: "30-59 ngày + offer lặp" },
+    { week_date: WK, brand_name: "Kangnam", page_id: "359285057508884", page_name: "Thẩm mỹ Kangnam", ad_id: "KN-AD-022", status: "ACTIVE", start_date: "2026-05-18", days_active: 22, media_type: "video", hook_text: "Cắt mí 30 phút - đôi mắt trẻ trung tự nhiên", hook_type: "transformation_led", service_or_product: "facial_rejuvenation", offer_detected: "trợ giá theo buổi", content_format: "before_after", content_angle: "transformation", proof_point: "before_after", cta: "Send Message", funnel_stage: "conversion", is_new_this_week: "true", was_seen_previous_week: "false", is_likely_scaled: "true", scale_level: 2, scale_reason: "14-29 ngày, format+angle lặp" },
+    { week_date: WK, brand_name: "Lavender By Chang", page_id: "887334961357859", page_name: "Lavender By Chang", ad_id: "LV-AD-014", status: "ACTIVE", start_date: "2026-04-10", days_active: 60, media_type: "video", hook_text: "Nghệ sĩ Khánh Thi và hành trình giữ nét thanh xuân", hook_type: "premium_positioning", service_or_product: "lifting_firming", offer_detected: "off tới 55%", content_format: "kol_review", content_angle: "celebrity_proof", proof_point: "KOL_celebrity", cta: "Send Message", funnel_stage: "consideration", is_new_this_week: "false", was_seen_previous_week: "true", is_likely_scaled: "true", scale_level: 4, scale_reason: "evergreen + KOL lặp" },
+    { week_date: WK, brand_name: "Seoul Center", page_id: "322462184801000", page_name: "TMV Seoul Center", ad_id: "SC-AD-009", status: "ACTIVE", start_date: "2026-05-20", days_active: 20, media_type: "image", hook_text: "Trẻ hóa da chỉ từ 159K - số lượng có hạn", hook_type: "offer_led", service_or_product: "facial_rejuvenation", price_detected: "159K", offer_detected: "đồng giá 159K", content_format: "offer_promotion", content_angle: "price_promotion", proof_point: "price_proof", cta: "Sign Up", funnel_stage: "conversion", is_new_this_week: "true", was_seen_previous_week: "false", is_likely_scaled: "true", scale_level: 2, scale_reason: "14-29 ngày" },
+    { week_date: WK, brand_name: "Shynh House", page_id: "422033221305938", page_name: "Shynh House", ad_id: "SH-AD-031", status: "ACTIVE", start_date: "2025-06-15", days_active: 358, media_type: "video", hook_text: "HIFU Linear Z dưới góc nhìn y khoa", hook_type: "doctor_authority", service_or_product: "lifting_firming", offer_detected: "trợ giá", content_format: "doctor_explainer", content_angle: "education", proof_point: "doctor_expert", cta: "Sign Up", funnel_stage: "consideration", is_new_this_week: "false", was_seen_previous_week: "true", is_likely_scaled: "true", scale_level: 4, scale_reason: "evergreen 358 ngày" },
+    { week_date: WK, brand_name: "Đông Á", page_id: "102483108454334", page_name: "Thẩm Mỹ Đông Á Bắc Ninh", ad_id: "DA-AD-003", status: "ACTIVE", start_date: "2026-05-25", days_active: 15, media_type: "image", hook_text: "Phun mày sợi cao cấp chỉ 588K", hook_type: "offer_led", service_or_product: "pigmentation_treatment", price_detected: "588K", offer_detected: "đồng giá 588K", content_format: "offer_promotion", content_angle: "price_promotion", proof_point: "no_clear_proof", cta: "Send Message", funnel_stage: "conversion", is_new_this_week: "true", was_seen_previous_week: "false", is_likely_scaled: "true", scale_level: 2, scale_reason: "14-29 ngày + biến thể" },
+  ],
+
+  scaledContentAnalysis: [
+    { week_date: WK, brand_name: "Shynh House", content_cluster_id: "SH-CL-01", representative_ad_id: "SH-AD-031", representative_hook: "HIFU Linear Z dưới góc nhìn y khoa", service_or_product: "lifting_firming", offer_detected: "trợ giá", content_format: "doctor_explainer", content_angle: "education", proof_point: "doctor_expert", number_of_similar_ads: 13, longest_days_active: 358, average_days_active: 120, scale_level: 4, why_it_is_scaling: "Evergreen 358 ngày + nhiều biến thể cùng doctor_explainer", competitor_strategy_interpretation: "Nâng cơ y khoa làm trục dài hạn", seryn_should_copy_adapt_counter_avoid: "adapt", seryn_reframe: "Học format bác sĩ giải thích nâng cơ, nâng lên khung nền tảng sinh học toàn thân" },
+    { week_date: WK, brand_name: "JW Hàn Quốc", content_cluster_id: "JW-CL-01", representative_ad_id: "JW-AD-001", representative_hook: "Trẻ hóa bắt đầu từ việc hiểu cấu trúc của bạn", service_or_product: "facial_rejuvenation", offer_detected: "tư vấn miễn phí", content_format: "doctor_explainer", content_angle: "medical_authority", proof_point: "doctor_expert", number_of_similar_ads: 9, longest_days_active: 81, average_days_active: 55, scale_level: 4, why_it_is_scaling: "Evergreen >60 ngày + bác sĩ Tú Dung là KOL", competitor_strategy_interpretation: "Uy tín bác sĩ + giáo dục y khoa dài hạn", seryn_should_copy_adapt_counter_avoid: "adapt", seryn_reframe: "Dùng đội ngũ đa chuyên khoa thay vì sùng bái cá nhân, bỏ 'trẻ 0 tuổi'" },
+    { week_date: WK, brand_name: "Thu Cúc", content_cluster_id: "TC-CL-01", representative_ad_id: "TC-AD-103", representative_hook: "Trẻ hơn mỗi ngày - Nâng cơ không xâm lấn", service_or_product: "lifting_firming", offer_detected: "trợ giá", content_format: "doctor_explainer", content_angle: "transformation", proof_point: "technology_machine", number_of_similar_ads: 7, longest_days_active: 219, average_days_active: 110, scale_level: 4, why_it_is_scaling: "Evergreen 219 ngày + 7 biến thể HiFU/LiFU", competitor_strategy_interpretation: "Nâng cơ không xâm lấn làm trục bền", seryn_should_copy_adapt_counter_avoid: "adapt", seryn_reframe: "Giáo dục HiFU theo khung sinh học, nhấn cá nhân hóa" },
+    { week_date: WK, brand_name: "LG Clinic", content_cluster_id: "LG-CL-01", representative_ad_id: "LG-AD-007", representative_hook: "Trị nám chỉ 449K (Gốc 5.000K)", service_or_product: "pigmentation_treatment", price_detected: "449K", offer_detected: "449K (gốc 5.000K)", content_format: "offer_promotion", content_angle: "price_promotion", proof_point: "price_proof", number_of_similar_ads: 12, longest_days_active: 42, average_days_active: 30, scale_level: 3, why_it_is_scaling: "30-59 ngày + offer/giá lặp nhiều biến thể", competitor_strategy_interpretation: "Giá sốc + neo giá gốc kéo lead", seryn_should_copy_adapt_counter_avoid: "counter", seryn_reframe: "Không đua giá; cải thiện đo lường được, chỉ định cá nhân hóa" },
+    { week_date: WK, brand_name: "Lavender By Chang", content_cluster_id: "LV-CL-01", representative_ad_id: "LV-AD-014", representative_hook: "Nghệ sĩ Khánh Thi và hành trình giữ nét thanh xuân", service_or_product: "lifting_firming", offer_detected: "off tới 55%", content_format: "kol_review", content_angle: "celebrity_proof", proof_point: "KOL_celebrity", number_of_similar_ads: 8, longest_days_active: 60, average_days_active: 40, scale_level: 4, why_it_is_scaling: "KOL hạng A lặp nhiều biến thể", competitor_strategy_interpretation: "Proof KOL cao cấp + công nghệ", seryn_should_copy_adapt_counter_avoid: "counter", seryn_reframe: "Câu chuyện khách hàng + lý giải cơ chế bác sĩ, tránh hype 'da không tuổi'" },
+    { week_date: WK, brand_name: "Kangnam", content_cluster_id: "KN-CL-01", representative_ad_id: "KN-AD-022", representative_hook: "Cắt mí 30 phút - đôi mắt trẻ trung tự nhiên", service_or_product: "facial_rejuvenation", offer_detected: "trợ giá theo buổi", content_format: "before_after", content_angle: "transformation", proof_point: "before_after", number_of_similar_ads: 6, longest_days_active: 22, average_days_active: 18, scale_level: 2, why_it_is_scaling: "14-29 ngày + before_after lặp", competitor_strategy_interpretation: "Trẻ hóa vùng mắt qua transformation", seryn_should_copy_adapt_counter_avoid: "adapt", seryn_reframe: "Trẻ hóa vùng mắt theo cấu trúc, ưu tiên giải pháp nhẹ phù hợp" },
+    { week_date: WK, brand_name: "Seoul Center", content_cluster_id: "SC-CL-01", representative_ad_id: "SC-AD-009", representative_hook: "Trẻ hóa da chỉ từ 159K - số lượng có hạn", service_or_product: "facial_rejuvenation", price_detected: "159K", offer_detected: "đồng giá 159K", content_format: "offer_promotion", content_angle: "price_promotion", proof_point: "price_proof", number_of_similar_ads: 5, longest_days_active: 20, average_days_active: 16, scale_level: 2, why_it_is_scaling: "14-29 ngày + giá mồi lặp", competitor_strategy_interpretation: "Giá mồi + urgency kéo lead", seryn_should_copy_adapt_counter_avoid: "avoid", seryn_reframe: "Tránh giá mồi/urgency; bán giá trị đánh giá đúng" },
+  ],
+
+  weeklyStrategyChange: [
+    { week_date: WK, brand_name: "Kangnam", active_ads_change: "+2", new_ads_count: 26, stopped_ads_count: 24, new_content_angles: "trẻ hóa vùng mắt", strategic_change_type: "stable_creative_refresh", change_summary: "Giữ quy mô, xoay creative; lõi trẻ hóa rớt 43→10 ad relevant.", seryn_implication: "Adapt giáo dục trẻ hóa vùng mắt không phẫu thuật." },
+    { week_date: WK, brand_name: "Thu Cúc", active_ads_change: "-1", new_ads_count: 56, stopped_ads_count: 57, strategic_change_type: "stable_creative_refresh", change_summary: "Đủ 3 page = 144 ad; xoay creative mạnh, quy mô đi ngang.", seryn_implication: "Counter phẫu thuật giá sốc; adapt HiFU." },
+    { week_date: WK, brand_name: "Đông Á", active_ads_change: "+15", new_ads_count: 15, stopped_ads_count: 0, new_services_detected: "pigmentation_treatment|hair_removal", new_offers_detected: "đồng giá 588K", strategic_change_type: "came_online", change_summary: "Bật ad lại qua page Bắc Ninh (0→15) nhưng 0 ad trẻ hóa-core.", seryn_implication: "Avoid/monitor — không chạm phân khúc SERYN." },
+    { week_date: WK, brand_name: "Ngọc Dung", active_ads_change: "0", new_ads_count: 0, stopped_ads_count: 0, strategic_change_type: "still_dark", change_summary: "Vẫn 0 ad sau khi dò ≥4 vector.", seryn_implication: "Theo dõi; tận dụng giai đoạn im ắng." },
+    { week_date: WK, brand_name: "JW Hàn Quốc", active_ads_change: "-1", new_ads_count: 9, stopped_ads_count: 10, removed_content_angles: "trẻ hóa mặt SMAS", new_content_angles: "nâng vòng 1|giải mã gen", strategic_change_type: "format_shift", change_summary: "Page bác sĩ co lại, dịch khỏi trẻ hóa mặt sang nâng ngực + tầm soát gen.", seryn_implication: "Khoảng trống trẻ hóa nền tảng sinh học rộng thêm — own ngay." },
+    { week_date: WK, brand_name: "Gangwhoo", active_ads_change: "0", new_ads_count: 2, stopped_ads_count: 2, strategic_change_type: "stable", change_summary: "Giữ 10 ad giảm mỡ giá sốc.", seryn_implication: "Bỏ qua, monitor." },
+    { week_date: WK, brand_name: "Shynh House", active_ads_change: "0", new_ads_count: 32, stopped_ads_count: 32, strategic_change_type: "stable_creative_refresh", change_summary: "Giữ 48 ad, xoay creative Hi-Trulift + New Perfect Skin.", seryn_implication: "Adapt giáo dục nâng cơ y khoa." },
+    { week_date: WK, brand_name: "Lavender By Chang", active_ads_change: "0", new_ads_count: 4, stopped_ads_count: 4, strategic_change_type: "stable", change_summary: "Giữ 50 ad KOL hạng A + công nghệ cao cấp.", seryn_implication: "Counter bằng nền tảng sinh học + dữ liệu." },
+    { week_date: WK, brand_name: "Seoul Center", active_ads_change: "0", new_ads_count: 40, stopped_ads_count: 40, strategic_change_type: "stable_creative_refresh", change_summary: "Giữ 50 ad đồng giá 159K, churn creative cao.", seryn_implication: "Counter bằng premium, không đồng giá." },
+    { week_date: WK, brand_name: "Lux Beauty Center", active_ads_change: "0", new_ads_count: 0, stopped_ads_count: 0, strategic_change_type: "still_dark", change_summary: "Vẫn 0 ad sau khi dò ≥4 vector.", seryn_implication: "Theo dõi tuần sau." },
+    { week_date: WK, brand_name: "SeoulSpa", active_ads_change: "0", new_ads_count: 0, stopped_ads_count: 0, strategic_change_type: "still_dark", change_summary: "Vẫn 0 ad sau khi dò ≥4 vector.", seryn_implication: "Theo dõi tuần sau." },
+    { week_date: WK, brand_name: "LG Clinic", active_ads_change: "0", new_ads_count: 22, stopped_ads_count: 22, strategic_change_type: "stable_creative_refresh", change_summary: "Giữ 50 ad giá sốc triệt lông/trị thâm.", seryn_implication: "Avoid sân giá sốc; chiếm khoảng trống trẻ hóa cao cấp." },
+    { week_date: WK, brand_name: "Pensilia", active_ads_change: "0", new_ads_count: 0, stopped_ads_count: 0, strategic_change_type: "still_dark", change_summary: "Vẫn 0 ad sau khi dò ≥4 vector.", seryn_implication: "Theo dõi tuần sau." },
+  ],
+
+  serynContentRecommendations: [
+    { week_date: WK, recommendation_type: "content_format", market_signal: "doctor_explainer là format scale bền nhất (52 ad cụm bác sĩ-giáo dục, 196 ad hook doctor_authority).", competitor_evidence: "JW (Tú Dung SMAS/Midface), Shynh (HIFU Linear Z), Kangnam (Dr.Mark), Thu Cúc (HiFU).", seryn_content_niche: "Giáo dục trẻ hóa từ nền tảng sinh học", suggested_content_format: "doctor_explainer (video bác sĩ 60-90s)", suggested_hook: "Có những dấu hiệu lão hóa không bắt đầu từ da, mà từ cách cấu trúc nâng đỡ thay đổi theo tuổi.", content_style: "Khoa học, điềm tĩnh, bác sĩ lắng nghe", main_message: "Trẻ hóa bền vững cần đánh giá nền tảng sinh học trước khi chọn liệu trình.", proof_to_use: "doctor_expert|scientific_explanation", cta: "Đặt lịch đánh giá nền tảng sinh học", kpi: "thumb-stop rate; message-to-booking", priority: "High" },
+    { week_date: WK, recommendation_type: "counter_offer", market_signal: "Thị trường bão hòa giá sốc (148 ad hook offer_led: giảm 50-80%, đồng giá 159K/290K).", competitor_evidence: "Seoul Center đồng giá 159K, LG triệt 600K/449K, Thu Cúc 'giá sốc 13.5tr'.", seryn_content_niche: "Định vị premium không giảm sốc", suggested_content_format: "educational_post (carousel so sánh)", suggested_hook: "Một gương mặt tươi hơn không nhất thiết phải là một gương mặt khác đi.", content_style: "Tự tin, không áp lực, không FOMO", main_message: "Giá trị nằm ở chẩn đoán đúng và kết quả tự nhiên bền vững, không phải con số khuyến mãi.", proof_to_use: "doctor_expert|customer_context", cta: "Tìm hiểu thêm", kpi: "CTR; lead quality", priority: "High" },
+    { week_date: WK, recommendation_type: "niche_whitespace", market_signal: "Mảng đánh giá nền tảng sinh học/hormone gần như trống.", competitor_evidence: "Không brand nào sở hữu 'phân tích sinh học cá nhân hóa' cho trẻ hóa.", seryn_content_niche: "Phân tích gương mặt & nền tảng sinh học", suggested_content_format: "consultation_lead (landing + form)", suggested_hook: "Không phải là làm nhiều hơn. Đôi khi là chỉ định đúng hơn.", content_style: "Chuẩn xác y khoa, cá nhân hóa", main_message: "SERYN sở hữu bước 'đánh giá nền tảng sinh học' như điểm khác biệt cốt lõi trước mọi liệu trình.", proof_to_use: "scientific_explanation|doctor_expert", cta: "Đặt lịch phân tích gương mặt", kpi: "cost per qualified lead; consultation completion rate", priority: "High" },
+    { week_date: WK, recommendation_type: "proof_strategy", market_signal: "KOL/celebrity proof scale ở phân khúc cao cấp (31 ad kol_review).", competitor_evidence: "Lavender (Khánh Thi, Đan Trường, Minh Hằng), Kangnam (Xuân Ca), Shynh (KOC).", seryn_content_niche: "Bằng chứng có giải thích y khoa", suggested_content_format: "kol_review kèm phân tích bác sĩ", suggested_hook: "Trẻ hóa bền vững bắt đầu từ việc hiểu đúng điều gì đang thay đổi bên trong cơ thể.", content_style: "Editorial cao cấp, ấm, không hào nhoáng", main_message: "Câu chuyện khách hàng + lý giải cơ chế bác sĩ, tránh hứa 'trẻ 10 tuổi'.", proof_to_use: "customer_testimonial|doctor_expert", cta: "Khám phá lộ trình phù hợp với cơ thể bạn", kpi: "video hold rate; booking rate", priority: "Medium" },
+    { week_date: WK, recommendation_type: "format_test", market_signal: "Trẻ hóa vùng mắt không phẫu thuật là cụm con chạy nhiều.", competitor_evidence: "Kangnam combo mắt, JW Midface/bọng mắt, Thu Cúc cắt mí dưới.", seryn_content_niche: "Trẻ hóa vùng mắt theo cấu trúc", suggested_content_format: "doctor_explainer ngắn (Reel 30-45s)", suggested_hook: "Vùng mắt thường là nơi tuổi tác lên tiếng đầu tiên — nhưng không phải lúc nào câu trả lời cũng là dao kéo.", content_style: "Nhẹ nhàng, lý trí, bác sĩ tư vấn", main_message: "Đánh giá vùng mắt trước khi quyết định can thiệp, ưu tiên giải pháp nhẹ phù hợp cấu trúc.", proof_to_use: "doctor_expert|technology_machine", cta: "Trao đổi với đội ngũ chuyên môn", kpi: "CTR; message-to-booking", priority: "Medium" },
+  ],
+};
