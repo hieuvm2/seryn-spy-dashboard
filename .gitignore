@@ -1,5 +1,40 @@
-﻿node_modules
+# deps / build
+node_modules
 dist
+build
+coverage
+
+# logs
+*.log
+
+# env & secrets (KHÔNG commit)
 .env
 .env.local
+.env.*.local
+secrets
+secrets/
+*.pem
+*.key
+
+# Stray data/credential JSON (vd service account) — nhưng giữ lại config json của project
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!vercel.json
+!metadata.json
+
+# Vercel
+.vercel
+
+# OS
 .DS_Store
+
+# Cho phép template env (không phải secret)
+!.env.example
+
+# (giữ các mục hiện có)
+tsconfig.api.json
+dist_verify
+__test_pipeline.mjs
+src/__probe_new.txt
