@@ -122,6 +122,7 @@ export const SOURCE_LABELS: Record<DataSourceType, string> = {
   "local-csv": "LOCAL CSV DATA",
   "local-folder": "LOCAL PROJECT FOLDER",
   "online-sheet": "ONLINE SHEET DATA",
+  "offline-cache": "OFFLINE CACHE",
 };
 
 export function saveSourceType(src: DataSourceType): void {
@@ -130,7 +131,7 @@ export function saveSourceType(src: DataSourceType): void {
 export function loadSourceType(): DataSourceType | null {
   try {
     const v = localStorage.getItem(SOURCE_KEY);
-    return v === "demo" || v === "local-csv" || v === "local-folder" || v === "online-sheet" ? v : null;
+    return v === "demo" || v === "local-csv" || v === "local-folder" || v === "online-sheet" || v === "offline-cache" ? v : null;
   } catch {
     return null;
   }

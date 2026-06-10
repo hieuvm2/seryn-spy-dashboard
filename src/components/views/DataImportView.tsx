@@ -17,7 +17,6 @@ import {
   checkDataHealth,
   getHistoryWeeks,
   loadWeeklyHistory,
-  fetchOnlineSheets,
 } from "../../utils/spyData";
 
 const TABLE_ORDER: SpyTableName[] = [
@@ -31,12 +30,20 @@ const TABLE_ORDER: SpyTableName[] = [
 export default function DataImportView({
   data,
   dataSource,
+  onlineConfigured,
+  onlineStatus,
+  isOnlineLoading,
+  onRefreshOnline,
   onDataChange,
   onLoadSample,
   onClear,
 }: {
   data: SpyDashboardData;
   dataSource: DataSourceType;
+  onlineConfigured: boolean;
+  onlineStatus: string;
+  isOnlineLoading: boolean;
+  onRefreshOnline: () => Promise<{ ok: boolean; msg: string }>;
   onDataChange: (next: SpyDashboardData, source?: DataSourceType) => void;
   onLoadSample: () => void;
   onClear: () => void;
@@ -45,26 +52,12 @@ export default function DataImportView({
   const [supported] = useState(isDirectoryPickerSupported());
   const [remembered, setRemembered] = useState<any | null>(null);
   const [busy, setBusy] = useState(false);
-  const [onlineBusy, setOnlineBusy] = useState(false);
   const [weeks, setWeeks] = useState<string[]>([]);
 
-  // #6/#7: Refresh Online Data (Google Sheets). Lỗi -> giữ nguyên dữ liệu hiện tại (localStorage/sample).
+  // #6/#7: Refresh Online Data (Google Sheets) — App.tsx sở hữu fetch + state.
   const refreshOnline = async () => {
-    setOnlineBusy(true);
-    try {
-      const { data: next, loaded, errors } = await fetchOnlineSheets(data);
-      onDataChange(next, "online-sheet");
-      setStatus({
-        msg: `Đã nạp ${loaded.length}/5 bảng từ Google Sheets.` + (errors.length ? ` (lỗi: ${errors.join("; ")})` : ""),
-        ok: true,
-      });
-    } catch (e: any) {
-      setStatus({
-        msg: `Không nạp được Google Sheets: ${e?.message || e}. Giữ nguyên dữ liệu hiện tại (localStorage / dữ liệu mẫu).`,
-        ok: false,
-      });
-    }
-    setOnlineBusy(false);
+    const r = await onRefreshOnline();
+    setStatus({ msg: r.msg, ok: r.ok });
   };
 
   useEffect(() => {
@@ -195,15 +188,37 @@ export default function DataImportView({
           <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border bg-indigo-50 border-indigo-200 text-indigo-700">ONLINE</span>
         </div>
         <p className="text-xs text-slate-500 font-medium mb-4">
-          Lấy 5 bảng trực tiếp từ Google Sheets qua API an toàn <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">/api/sheets</code> (Vercel Serverless / Apps Script). <b>Không nhúng key vào trình duyệt.</b> Cấu hình <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">GSHEET_ID</code> hoặc <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">APPS_SCRIPT_URL</code> trong Vercel → Environment Variables (xem README_DEPLOY_VERCEL.md). Nếu API lỗi → tự giữ dữ liệu localStorage/mẫu.
+          Lấy 5 bảng trực tiếp từ Google Sheets qua Google Apps Script Web App. Cấu hình URL bằng biến môi trường <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">VITE_GOOGLE_SHEETS_API_URL</code> trong Vercel → Settings → Environment Variables (xem README_GOOGLE_SHEETS_ONLINE_DATA.md). <b>Không nhúng service account / private key vào trình duyệt.</b> Mọi người mở cùng link đều xem chung một bộ dữ liệu. Nếu API lỗi → tự giữ dữ liệu localStorage / mẫu.
         </p>
+
+        {/* Trạng thái cấu hình & nguồn hiện tại */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+            <p className="text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold mb-1">API URL</p>
+            <span className={`inline-flex items-center gap-1.5 text-xs font-extrabold px-2 py-0.5 rounded border ${onlineConfigured ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
+              {onlineConfigured ? "Configured" : "Not configured"}
+            </span>
+          </div>
+          <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+            <p className="text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold mb-1">Nguồn hiện tại</p>
+            <span className="text-xs font-extrabold text-slate-700">{SOURCE_LABELS[dataSource]}</span>
+          </div>
+          <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+            <p className="text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold mb-1">Lần đồng bộ gần nhất</p>
+            <span className="text-xs font-semibold text-slate-600 break-words">{onlineStatus || "—"}</span>
+          </div>
+        </div>
+
         <button
           onClick={refreshOnline}
-          disabled={onlineBusy}
+          disabled={isOnlineLoading}
           className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm transition cursor-pointer"
         >
-          <RefreshCw className={`w-4 h-4 ${onlineBusy ? "animate-spin" : ""}`} /> {onlineBusy ? "Đang nạp…" : "Refresh Online Data"}
+          <RefreshCw className={`w-4 h-4 ${isOnlineLoading ? "animate-spin" : ""}`} /> {isOnlineLoading ? "Đang nạp…" : "Refresh Online Data"}
         </button>
+        {!onlineConfigured && (
+          <p className="text-[11px] text-amber-600 font-semibold mt-3">⚠️ Chưa cấu hình <code className="bg-slate-100 px-1 rounded">VITE_GOOGLE_SHEETS_API_URL</code>. Bấm Refresh sẽ báo <b>Missing VITE_GOOGLE_SHEETS_API_URL</b>. Thêm biến này trên Vercel rồi redeploy để bật chế độ ONLINE SHEET DATA.</p>
+        )}
       </div>
 
       {/* Tự động nạp cả thư mục */}

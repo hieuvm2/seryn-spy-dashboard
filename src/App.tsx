@@ -20,6 +20,7 @@ import {
   saveSourceType,
   clearSourceType,
 } from "./utils/spyData";
+import { fetchOnlineSpyData, getOnlineApiUrl, isOnlineConfigured } from "./utils/onlineData";
 
 const VALID_VIEWS: ViewId[] = [
   "overview",
@@ -36,6 +37,74 @@ export default function App() {
   const [dataSource, setDataSource] = useState<DataSourceType>(stored ? (loadSourceType() ?? "local-csv") : "demo");
   const [activeSection, setActiveSection] = useState<ViewId>("overview");
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+
+  // ONLINE SHEET DATA — trạng thái đồng bộ Google Sheets.
+  const onlineConfigured = isOnlineConfigured();
+  const [onlineStatus, setOnlineStatus] = useState<string>("");
+  const [isOnlineLoading, setIsOnlineLoading] = useState(false);
+
+  // Khi khởi động: nếu có VITE_GOOGLE_SHEETS_API_URL -> tự fetch online.
+  // Lỗi -> fallback localStorage (OFFLINE CACHE) -> sample. Không crash app.
+  useEffect(() => {
+    const apiUrl = getOnlineApiUrl();
+    if (!apiUrl) return; // không có env -> giữ localStorage/sample như cũ
+    let cancelled = false;
+    (async () => {
+      setIsOnlineLoading(true);
+      setOnlineStatus("Syncing Google Sheets...");
+      try {
+        const next = await fetchOnlineSpyData(apiUrl);
+        if (cancelled) return;
+        setSpyData(next);
+        saveSpyDataToLocalStorage(next);
+        saveWeekToHistory(next);
+        setDataSource("online-sheet");
+        saveSourceType("online-sheet");
+        setOnlineStatus(`Đã đồng bộ Google Sheets · ${new Date().toLocaleTimeString("vi-VN")}`);
+      } catch (e: any) {
+        if (cancelled) return;
+        const cache = loadSpyDataFromLocalStorage();
+        if (cache) {
+          setSpyData(cache);
+          setDataSource("offline-cache");
+        }
+        setOnlineStatus(`Không kết nối được Google Sheets (${e?.message || e}). Đang dùng dữ liệu ${cache ? "offline đã lưu" : "mẫu"}.`);
+      } finally {
+        if (!cancelled) setIsOnlineLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Nút "Refresh Online Data" trong DataImportView.
+  const handleRefreshOnline = async () => {
+    const apiUrl = getOnlineApiUrl();
+    if (!apiUrl) {
+      const msg = "Missing VITE_GOOGLE_SHEETS_API_URL";
+      setOnlineStatus(msg);
+      return { ok: false, msg };
+    }
+    setIsOnlineLoading(true);
+    setOnlineStatus("Syncing Google Sheets...");
+    try {
+      const next = await fetchOnlineSpyData(apiUrl);
+      setSpyData(next);
+      saveSpyDataToLocalStorage(next);
+      saveWeekToHistory(next);
+      setDataSource("online-sheet");
+      saveSourceType("online-sheet");
+      const msg = "Đã cập nhật dữ liệu từ Google Sheets";
+      setOnlineStatus(`${msg} · ${new Date().toLocaleTimeString("vi-VN")}`);
+      return { ok: true, msg };
+    } catch (e: any) {
+      const msg = `Không nạp được Google Sheets: ${e?.message || e}`;
+      setOnlineStatus(msg);
+      return { ok: false, msg };
+    } finally {
+      setIsOnlineLoading(false);
+    }
+  };
 
   // URL hash sync (open valid view from hash; default overview)
   useEffect(() => {
@@ -88,6 +157,7 @@ export default function App() {
           dataSource={dataSource}
           market="Vietnam"
           weekDate={weekDate}
+          isOnlineLoading={isOnlineLoading}
           onImportClick={() => goView("data-import")}
           onClear={handleClear}
         />
@@ -102,6 +172,10 @@ export default function App() {
             <DataImportView
               data={spyData}
               dataSource={dataSource}
+              onlineConfigured={onlineConfigured}
+              onlineStatus={onlineStatus}
+              isOnlineLoading={isOnlineLoading}
+              onRefreshOnline={handleRefreshOnline}
               onDataChange={handleDataChange}
               onLoadSample={handleLoadSample}
               onClear={handleClear}

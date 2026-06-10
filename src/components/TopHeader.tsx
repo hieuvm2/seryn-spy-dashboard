@@ -1,5 +1,5 @@
 import React from "react";
-import { Globe, Upload, Trash2, FlaskConical, FolderOpen, FileSpreadsheet, Cloud } from "lucide-react";
+import { Globe, Upload, Trash2, FlaskConical, FolderOpen, FileSpreadsheet, Cloud, CloudOff, RefreshCw } from "lucide-react";
 import type { DataSourceType } from "../types";
 import { SOURCE_LABELS } from "../utils/spyData";
 
@@ -7,6 +7,7 @@ interface TopHeaderProps {
   dataSource: DataSourceType;
   market?: string;
   weekDate?: string;
+  isOnlineLoading?: boolean;
   onImportClick: () => void;
   onClear: () => void;
 }
@@ -16,9 +17,10 @@ const SOURCE_STYLE: Record<DataSourceType, { cls: string; Icon: any }> = {
   "local-csv": { cls: "bg-emerald-50 border-emerald-200 text-emerald-700", Icon: FileSpreadsheet },
   "local-folder": { cls: "bg-cyan-50 border-cyan-200 text-cyan-700", Icon: FolderOpen },
   "online-sheet": { cls: "bg-indigo-50 border-indigo-200 text-indigo-700", Icon: Cloud },
+  "offline-cache": { cls: "bg-slate-100 border-slate-300 text-slate-600", Icon: CloudOff },
 };
 
-export default function TopHeader({ dataSource, market = "Vietnam", weekDate, onImportClick, onClear }: TopHeaderProps) {
+export default function TopHeader({ dataSource, market = "Vietnam", weekDate, isOnlineLoading = false, onImportClick, onClear }: TopHeaderProps) {
   const src = SOURCE_STYLE[dataSource] || SOURCE_STYLE.demo;
   const SrcIcon = src.Icon;
   return (
@@ -40,6 +42,16 @@ export default function TopHeader({ dataSource, market = "Vietnam", weekDate, on
           <SrcIcon className="w-3.5 h-3.5" />
           {SOURCE_LABELS[dataSource]}
         </span>
+
+        {isOnlineLoading && (
+          <span
+            className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-bold"
+            title="Đang đồng bộ dữ liệu từ Google Sheets"
+          >
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            Syncing Google Sheets...
+          </span>
+        )}
 
         <span className="hidden lg:inline-flex items-center gap-1.5 bg-slate-50 text-slate-600 px-2.5 py-1 rounded border border-slate-200 text-xs font-bold">
           <Globe className="w-3.5 h-3.5 text-cyan-600" />
