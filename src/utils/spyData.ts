@@ -140,57 +140,6 @@ export function clearSourceType(): void {
   try { localStorage.removeItem(SOURCE_KEY); } catch { /* noop */ }
 }
 
-/* ---------------- Online data source: Google Sheets ---------------- */
-export const ONLINE_API_PATH = "/api/sheets";
-
-/** Tên snake_case (từ API) -> key trong SpyDashboardData. */
-const ONLINE_KEYS: Record<string, SpyTableName> = {
-  brand_weekly_snapshot: "brandWeeklySnapshot",
-  ad_level_analysis: "adLevelAnalysis",
-  scaled_content_analysis: "scaledContentAnalysis",
-  weekly_strategy_change: "weeklyStrategyChange",
-  seryn_content_recommendations: "serynContentRecommendations",
-};
-
-/** Gọi serverless function `/api/sheets`, parse 5 bảng (csv hoặc array),
- *  merge lên `base`. Ném lỗi nếu API hỏng hoặc không có bảng nào — để
- *  caller fallback về localStorage/sample. */
-export async function fetchOnlineSheets(base: SpyDashboardData): Promise<{
-  data: SpyDashboardData;
-  loaded: SpyTableName[];
-  errors: string[];
-}> {
-  const res = await fetch(ONLINE_API_PATH, { cache: "no-store" });
-  let json: any = null;
-  try { json = await res.json(); } catch { /* phản hồi không phải JSON */ }
-  if (!res.ok) throw new Error((json && json.error) || `API HTTP ${res.status}`);
-  if (!json || json.ok === false) throw new Error((json && json.error) || "API trả về dữ liệu không hợp lệ.");
-
-  let next = base;
-  const loaded: SpyTableName[] = [];
-  const errors: string[] = Array.isArray(json?.errors)
-    ? json.errors.map((e: any) => (e && e.key ? `${e.key}: ${e.error}` : String(e)))
-    : [];
-
-  for (const [snake, key] of Object.entries(ONLINE_KEYS) as [string, SpyTableName][]) {
-    let rows: Record<string, string>[] | null = null;
-    if (json?.csv && typeof json.csv[snake] === "string") {
-      rows = parseCSV(json.csv[snake]);
-    } else if (Array.isArray(json?.[snake])) {
-      rows = json[snake] as Record<string, string>[];
-    } else if (Array.isArray(json?.[key])) {
-      rows = json[key] as Record<string, string>[];
-    }
-    if (rows && rows.length) {
-      next = mergeImportedTable(next, key, rows);
-      loaded.push(key);
-    }
-  }
-
-  if (!loaded.length) throw new Error("Không nhận được bảng nào từ Google Sheets (kiểm tra cấu hình & quyền chia sẻ Sheet).");
-  return { data: next, loaded, errors };
-}
-
 /** Parse CSV text into row objects. Handles quoted fields, escaped quotes,
  *  CRLF, a UTF-8 BOM and Vietnamese characters. Never throws on ragged rows. */
 export function parseCSV(text: string): Record<string, string>[] {
