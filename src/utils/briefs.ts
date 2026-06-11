@@ -5,8 +5,142 @@
 import type { CreativeBrief, SwipeFileItem, SerynContentRecommendation } from "../types";
 import { splitChips, isMissing } from "./spyData";
 import { genId } from "./swipeFile";
+import { isSheetsConfigured, apiGet, apiPost } from "./sheetsApi";
 
 const CREATIVE_BRIEFS_KEY = "seryn_creative_briefs_v1";
+
+/** Tên tab Google Sheets + thứ tự cột (header) cho Creative Briefs. */
+export const BRIEFS_SHEET_TAB = "Creative Briefs";
+export const BRIEFS_HEADERS = [
+  "id",
+  "createdAt",
+  "sourceType",
+  "title",
+  "brand_name",
+  "objective",
+  "market_signal",
+  "competitor_evidence",
+  "seryn_angle",
+  "target_audience",
+  "core_message",
+  "hook_options",
+  "content_format",
+  "script_outline",
+  "visual_direction",
+  "proof_points",
+  "cta",
+  "kpi",
+  "dos",
+  "donts",
+  "markdown",
+] as const;
+
+function str(v: unknown): string { return v === undefined || v === null ? "" : String(v); }
+function strArr(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map((x) => String(x)).filter((x) => x.length > 0);
+  const s = String(v || "").trim();
+  if (!s) return [];
+  try { const a = JSON.parse(s); if (Array.isArray(a)) return a.map((x) => String(x)); } catch { /* not json */ }
+  return [s];
+}
+
+/* ---- serialize <-> bản ghi Sheets (Record<string,string>) ---- */
+export function briefToRecord(b: CreativeBrief): Record<string, string> {
+  return {
+    id: str(b.id),
+    createdAt: str(b.createdAt),
+    sourceType: str(b.sourceType),
+    title: str(b.title),
+    brand_name: str(b.brand_name),
+    objective: str(b.objective),
+    market_signal: str(b.market_signal),
+    competitor_evidence: str(b.competitor_evidence),
+    seryn_angle: str(b.seryn_angle),
+    target_audience: str(b.target_audience),
+    core_message: str(b.core_message),
+    hook_options: JSON.stringify(b.hook_options || []),
+    content_format: str(b.content_format),
+    script_outline: JSON.stringify(b.script_outline || []),
+    visual_direction: str(b.visual_direction),
+    proof_points: JSON.stringify(b.proof_points || []),
+    cta: str(b.cta),
+    kpi: str(b.kpi),
+    dos: JSON.stringify(b.dos || []),
+    donts: JSON.stringify(b.donts || []),
+    markdown: str(b.markdown),
+  };
+}
+
+export function recordToBrief(r: Record<string, unknown>): CreativeBrief {
+  const get = (k: string) => str(r[k]);
+  const brief: CreativeBrief = {
+    id: get("id") || genId("br"),
+    createdAt: get("createdAt") || new Date().toISOString(),
+    sourceType: (get("sourceType") || "swipe_file") as CreativeBrief["sourceType"],
+    title: get("title"),
+    brand_name: get("brand_name"),
+    objective: get("objective"),
+    market_signal: get("market_signal"),
+    competitor_evidence: get("competitor_evidence"),
+    seryn_angle: get("seryn_angle"),
+    target_audience: get("target_audience"),
+    core_message: get("core_message"),
+    hook_options: strArr(r["hook_options"]),
+    content_format: get("content_format"),
+    script_outline: strArr(r["script_outline"]),
+    visual_direction: get("visual_direction"),
+    proof_points: strArr(r["proof_points"]),
+    cta: get("cta"),
+    kpi: get("kpi"),
+    dos: strArr(r["dos"]),
+    donts: strArr(r["donts"]),
+    markdown: get("markdown"),
+  };
+  if (!brief.markdown) brief.markdown = briefToMarkdown(brief);
+  return brief;
+}
+
+function isValidBrief(b: CreativeBrief): boolean {
+  return !!str(b.id).trim() && !!str(b.title).trim();
+}
+
+/* ---- đồng bộ Google Sheets (fire-and-forget) ---- */
+function remoteUpsertBrief(b: CreativeBrief): void {
+  if (!isSheetsConfigured() || !isValidBrief(b)) return;
+  apiPost({ type: "creative_briefs", action: "upsert", record: briefToRecord(b) })
+    .catch((e) => console.warn("Sync Creative Brief (upsert) thất bại — giữ bản local:", e));
+}
+function remoteDeleteBrief(id: string): void {
+  if (!isSheetsConfigured() || !str(id).trim()) return;
+  apiPost({ type: "creative_briefs", action: "delete", id })
+    .catch((e) => console.warn("Sync Creative Brief (delete) thất bại — giữ bản local:", e));
+}
+
+/**
+ * Đọc Creative Briefs ưu tiên Google Sheets (nếu cấu hình), fallback localStorage.
+ */
+export async function loadCreativeBriefsAsync(): Promise<{ items: CreativeBrief[]; source: "online" | "local" }> {
+  if (isSheetsConfigured()) {
+    try {
+      const json = await apiGet({ type: "creative_briefs" });
+      // Phải là mảng; nếu Apps Script cũ trả 5 bảng (object) -> không ghi đè cache local.
+      if (!Array.isArray(json.data)) {
+        throw new Error("Apps Script chưa hỗ trợ type=creative_briefs (cập nhật bản mới).");
+      }
+      const online = (json.data as Record<string, unknown>[]).map(recordToBrief);
+      // Merge offline-first: giữ brief local chưa kịp lên online (POST upsert đang bay)
+      // để tránh ghi đè mất brief vừa tạo khi view load ngay sau khi thêm.
+      const onlineIds = new Set(online.map((x) => x.id));
+      const localOnly = loadCreativeBriefs().filter((x) => !onlineIds.has(x.id));
+      const items = [...online, ...localOnly];
+      saveCreativeBriefs(items);
+      return { items, source: "online" };
+    } catch (e) {
+      console.warn("Đọc Creative Briefs online thất bại — dùng localStorage:", e);
+    }
+  }
+  return { items: loadCreativeBriefs(), source: "local" };
+}
 
 /* ---- hằng số định vị SERYN ---- */
 const TARGET_AUDIENCE =
@@ -67,11 +201,13 @@ export function addCreativeBrief(brief: CreativeBrief): CreativeBrief[] {
   const items = loadCreativeBriefs();
   items.unshift(brief);
   saveCreativeBriefs(items);
+  remoteUpsertBrief(brief);
   return items;
 }
 export function deleteCreativeBrief(id: string): CreativeBrief[] {
   const items = loadCreativeBriefs().filter((x) => x.id !== id);
   saveCreativeBriefs(items);
+  remoteDeleteBrief(id);
   return items;
 }
 export function clearCreativeBriefs(): void {

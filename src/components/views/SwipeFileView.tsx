@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { Search, Bookmark, FileText, ClipboardCopy, CheckCircle2, Trash2, Save, Inbox } from "lucide-react";
 import type { SwipeFileItem, SerynAction } from "../../types";
 import { normalizeNumber, orUnknown, viLabel, scaleMeta } from "../../utils/spyData";
-import { loadSwipeFile, deleteSwipeItem, updateSwipeItem } from "../../utils/swipeFile";
+import { loadSwipeFileAsync, deleteSwipeItem, updateSwipeItem } from "../../utils/swipeFile";
 import { addCreativeBrief, generateBriefFromSwipeItem } from "../../utils/briefs";
 
 const ACTION_TONE: Record<string, string> = {
@@ -56,7 +56,11 @@ export default function SwipeFileView({
   const [note, setNote] = useState<string | null>(null);
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
 
-  useEffect(() => { setItems(loadSwipeFile()); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    loadSwipeFileAsync().then(({ items }) => { if (!cancelled) setItems(items); });
+    return () => { cancelled = true; };
+  }, []);
 
   const flash = (m: string) => { setNote(m); window.setTimeout(() => setNote(null), 2600); };
 

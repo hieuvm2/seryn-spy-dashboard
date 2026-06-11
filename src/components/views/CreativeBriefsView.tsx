@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { FileText, ClipboardCopy, CheckCircle2, Trash2, Inbox, ChevronDown, ChevronUp, Download } from "lucide-react";
 import type { CreativeBrief } from "../../types";
-import { loadCreativeBriefs, deleteCreativeBrief, briefToMarkdown } from "../../utils/briefs";
+import { loadCreativeBriefsAsync, deleteCreativeBrief, briefToMarkdown } from "../../utils/briefs";
 
 const SRC_LABEL: Record<string, string> = {
   swipe_file: "Từ Swipe File",
@@ -47,7 +47,11 @@ export default function CreativeBriefsView() {
   const [note, setNote] = useState<string | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
-  useEffect(() => { setBriefs(loadCreativeBriefs()); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    loadCreativeBriefsAsync().then(({ items }) => { if (!cancelled) setBriefs(items); });
+    return () => { cancelled = true; };
+  }, []);
   const flash = (m: string) => { setNote(m); window.setTimeout(() => setNote(null), 2600); };
 
   const kpi = useMemo(() => ({

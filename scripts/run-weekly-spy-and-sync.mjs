@@ -8,7 +8,9 @@
    .env:
      GOOGLE_SHEET_ID             = <id sheet đích>
      GOOGLE_SERVICE_ACCOUNT_FILE = <đường dẫn file JSON service account>
-     OUTPUTS_DIR                 = (tùy chọn) mặc định <repo>/outputs
+     OUTPUTS_DIR                 = (tùy chọn) thư mục chứa output CSV của agent.
+                                   Mặc định <project>/outputs (PROJECT_ROOT = thư mục
+                                   chứa /scripts, tức gốc dự án web-react).
 
    YÊU CẦU: Share Google Sheet (Editor) cho client_email của service account.
    ============================================================ */
@@ -19,17 +21,51 @@ import { fileURLToPath } from "node:url";
 import { google } from "googleapis";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, "..", "..");
-const OUTPUTS_DIR = process.env.OUTPUTS_DIR || path.join(REPO_ROOT, "outputs");
 
-const SHEET_ID = process.env.GOOGLE_SHEET_ID;
-const SA_FILE = process.env.GOOGLE_SERVICE_ACCOUNT_FILE;
-const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
+/* PROJECT_ROOT = một cấp trên /scripts (gốc dự án này). */
+const PROJECT_ROOT = path.resolve(__dirname, "..");
+/* Vị trí outputs/ "legacy": khi web-react là thư mục con của repo agent
+   (C:\seryn-spy-agent\outputs), giữ tương thích ngược nếu chưa set OUTPUTS_DIR. */
+const LEGACY_OUTPUTS_DIR = path.resolve(__dirname, "..", "..", "outputs");
 
 function fail(msg) {
   console.error("\n[X] " + msg + "\n");
   process.exit(1);
 }
+
+/* Chốt OUTPUTS_DIR: ưu tiên .env, rồi <project>/outputs, rồi legacy ../../outputs. */
+function resolveOutputsDir() {
+  const fromEnv = process.env.OUTPUTS_DIR && process.env.OUTPUTS_DIR.trim();
+  if (fromEnv) {
+    const dir = path.resolve(fromEnv);
+    if (!fs.existsSync(dir)) {
+      fail(
+        `Không tìm thấy OUTPUTS_DIR (từ .env):\n   ${dir}\n` +
+        "  → Kiểm tra lại đường dẫn OUTPUTS_DIR trong .env, hoặc tạo thư mục đó."
+      );
+    }
+    return dir;
+  }
+  const defaultDir = path.join(PROJECT_ROOT, "outputs");
+  if (fs.existsSync(defaultDir)) return defaultDir;
+  // Tương thích ngược: layout cũ có outputs/ ở repo cha.
+  if (fs.existsSync(LEGACY_OUTPUTS_DIR)) {
+    console.warn(`[!] Dùng outputs/ ở repo cha (legacy): ${LEGACY_OUTPUTS_DIR}`);
+    console.warn(`    → Nên đặt OUTPUTS_DIR trong .env cho rõ ràng.`);
+    return LEGACY_OUTPUTS_DIR;
+  }
+  fail(
+    `Không tìm thấy thư mục outputs.\n` +
+    `  Đã thử:\n   ${defaultDir}\n   ${LEGACY_OUTPUTS_DIR}\n` +
+    `  → Tạo thư mục outputs/ trong dự án, hoặc đặt OUTPUTS_DIR=<đường dẫn> trong .env.`
+  );
+}
+
+const OUTPUTS_DIR = resolveOutputsDir();
+
+const SHEET_ID = process.env.GOOGLE_SHEET_ID;
+const SA_FILE = process.env.GOOGLE_SERVICE_ACCOUNT_FILE;
+const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 
 if (!SHEET_ID) fail("Thiếu GOOGLE_SHEET_ID trong .env.");
 if (!SA_FILE) fail("Thiếu GOOGLE_SERVICE_ACCOUNT_FILE trong .env.");

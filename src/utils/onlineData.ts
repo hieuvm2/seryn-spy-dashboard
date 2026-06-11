@@ -3,13 +3,14 @@
    Đọc dữ liệu online trực tiếp từ Google Apps Script Web App URL
    (trả JSON từ Google Sheets). Cấu hình qua biến môi trường Vite:
 
-       VITE_GOOGLE_SHEETS_API_URL=https://script.google.com/macros/s/XXX/exec
+       VITE_GOOGLE_SHEETS_API_URL = https://script.google.com/macros/s/XXX/exec
+       VITE_GOOGLE_SHEETS_API_KEY = <khớp Script Property API_SECRET_KEY> (tùy chọn)
 
    KHÔNG nhúng service account JSON / private key vào frontend.
    Apps Script URL chỉ dùng để ĐỌC dữ liệu dashboard.
 
-   Mọi người mở cùng một link Vercel đều fetch cùng URL này -> xem
-   chung một bộ dữ liệu.
+   URL + API key được dựng tập trung trong `sheetsApi.ts` (buildUrl) để mọi
+   request đều nối key nhất quán.
    ============================================================ */
 import type {
   SpyDashboardData,
@@ -19,16 +20,16 @@ import type {
   WeeklyStrategyChange,
   SerynContentRecommendation,
 } from "../types";
+import { apiGet, getApiUrl, isSheetsConfigured } from "./sheetsApi";
 
 /** URL Apps Script Web App lấy từ env Vite (build-time). Rỗng nếu chưa cấu hình. */
 export function getOnlineApiUrl(): string {
-  const raw = import.meta.env.VITE_GOOGLE_SHEETS_API_URL;
-  return typeof raw === "string" ? raw.trim() : "";
+  return getApiUrl();
 }
 
 /** Đã cấu hình env VITE_GOOGLE_SHEETS_API_URL hay chưa. */
 export function isOnlineConfigured(): boolean {
-  return getOnlineApiUrl().length > 0;
+  return isSheetsConfigured();
 }
 
 /** Bảo đảm trả về mảng object an toàn (không crash khi field thiếu / sai kiểu). */
@@ -37,43 +38,27 @@ function asRows<T>(value: unknown): T[] {
 }
 
 /**
- * Fetch 5 bảng dữ liệu spy từ Google Apps Script Web App URL.
+ * Fetch 5 bảng dữ liệu spy từ Google Apps Script Web App.
  *
- * - Gọi `fetch(apiUrl)` (no-store, luôn lấy bản mới).
- * - Parse JSON, kiểm tra `json.ok === true` và có `json.data`.
+ * - Gọi `apiGet()` (no-store, tự nối ?key=... nếu có VITE_GOOGLE_SHEETS_API_KEY).
+ * - Đã xác thực `json.ok === true` trong apiGet; ở đây chỉ map `json.data`.
  * - Thiếu dataset nào -> trả mảng rỗng cho dataset đó (không crash).
- * - Lỗi mạng / HTTP / JSON / response sai -> throw Error rõ ràng để
- *   caller fallback về localStorage / sample data.
+ * - Lỗi mạng / HTTP / JSON / Unauthorized -> throw Error rõ ràng để caller
+ *   fallback về localStorage / sample data.
+ *
+ * Tham số `apiUrl` giữ lại cho tương thích chữ ký cũ; nếu rỗng -> báo lỗi rõ.
  */
-export async function fetchOnlineSpyData(apiUrl: string): Promise<SpyDashboardData> {
-  if (!apiUrl) {
+export async function fetchOnlineSpyData(apiUrl?: string): Promise<SpyDashboardData> {
+  if (apiUrl !== undefined && apiUrl.trim() === "") {
     throw new Error("Thiếu VITE_GOOGLE_SHEETS_API_URL (chưa cấu hình Google Sheets API URL).");
   }
-
-  let response: Response;
-  try {
-    response = await fetch(apiUrl, { method: "GET", cache: "no-store" });
-  } catch (e: any) {
-    throw new Error(`Không kết nối được Google Sheets API: ${e?.message || e}`);
+  // apiGet() sẽ tự dựng URL (kèm key) và ném lỗi rõ ràng nếu URL chưa cấu hình.
+  const json = await apiGet();
+  const data = json.data;
+  if (!data || typeof data !== "object") {
+    throw new Error("Phản hồi Google Sheets API không có trường data hợp lệ.");
   }
-
-  if (!response.ok) {
-    throw new Error(`Google Sheets API error: HTTP ${response.status}`);
-  }
-
-  let json: any;
-  try {
-    json = await response.json();
-  } catch {
-    throw new Error("Google Sheets API không trả về JSON hợp lệ.");
-  }
-
-  if (!json || json.ok !== true || !json.data) {
-    const reason = json && json.error ? `: ${json.error}` : "";
-    throw new Error(`Phản hồi Google Sheets API không hợp lệ${reason}.`);
-  }
-
-  const d = json.data;
+  const d = data as Record<string, unknown>;
   return {
     brandWeeklySnapshot: asRows<BrandWeeklySnapshot>(d.brandWeeklySnapshot),
     adLevelAnalysis: asRows<AdLevelAnalysis>(d.adLevelAnalysis),

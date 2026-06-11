@@ -1,16 +1,16 @@
 # Deploy SERYN Spy Dashboard lên Vercel
 
 Dashboard là **frontend tĩnh (SPA)** — React + Vite + TypeScript + Tailwind, **không có backend**.
-Toàn bộ dữ liệu nằm trong trình duyệt (localStorage) + nhập CSV thủ công. Bước này chỉ deploy frontend.
+Dữ liệu đọc từ Google Sheets (online) hoặc CSV (local) + localStorage. Bước này chỉ deploy frontend.
 
-> Thư mục dự án React nằm ở `web-react/`. Mọi lệnh dưới đây chạy **trong `web-react/`**.
+> Ứng dụng nằm ở **gốc repository này** (`package.json`, `src/`, `index.html` ở root).
+> **Không có** thư mục con `web-react/`. Mọi lệnh dưới đây chạy ở **gốc repo**.
 
 ---
 
 ## 1. Chạy local
 
 ```bash
-cd web-react
 npm install
 npm run dev          # → http://localhost:5173
 ```
@@ -35,19 +35,18 @@ Scripts trong `package.json`:
 
 ```bash
 npm i -g vercel
-cd web-react
 vercel               # lần đầu: trả lời prompt (tạo project, link)
 vercel --prod        # deploy bản production
 ```
 
 Khi CLI hỏi:
-- **In which directory is your code located?** → `.` (đang đứng trong `web-react`)
+- **In which directory is your code located?** → `.` (gốc repo)
 - **Build Command** → `npm run build` (hoặc để Vercel tự nhận Vite)
 - **Output Directory** → `dist`
 
 ## 4. Deploy qua GitHub (khuyến nghị)
 
-1. Push repo lên GitHub (cả thư mục dự án; React app nằm trong `web-react/`).
+1. Push repo lên GitHub (gốc repo chính là thư mục chứa `package.json`).
 2. Vào **vercel.com → Add New → Project → Import** repo.
 3. Ở màn cấu hình, nhập đúng các giá trị bên dưới rồi **Deploy**.
 4. Mỗi lần `git push` → Vercel tự build lại.
@@ -56,23 +55,23 @@ Khi CLI hỏi:
 
 | Mục | Giá trị |
 |---|---|
+| **Root Directory** | `.` |
 | **Framework Preset** | Vite |
-| **Root Directory** | `web-react`  ⚠️ (vì app nằm trong thư mục con) |
 | **Build Command** | `npm run build` (= `vite build`) |
 | **Output Directory** | `dist` |
 | **Install Command** | `npm install` |
 | **Node.js Version** | 18.x hoặc 20.x |
 
-> Nếu bạn tạo repo riêng **chỉ chứa nội dung `web-react/`** thì Root Directory để trống (`.`).
+> App nằm ở gốc repo nên Root Directory để `.` (mặc định). Không cần trỏ vào thư mục con.
 
 ## 5. `vercel.json`
 
-Đã có sẵn `web-react/vercel.json`:
+Đã có sẵn `vercel.json` ở gốc repo:
 
 ```json
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/((?!api/).*)", "destination": "/" }
   ]
 }
 ```
@@ -114,10 +113,18 @@ App tự fetch online khi mở (nếu đã cấu hình URL); hoặc bấm **Refr
 1. Tạo Apps Script Web App đọc 5 tab và trả JSON — **code + hướng dẫn đầy đủ trong
    `README_GOOGLE_SHEETS_ONLINE_DATA.md`** (và `docs/google-apps-script-web-api.js`).
    Deploy **as Web app** · *Execute as* **Me** · *Who has access* **Anyone**.
-2. Copy URL `https://script.google.com/macros/s/XXX/exec`.
-3. Vercel → *Settings → Environment Variables*: `VITE_GOOGLE_SHEETS_API_URL = <URL>` → **Redeploy**.
+2. (Khuyến nghị prod) Trong Apps Script → **Project Settings → Script properties** thêm
+   `API_SECRET_KEY = <bí mật>` để bật bảo vệ key.
+3. Copy URL `https://script.google.com/macros/s/XXX/exec`.
+4. Vercel → *Settings → Environment Variables*:
+   - `VITE_GOOGLE_SHEETS_API_URL = <URL>`
+   - `VITE_GOOGLE_SHEETS_API_KEY = <đúng API_SECRET_KEY>` (nếu đã bật key)
+   → **Redeploy**.
 
-> Sheet vẫn **riêng tư**; Apps Script chạy bằng quyền owner và chỉ trả JSON 5 bảng (read-only).
+> Sheet vẫn **riêng tư**; Apps Script chạy bằng quyền owner. Vì *Who has access: Anyone*, hãy đặt
+> `API_SECRET_KEY` cho production — thiếu/sai key API sẽ trả `{ok:false, error:"Unauthorized"}`.
+> Frontend đọc/ghi 5 bảng dashboard + 2 tab **Swipe File**, **Creative Briefs** (xem
+> `README_GOOGLE_SHEETS_ONLINE_DATA.md`).
 
 ### Ghi dữ liệu lên Sheet
 Dùng script **local** `npm run spy:sync` (service account, đọc file JSON ngoài repo) — xem

@@ -24,12 +24,20 @@ Agent spy ghi 5 CSV (outputs/)  ──►  npm run spy:sync  ──(Service Acco
    ```
 5. Mở file JSON lấy **`client_email`** → mở Google Sheet → **Share → email đó → Editor**.
 
-### 2) `.env` (trong `web-react/`, không commit)
+### 2) `.env` (ở gốc repo, không commit)
 ```
 GOOGLE_SHEET_ID=11WRRCa5AfIoWDK9qo3UqT3QvdrD0xCRY-zRd-8Ezj0Q
 GOOGLE_SERVICE_ACCOUNT_FILE=C:/seryn-spy-agent/secrets/google-service-account.json
+# Thư mục 5 CSV của agent. Mặc định <repo>/outputs. Nếu agent ghi ở nơi khác
+# (vd repo cha) thì trỏ tường minh:
+OUTPUTS_DIR=C:/seryn-spy-agent/outputs
 VITE_GOOGLE_SHEETS_API_URL=https://script.google.com/macros/s/XXXX/exec   # cho dashboard đọc
+# VITE_GOOGLE_SHEETS_API_KEY=your-secret-key   # nếu Apps Script đã bật API_SECRET_KEY
 ```
+
+> **`OUTPUTS_DIR`**: script `run-weekly-spy-and-sync.mjs` lấy `PROJECT_ROOT` = thư mục chứa
+> `/scripts` (gốc repo), mặc định đọc `<repo>/outputs`. Nếu không có, nó tự thử `../../outputs`
+> (layout cũ web-react là thư mục con) và cảnh báo. Thiếu hẳn → báo lỗi rõ kèm đường dẫn đã thử.
 
 ### 3) Dashboard đọc online (đã có)
 Apps Script `doGet` (file `docs/google-apps-script-web-api.js`) deploy as Web App (Anyone) →
@@ -37,8 +45,7 @@ Apps Script `doGet` (file `docs/google-apps-script-web-api.js`) deploy as Web Ap
 
 ## B. Đồng bộ thủ công
 ```bash
-cd web-react
-npm run spy:sync
+npm run spy:sync     # chạy ở gốc repo
 ```
 Log: `[OK] Brand Weekly Snapshot: ghi 13 dòng ... Xong: 5/5 tab, tổng 537 dòng.`
 → Mở dashboard bấm **Refresh Online Data** (hoặc reload).
