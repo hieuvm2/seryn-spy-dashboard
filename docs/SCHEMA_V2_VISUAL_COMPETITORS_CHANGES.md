@@ -89,3 +89,52 @@ brand_name, page_ids, page_urls, active, notes, category, last_crawled_at, last_
 | `VISUAL_ANALYSIS_API_KEY` | (trống) | dành cho AI vision/OCR sau này (server-side, không vào frontend) |
 
 Frontend **không** cần env mới — Visual Intelligence tự derive từ `Ad Level Analysis` nếu thiếu tab `Visual Analysis`.
+
+---
+
+# v3 — Incremental Intelligence Pipeline (cache + provenance)
+
+Pipeline chỉ phân tích ad **mới** hoặc ad có `content_hash`/`visual_hash` **thay đổi**; ad cũ không đổi
+→ **reuse** kết quả từ cache (giảm chi phí AI, tăng tốc, ổn định dữ liệu). Tất cả tab đều **optional**
+(thiếu → app vẫn chạy, fallback đếm từ `analysis_status` của Ad Level).
+
+### Hashing
+- `content_hash` = sha256 rút gọn của: `ad_id, primary_text, headline, description, cta, landing_url, offer` (normalize null/whitespace/lowercase).
+- `visual_hash` = sha256 của: `thumbnail_url, media_url, image_urls, video_preview_url, creative_type, snapshot_url`.
+
+### Cột mới trên `Ad Level Analysis` + `Visual Analysis`
+`content_hash, visual_hash, analysis_status, reused_from_cache, analysis_version, last_analyzed_at`.
+`analysis_status` ∈ `newly_analyzed | reused_from_cache | changed_reanalyzed | carried_forward | crawl_failed | missing_media | low_confidence`.
+
+### Tab `Ad Analysis Cache`
+`ad_id, brand, page_id, content_hash, visual_hash, analysis_version, analysis_provider, analysis_status,
+reused_from_cache, text_analysis_json, visual_analysis_json, last_analyzed_at`.
+→ Mỗi run đọc cache cũ → so hash → quyết định new/reused/changed → ghi lại cache.
+
+### Tab `Crawl Runs` (append, provenance)
+`crawl_run_id, started_at, finished_at, week_date, provider, country, total_brands, total_pages,
+success_pages, failed_pages, total_ads_fetched, new_ads_count, changed_ads_count, reused_ads_count,
+analyzed_ads_count, carried_forward_count, status, error_summary`. Dashboard đọc tab này cho summary
+(New/Changed/Reused/Carried/AI calls saved/crawl failures).
+
+### Tab `Raw Ads Archive` (append)
+`crawl_run_id, week_date, brand, page_id, ad_id, content_hash, visual_hash, status, source_provider,
+source_country, first_seen_date, last_seen_date, raw_json` (raw_json cắt 8000 ký tự).
+
+### Tab `Historical Weekly Snapshots` (append)
+`week_date, brand, active_ads_count, new_ads_count, stopped_ads_count, changed_ads_count, reused_ads_count,
+top_service, top_hook, top_offer, top_visual_format, crawl_status, snapshot_json` — cho trend nhiều tuần.
+
+### Tab `Pattern Cache`
+`pattern_id, pattern_hash, brand, service_type, hook_type, offer_type, visual_format, visual_angle,
+first_seen_date, last_seen_date, ads_count, active_days_avg, example_ads, scale_signal` (`scale_signal=TRUE`
+khi ≥3 ad active cùng pattern).
+
+### Chống kết luận sai (data quality)
+- Chỉ kết luận `brand_scaled_down` / `page_inactive` khi **crawl brand đó THÀNH CÔNG**.
+- Crawl lỗi → ad giữ `carried_forward`, bỏ qua kết luận dừng/giảm (ghi cảnh báo), dashboard hiện banner crawl warning.
+
+### Chuẩn bị AI Vision incremental (chưa bật)
+`VISUAL_AI_PROVIDER=heuristic|ai`, `MAX_AI_ANALYSIS_PER_RUN`, `AI_BATCH_SIZE`, `AI_RETRY_LIMIT`,
+`TEXT_ANALYSIS_PROMPT_VERSION`, `VISUAL_ANALYSIS_PROMPT_VERSION`. Khi bật `ai`: chỉ gọi AI cho ad
+`newly_analyzed`/`changed_reanalyzed` (KHÔNG gọi cho `reused_from_cache`). Đổi prompt version → buộc phân tích lại.

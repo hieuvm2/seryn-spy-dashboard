@@ -41,6 +41,11 @@ const SHEET_MAP = {
   brandVisualSummary: "Brand Visual Summary",
   visualPatternAnalysis: "Visual Pattern Analysis",
   weeklyChangeInsights: "Weekly Change Insights",
+  // ---- nâng cấp v3 (incremental cache / provenance) ----
+  crawlRuns: "Crawl Runs",
+  adAnalysisCache: "Ad Analysis Cache",
+  patternCache: "Pattern Cache",
+  historicalWeeklySnapshots: "Historical Weekly Snapshots",
 };
 
 /* Tab read/write (Swipe File, Creative Briefs, Competitors).
@@ -175,6 +180,7 @@ function doGet(e) {
       brandVisualSummary: sheetToObjects_(SHEET_MAP.brandVisualSummary),
       visualPatternAnalysis: sheetToObjects_(SHEET_MAP.visualPatternAnalysis),
       weeklyChangeInsights: sheetToObjects_(SHEET_MAP.weeklyChangeInsights),
+      crawlRuns: sheetToObjects_(SHEET_MAP.crawlRuns),
       meta: { source: "GOOGLE_SHEETS", generatedAt: new Date().toISOString() },
     };
     return makeJson_({ ok: true, data: data });

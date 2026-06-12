@@ -50,6 +50,16 @@ Gợi ý cho SERYN · **Competitor Setup** · Nhập dữ liệu.
 Tab Google Sheets + cột mới: xem [`docs/SCHEMA_V2_VISUAL_COMPETITORS_CHANGES.md`](docs/SCHEMA_V2_VISUAL_COMPETITORS_CHANGES.md).
 Sau khi cập nhật, **phải Deploy lại Apps Script** (`docs/google-apps-script-web-api.js`) → New version.
 
+## Nâng cấp v3 — Incremental pipeline (cache + provenance)
+
+`spy:weekly` giờ là **incremental**: chỉ phân tích ad **mới** hoặc ad có `content_hash`/`visual_hash`
+**thay đổi**; ad cũ không đổi → **reuse** từ tab `Ad Analysis Cache` (giảm chi phí AI, tăng tốc, ổn định).
+- Cột mới trên Ad Level/Visual: `content_hash, visual_hash, analysis_status, reused_from_cache, analysis_version, last_analyzed_at`.
+- Tab mới: `Ad Analysis Cache`, `Crawl Runs`, `Raw Ads Archive`, `Historical Weekly Snapshots`, `Pattern Cache` (đều optional).
+- **Chống kết luận sai:** chỉ kết luận `scaled_down`/`page_inactive` khi crawl brand đó THÀNH CÔNG; crawl lỗi → `carried_forward`.
+- Dashboard: badge New/Cached/Changed/Carried/No media trên creative; banner data-quality + "AI calls saved" trong Thay đổi tuần.
+- Env mới: `VISUAL_AI_PROVIDER`, `MAX_AI_ANALYSIS_PER_RUN`, `AI_BATCH_SIZE`, `AI_RETRY_LIMIT`, `TEXT_ANALYSIS_PROMPT_VERSION`, `VISUAL_ANALYSIS_PROMPT_VERSION`.
+
 ---
 
 ## Hai nguồn dữ liệu — Local CSV vs Google Sheets online

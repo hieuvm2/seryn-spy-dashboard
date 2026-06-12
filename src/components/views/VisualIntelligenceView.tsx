@@ -9,6 +9,7 @@ import {
   buildVisualClusters,
   saveVisualReview,
 } from "../../utils/visualAnalysis";
+import { statusLabel, statusTone } from "../../utils/incremental";
 
 const fmt = (s: string) => String(s || "").replace(/_/g, " ");
 const pct = (n: number | string) => `${Math.round(Number(n) * 100)}%`;
@@ -217,7 +218,10 @@ export default function VisualIntelligenceView({ data }: { data: SpyDashboardDat
                   </h4>
                   <p className="text-[10px] text-slate-400 font-mono truncate">{x.ad_id} · {x.creative_type}{x.reviewed ? " · ✓vision" : ""}</p>
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border shrink-0 ${RISK_TONE[String(x.visual_risk_level)] || RISK_TONE.low}`}>{String(x.visual_risk_level).toUpperCase()} RISK</span>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${RISK_TONE[String(x.visual_risk_level)] || RISK_TONE.low}`}>{String(x.visual_risk_level).toUpperCase()} RISK</span>
+                  {x.analysis_status && <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${statusTone(x.analysis_status)}`}>{statusLabel(x.analysis_status)}</span>}
+                </div>
               </div>
               <div className="flex flex-wrap gap-1">
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200 capitalize">{fmt(String(x.visual_format))}</span>

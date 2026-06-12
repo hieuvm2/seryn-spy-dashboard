@@ -73,6 +73,13 @@ export type AdLevelAnalysis = {
   scale_level?: number | string;
   scale_reason?: string;
   notes?: string;
+  /* ---- v3 incremental cache (optional) ---- */
+  content_hash?: string;
+  visual_hash?: string;
+  analysis_status?: string;
+  reused_from_cache?: string | boolean;
+  analysis_version?: string;
+  last_analyzed_at?: string;
 };
 
 export type ScaledContentAnalysis = {
@@ -144,6 +151,7 @@ export type SpyDashboardData = {
   brandVisualSummary?: BrandVisualSummary[];
   visualPatternAnalysis?: VisualPattern[];
   weeklyChangeInsights?: WeeklyChangeInsight[];
+  crawlRuns?: CrawlRun[];
 };
 
 /** 5 bảng CSV gốc (dùng cho import thủ công / health-check). Các tab v2
@@ -306,9 +314,38 @@ export type VisualAnalysis = {
   /* --- Grouping (gom creative giống nhau) --- */
   creative_signature?: string;
   cluster_size?: number;
+  /* --- v3 incremental cache (optional) --- */
+  content_hash?: string;
+  visual_hash?: string;
+  analysis_status?: string;
+  reused_from_cache?: string | boolean;
+  analysis_version?: string;
+  last_analyzed_at?: string;
   /* --- Manual review (frontend override) --- */
   reviewed?: boolean;
   review_note?: string;
+};
+
+/** Một lần crawl (provenance / data quality). Tab "Crawl Runs". */
+export type CrawlRun = {
+  crawl_run_id: string;
+  started_at?: string;
+  finished_at?: string;
+  week_date?: string;
+  provider?: string;
+  country?: string;
+  total_brands?: number | string;
+  total_pages?: number | string;
+  success_pages?: number | string;
+  failed_pages?: number | string;
+  total_ads_fetched?: number | string;
+  new_ads_count?: number | string;
+  changed_ads_count?: number | string;
+  reused_ads_count?: number | string;
+  analyzed_ads_count?: number | string;
+  carried_forward_count?: number | string;
+  status?: string;
+  error_summary?: string;
 };
 
 /** Tổng hợp visual theo brand/tuần. */

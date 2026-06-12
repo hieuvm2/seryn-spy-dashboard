@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { TrendingUp, TrendingDown, Sparkles, AlertTriangle, Activity } from "lucide-react";
 import type { SpyDashboardData, WeeklyChangeInsight } from "../../types";
 import { getWeeklyChangeInsights, CHANGE_TYPE_LABELS, SEVERITY_TONE, signalLabel } from "../../utils/weeklyChanges";
+import { incrementalSummary } from "../../utils/incremental";
 
 const ACTION_TONE: Record<string, string> = {
   copy: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -16,6 +17,7 @@ function pct(v: number | string) { const n = Number(v); return Number.isFinite(n
 
 export default function WeeklyChangesView({ data }: { data: SpyDashboardData }) {
   const { items, source } = useMemo(() => getWeeklyChangeInsights(data), [data]);
+  const inc = useMemo(() => incrementalSummary(data), [data]);
 
   const [brand, setBrand] = useState<string>("all");
   const [type, setType] = useState<string>("all");
@@ -66,6 +68,29 @@ export default function WeeklyChangesView({ data }: { data: SpyDashboardData }) 
           {source === "legacy" && <span className="text-amber-600 font-semibold"> · đang dùng dữ liệu cũ (chưa có tab Weekly Change Insights)</span>}
         </p>
       </div>
+
+      {/* Incremental / data-quality banner */}
+      {inc.hasData && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs font-semibold">
+              <span className="text-slate-500">Pipeline tuần này:</span>
+              <span className="text-emerald-700">New <b>{inc.newAds}</b></span>
+              <span className="text-amber-700">Changed <b>{inc.changed}</b></span>
+              <span className="text-slate-600">Reused cache <b>{inc.reused}</b></span>
+              <span className="text-indigo-700">Carried <b>{inc.carried}</b></span>
+              <span className="text-cyan-700">AI calls saved ~<b>{inc.aiCallsSaved}</b></span>
+              {inc.totalPages > 0 && <span className="text-slate-500 font-mono">crawl {inc.successPages}/{inc.totalPages} page</span>}
+            </div>
+          </div>
+          {(inc.crawlFailures > 0 || (inc.status && inc.status !== "ok")) && (
+            <p className="mt-2 text-[11px] text-rose-600 font-semibold flex items-start gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              Crawl có lỗi ({inc.crawlFailures} page) — các brand crawl lỗi được giữ <b>carried_forward</b>, KHÔNG kết luận "dừng chạy/giảm" để tránh sai lệch.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {cards.map((c) => (

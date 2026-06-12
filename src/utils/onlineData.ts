@@ -23,6 +23,7 @@ import type {
   BrandVisualSummary,
   VisualPattern,
   WeeklyChangeInsight,
+  CrawlRun,
 } from "../types";
 import { apiGet, getApiUrl, isSheetsConfigured } from "./sheetsApi";
 
@@ -74,5 +75,6 @@ export async function fetchOnlineSpyData(apiUrl?: string): Promise<SpyDashboardD
     brandVisualSummary: asRows<BrandVisualSummary>(d.brandVisualSummary),
     visualPatternAnalysis: asRows<VisualPattern>(d.visualPatternAnalysis),
     weeklyChangeInsights: asRows<WeeklyChangeInsight>(d.weeklyChangeInsights),
+    crawlRuns: asRows<CrawlRun>(d.crawlRuns),
   };
 }
