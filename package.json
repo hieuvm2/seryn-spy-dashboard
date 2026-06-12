@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
-    "spy:sync": "node scripts/run-weekly-spy-and-sync.mjs"
+    "spy:sync": "node scripts/run-weekly-spy-and-sync.mjs",
+    "spy:weekly": "node scripts/weekly-spy-sync.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",

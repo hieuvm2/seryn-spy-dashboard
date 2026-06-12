@@ -1,0 +1,42 @@
+name: Weekly Spy Sync
+
+# Chạy tự động 02:00 UTC thứ Hai (~09:00 sáng thứ Hai giờ Việt Nam, UTC+7).
+# Có thể chạy thủ công qua tab Actions (workflow_dispatch).
+on:
+  schedule:
+    - cron: "0 2 * * 1"
+  workflow_dispatch: {}
+
+# Không cần ghi vào repo; chỉ gọi Google Sheets API.
+permissions:
+  contents: read
+
+concurrency:
+  group: weekly-spy-sync
+  cancel-in-progress: false
+
+jobs:
+  spy-weekly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run weekly spy sync
+        env:
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          ADS_SOURCE_PROVIDER: ${{ secrets.ADS_SOURCE_PROVIDER }}
+          ADS_SOURCE_API_URL: ${{ secrets.ADS_SOURCE_API_URL }}
+          ADS_SOURCE_API_KEY: ${{ secrets.ADS_SOURCE_API_KEY }}
+        run: npm run spy:weekly
