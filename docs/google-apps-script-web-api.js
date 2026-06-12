@@ -28,18 +28,32 @@
    - KHÔNG hardcode secret trong file này; luôn lấy từ Script Properties.
    ============================================================ */
 
-/* 5 tab dashboard (read-only) */
+/* Tab dashboard (read-only) -> trả trong doGet mặc định.
+   Tab chưa tồn tại -> sheetToObjects_ trả [] (không lỗi). */
 const SHEET_MAP = {
   brandWeeklySnapshot: "Brand Weekly Snapshot",
   adLevelAnalysis: "Ad Level Analysis",
   scaledContentAnalysis: "Scaled Content Analysis",
   weeklyStrategyChange: "Weekly Strategy Change",
   serynContentRecommendations: "SERYN Content Recommendations",
+  // ---- nâng cấp v2 ----
+  visualAnalysis: "Visual Analysis",
+  brandVisualSummary: "Brand Visual Summary",
+  visualPatternAnalysis: "Visual Pattern Analysis",
+  weeklyChangeInsights: "Weekly Change Insights",
 };
 
-/* 2 tab read/write (Swipe File & Creative Briefs).
-   `headers` PHẢI khớp serializer ở frontend (swipeFile.ts / briefs.ts). */
+/* Tab read/write (Swipe File, Creative Briefs, Competitors).
+   `headers` PHẢI khớp serializer ở frontend. */
 const RECORD_TABS = {
+  competitors: {
+    tab: "Competitors",
+    headers: [
+      "brand_name", "page_ids", "page_urls", "active", "notes",
+      "category", "last_crawled_at", "last_status", "id",
+    ],
+    required: ["brand_name"],
+  },
   swipe_file: {
     tab: "Swipe File",
     headers: [
@@ -150,13 +164,17 @@ function doGet(e) {
       return makeJson_({ ok: false, error: "Unknown type: " + type });
     }
 
-    // Mặc định: 5 bảng dashboard.
+    // Mặc định: 5 bảng dashboard + tab v2 (tab thiếu -> []).
     const data = {
       brandWeeklySnapshot: sheetToObjects_(SHEET_MAP.brandWeeklySnapshot),
       adLevelAnalysis: sheetToObjects_(SHEET_MAP.adLevelAnalysis),
       scaledContentAnalysis: sheetToObjects_(SHEET_MAP.scaledContentAnalysis),
       weeklyStrategyChange: sheetToObjects_(SHEET_MAP.weeklyStrategyChange),
       serynContentRecommendations: sheetToObjects_(SHEET_MAP.serynContentRecommendations),
+      visualAnalysis: sheetToObjects_(SHEET_MAP.visualAnalysis),
+      brandVisualSummary: sheetToObjects_(SHEET_MAP.brandVisualSummary),
+      visualPatternAnalysis: sheetToObjects_(SHEET_MAP.visualPatternAnalysis),
+      weeklyChangeInsights: sheetToObjects_(SHEET_MAP.weeklyChangeInsights),
       meta: { source: "GOOGLE_SHEETS", generatedAt: new Date().toISOString() },
     };
     return makeJson_({ ok: true, data: data });

@@ -8,10 +8,12 @@ export type ViewId =
   | "brands"
   | "scaled-content"
   | "top-hooks"
+  | "visual-intelligence"
   | "swipe-file"
   | "creative-briefs"
   | "weekly-changes"
   | "seryn-recommendations"
+  | "competitor-setup"
   | "data-import";
 
 /** Nguồn dữ liệu đang hiển thị. */
@@ -137,9 +139,21 @@ export type SpyDashboardData = {
   scaledContentAnalysis: ScaledContentAnalysis[];
   weeklyStrategyChange: WeeklyStrategyChange[];
   serynContentRecommendations: SerynContentRecommendation[];
+  /* ---- nâng cấp v2 (đều optional → tương thích ngược, không crash khi thiếu) ---- */
+  visualAnalysis?: VisualAnalysis[];
+  brandVisualSummary?: BrandVisualSummary[];
+  visualPatternAnalysis?: VisualPattern[];
+  weeklyChangeInsights?: WeeklyChangeInsight[];
 };
 
-export type SpyTableName = keyof SpyDashboardData;
+/** 5 bảng CSV gốc (dùng cho import thủ công / health-check). Các tab v2
+ *  (visualAnalysis...) KHÔNG nằm trong đây để giữ logic 5-bảng nguyên vẹn. */
+export type SpyTableName =
+  | "brandWeeklySnapshot"
+  | "adLevelAnalysis"
+  | "scaledContentAnalysis"
+  | "weeklyStrategyChange"
+  | "serynContentRecommendations";
 
 /* ============================================================
    CONTENT INTELLIGENCE — Top Hooks · Swipe File · Creative Briefs
@@ -209,4 +223,181 @@ export type CreativeBrief = {
   dos: string[];
   donts: string[];
   markdown: string;
+};
+
+/* ============================================================
+   VISUAL INTELLIGENCE — phân tích creative ads (ảnh/video)
+   5 lớp: Asset · OCR/Text overlay · Visual · Risk · Pattern
+   ============================================================ */
+
+export type CreativeType = "image" | "video" | "carousel" | "unknown";
+
+export type VisualFormat =
+  | "before_after"
+  | "doctor_expert"
+  | "ugc_selfie"
+  | "clinic_room"
+  | "product_packshot"
+  | "testimonial_screenshot"
+  | "offer_banner"
+  | "luxury_beauty"
+  | "educational"
+  | "unknown";
+
+export type VisualAngle =
+  | "transformation"
+  | "authority"
+  | "social_proof"
+  | "promotion"
+  | "education"
+  | "luxury"
+  | "unknown";
+
+export type CreativeRisk = "low" | "medium" | "high";
+
+export type SerynVisualAction = "copy" | "adapt" | "counter" | "avoid" | "monitor";
+
+/** Một bản ghi phân tích visual cho một ad. Mọi field đều có default an toàn. */
+export type VisualAnalysis = {
+  ad_id: string;
+  brand: string;
+  page_id?: string;
+  last_seen_date?: string;
+  /* --- Lớp 1: Creative Asset --- */
+  creative_type: CreativeType;
+  media_url?: string;
+  thumbnail_url?: string;
+  snapshot_url?: string;
+  image_urls?: string[];
+  video_preview_url?: string;
+  has_media_asset?: boolean;
+  /* --- Lớp 2: OCR / Text overlay --- */
+  text_overlay_raw?: string;
+  text_overlay_summary?: string;
+  offer_from_visual?: string;
+  claim_from_visual?: string;
+  risk_terms_from_visual?: string[];
+  /* --- Lớp 3: Visual Intelligence --- */
+  visual_format: VisualFormat;
+  visual_angle: VisualAngle;
+  human_presence: boolean;
+  doctor_presence: boolean;
+  before_after_presence: boolean;
+  text_overlay_presence: boolean;
+  offer_visual_presence: boolean;
+  clinical_score: number;        // 0–100
+  beauty_luxury_score: number;   // 0–100
+  ugc_score: number;             // 0–100
+  trust_signal_score: number;    // 0–100
+  offer_visibility_score: number;// 0–100
+  scroll_stop_score: number;     // 0–100
+  confidence_score: number;      // 0–1
+  confidence_reason?: string;
+  /* --- Lớp 4: Risk & Compliance (chỉ là signal cần review) --- */
+  visual_risk_level: CreativeRisk;
+  risk_reasons?: string[];
+  claim_risk_score: number;          // 0–100
+  before_after_risk: CreativeRisk;
+  medical_claim_risk: CreativeRisk;
+  promotion_claim_risk: CreativeRisk;
+  /* --- Lớp 5: Strategy --- */
+  visual_insight_summary: string;
+  seryn_action: SerynVisualAction;
+  /* --- Manual review (frontend override) --- */
+  reviewed?: boolean;
+  review_note?: string;
+};
+
+/** Tổng hợp visual theo brand/tuần. */
+export type BrandVisualSummary = {
+  brand: string;
+  week_date?: string;
+  total_creatives: number | string;
+  before_after_rate: number | string;   // 0–1
+  doctor_rate: number | string;
+  ugc_rate: number | string;
+  offer_banner_rate: number | string;
+  high_risk_rate: number | string;
+  avg_clinical_score: number | string;
+  avg_luxury_score: number | string;
+  top_visual_formats?: string;           // "a|b|c"
+  dominant_visual_angle?: string;
+  notes?: string;
+};
+
+/** Cụm visual đang được scale (signal nếu >= 3 ad cùng pattern). */
+export type VisualPattern = {
+  id: string;
+  week_date?: string;
+  brand: string;
+  visual_format: VisualFormat | string;
+  visual_angle: VisualAngle | string;
+  hook_type?: string;
+  offer_type?: string;
+  ad_count: number | string;
+  is_signal: boolean | string;
+  representative_ad_id?: string;
+  summary: string;
+  recommended_seryn_response: SerynVisualAction | string;
+};
+
+/* ============================================================
+   WEEKLY CHANGES nâng cao — intelligence feed
+   ============================================================ */
+
+export type WeeklyChangeType =
+  | "new_ad"
+  | "stopped_ad"
+  | "relaunched_ad"
+  | "new_variant"
+  | "new_campaign_theme"
+  | "offer_changed"
+  | "hook_changed"
+  | "service_focus_shifted"
+  | "visual_format_shifted"
+  | "brand_scaled_up"
+  | "brand_scaled_down"
+  | "new_page_detected"
+  | "page_inactive"
+  | "same_concept_new_variants";
+
+export type ChangeSeverity = "low" | "medium" | "high";
+
+export type WeeklyChangeRecommendedAction = "copy" | "adapt" | "counter" | "monitor" | "ignore";
+
+export type WeeklyChangeInsight = {
+  id: string;
+  brand: string;
+  week_start: string;
+  previous_week_start?: string;
+  change_type: WeeklyChangeType | string;
+  severity: ChangeSeverity | string;
+  confidence_score: number | string; // 0–1
+  summary: string;
+  evidence: string;
+  affected_ads?: string;             // "id|id" (Sheet-friendly)
+  previous_value?: string;
+  current_value?: string;
+  recommended_action: WeeklyChangeRecommendedAction | string;
+};
+
+/* ============================================================
+   COMPETITORS — quản lý watchlist trong dashboard
+   ============================================================ */
+
+export type CompetitorStatus = "ok" | "active" | "inactive" | "needs_page_id" | "crawl_error";
+
+export type Competitor = {
+  id: string;
+  brand: string;
+  page_name?: string;
+  page_url?: string;
+  page_id?: string;          // có thể nhiều id ngăn cách bằng "|"
+  category?: string;
+  active: boolean;
+  notes?: string;
+  last_crawled_at?: string;
+  last_status?: CompetitorStatus | string;
+  createdAt?: string;
+  updatedAt?: string;
 };

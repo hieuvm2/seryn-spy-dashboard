@@ -6,10 +6,12 @@ import OverviewView from "./components/views/OverviewView";
 import BrandsView from "./components/views/BrandsView";
 import ScaledContentView from "./components/views/ScaledContentView";
 import TopHooksView from "./components/views/TopHooksView";
+import VisualIntelligenceView from "./components/views/VisualIntelligenceView";
 import SwipeFileView from "./components/views/SwipeFileView";
 import CreativeBriefsView from "./components/views/CreativeBriefsView";
 import WeeklyChangesView from "./components/views/WeeklyChangesView";
 import SerynRecommendationsView from "./components/views/SerynRecommendationsView";
+import CompetitorSetupView from "./components/views/CompetitorSetupView";
 import DataImportView from "./components/views/DataImportView";
 
 import { sampleSpyDashboardData } from "./sampleData";
@@ -30,10 +32,12 @@ const VALID_VIEWS: ViewId[] = [
   "brands",
   "scaled-content",
   "top-hooks",
+  "visual-intelligence",
   "swipe-file",
   "creative-briefs",
   "weekly-changes",
   "seryn-recommendations",
+  "competitor-setup",
   "data-import",
 ];
 
@@ -173,10 +177,12 @@ export default function App() {
           {activeSection === "brands" && <BrandsView data={spyData} onSelectBrand={setSelectedBrand} />}
           {activeSection === "scaled-content" && <ScaledContentView data={spyData} onGoToCreativeBriefs={() => goView("creative-briefs")} />}
           {activeSection === "top-hooks" && <TopHooksView data={spyData} onGoToCreativeBriefs={() => goView("creative-briefs")} />}
+          {activeSection === "visual-intelligence" && <VisualIntelligenceView data={spyData} />}
           {activeSection === "swipe-file" && <SwipeFileView onGoToCreativeBriefs={() => goView("creative-briefs")} />}
           {activeSection === "creative-briefs" && <CreativeBriefsView />}
           {activeSection === "weekly-changes" && <WeeklyChangesView data={spyData} />}
           {activeSection === "seryn-recommendations" && <SerynRecommendationsView data={spyData} onGoToCreativeBriefs={() => goView("creative-briefs")} />}
+          {activeSection === "competitor-setup" && <CompetitorSetupView />}
           {activeSection === "data-import" && (
             <DataImportView
               data={spyData}

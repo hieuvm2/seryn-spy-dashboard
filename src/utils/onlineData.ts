@@ -19,6 +19,10 @@ import type {
   ScaledContentAnalysis,
   WeeklyStrategyChange,
   SerynContentRecommendation,
+  VisualAnalysis,
+  BrandVisualSummary,
+  VisualPattern,
+  WeeklyChangeInsight,
 } from "../types";
 import { apiGet, getApiUrl, isSheetsConfigured } from "./sheetsApi";
 
@@ -65,5 +69,10 @@ export async function fetchOnlineSpyData(apiUrl?: string): Promise<SpyDashboardD
     scaledContentAnalysis: asRows<ScaledContentAnalysis>(d.scaledContentAnalysis),
     weeklyStrategyChange: asRows<WeeklyStrategyChange>(d.weeklyStrategyChange),
     serynContentRecommendations: asRows<SerynContentRecommendation>(d.serynContentRecommendations),
+    // ---- nâng cấp v2 (tab có thể chưa tồn tại -> mảng rỗng, không crash) ----
+    visualAnalysis: asRows<VisualAnalysis>(d.visualAnalysis),
+    brandVisualSummary: asRows<BrandVisualSummary>(d.brandVisualSummary),
+    visualPatternAnalysis: asRows<VisualPattern>(d.visualPatternAnalysis),
+    weeklyChangeInsights: asRows<WeeklyChangeInsight>(d.weeklyChangeInsights),
   };
 }

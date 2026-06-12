@@ -29,10 +29,26 @@ npm run preview    # xem thử bản build tại http://localhost:4173
 
 ---
 
-## 9 view
+## Các view
 
-Tổng quan · Đối thủ (click mở drawer) · Nội dung nhân rộng · Top Hooks · **Swipe File** ·
-**Creative Briefs** · Thay đổi tuần · Gợi ý cho SERYN · Nhập dữ liệu.
+Tổng quan · Đối thủ (click mở drawer) · Nội dung nhân rộng · Top Hooks ·
+**Visual Intelligence** · Swipe File · Creative Briefs · **Thay đổi tuần (intelligence feed)** ·
+Gợi ý cho SERYN · **Competitor Setup** · Nhập dữ liệu.
+
+## Nâng cấp v2 (Visual / Competitor / Weekly Changes)
+
+- **Visual Intelligence** — phân tích creative (ảnh/video) theo 5 lớp (asset · OCR/overlay · visual ·
+  risk · pattern): format, before/after, bác sĩ, UGC, offer, điểm clinical/luxury/UGC, rủi ro compliance,
+  pattern đang scale. MVP dùng **heuristic** (`VISUAL_ANALYSIS_PROVIDER=heuristic`); thiếu tab thì
+  dashboard tự suy luận từ `Ad Level Analysis`. Cho phép manual review (localStorage).
+- **Competitor Setup** — thêm/sửa/bật-tắt đối thủ ngay trong dashboard (validate, test crawl). Ghi tab
+  `Competitors` qua Apps Script nếu cấu hình; chưa thì lưu **localStorage draft** + cảnh báo.
+- **Thay đổi tuần** — nâng thành *intelligence feed*: change_type / severity / confidence / evidence /
+  recommended_action (scaling, đổi offer/hook, dịch chuyển dịch vụ/visual, page mới/ngừng…). Wording
+  an toàn (signal, không "winning"). Thiếu tab enriched thì map từ tab cũ.
+
+Tab Google Sheets + cột mới: xem [`docs/SCHEMA_V2_VISUAL_COMPETITORS_CHANGES.md`](docs/SCHEMA_V2_VISUAL_COMPETITORS_CHANGES.md).
+Sau khi cập nhật, **phải Deploy lại Apps Script** (`docs/google-apps-script-web-api.js`) → New version.
 
 ---
 

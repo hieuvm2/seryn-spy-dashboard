@@ -10,6 +10,8 @@ import {
   Zap,
   Bookmark,
   FileText,
+  Image as ImageIcon,
+  Users,
 } from "lucide-react";
 import type { ViewId } from "../types";
 
@@ -23,10 +25,12 @@ const menuItems: { id: ViewId; label: string; icon: any }[] = [
   { id: "brands", label: "Đối thủ", icon: FileSpreadsheet },
   { id: "scaled-content", label: "Nội dung nhân rộng", icon: Flame },
   { id: "top-hooks", label: "Top Hooks", icon: Zap },
+  { id: "visual-intelligence", label: "Visual Intelligence", icon: ImageIcon },
   { id: "swipe-file", label: "Swipe File", icon: Bookmark },
   { id: "creative-briefs", label: "Creative Briefs", icon: FileText },
   { id: "weekly-changes", label: "Thay đổi tuần", icon: Layers },
   { id: "seryn-recommendations", label: "Gợi ý cho SERYN", icon: Lightbulb },
+  { id: "competitor-setup", label: "Competitor Setup", icon: Users },
   { id: "data-import", label: "Nhập dữ liệu", icon: Upload },
 ];
 

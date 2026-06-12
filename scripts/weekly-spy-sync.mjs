@@ -498,6 +498,10 @@ const HEADERS = {
   scaled: "week_date,brand_name,content_cluster_id,representative_ad_id,representative_hook,service_or_product,price_detected,offer_detected,content_format,content_angle,proof_point,number_of_similar_ads,longest_days_active,average_days_active,scale_level,why_it_is_scaling,competitor_strategy_interpretation,seryn_should_copy_adapt_counter_avoid,seryn_reframe".split(","),
   change: "week_date,brand_name,active_ads_change,new_ads_count,stopped_ads_count,new_services_detected,removed_services,new_offers_detected,removed_offers,new_content_angles,removed_content_angles,scaled_content_new,scaled_content_still_running,strategic_change_type,change_summary,seryn_implication".split(","),
   rec: "week_date,recommendation_type,market_signal,competitor_evidence,seryn_content_niche,suggested_content_format,suggested_hook,content_style,main_message,proof_to_use,cta,kpi,priority".split(","),
+  visual: "ad_id,brand,page_id,creative_type,media_url,thumbnail_url,snapshot_url,image_urls,video_preview_url,has_media_asset,text_overlay_raw,text_overlay_summary,offer_from_visual,claim_from_visual,risk_terms_from_visual,visual_format,visual_angle,human_presence,doctor_presence,before_after_presence,text_overlay_presence,offer_visual_presence,clinical_score,beauty_luxury_score,ugc_score,trust_signal_score,offer_visibility_score,scroll_stop_score,confidence_score,confidence_reason,visual_risk_level,risk_reasons,claim_risk_score,before_after_risk,medical_claim_risk,promotion_claim_risk,visual_insight_summary,seryn_action,last_seen_date".split(","),
+  brandVisual: "brand,week_date,total_creatives,before_after_rate,doctor_rate,ugc_rate,offer_banner_rate,high_risk_rate,avg_clinical_score,avg_luxury_score,top_visual_formats,dominant_visual_angle,notes".split(","),
+  visualPattern: "id,week_date,brand,visual_format,visual_angle,hook_type,offer_type,ad_count,is_signal,representative_ad_id,summary,recommended_seryn_response".split(","),
+  changeInsight: "id,brand,week_start,previous_week_start,change_type,severity,confidence_score,summary,evidence,affected_ads,previous_value,current_value,recommended_action".split(","),
 };
 
 function uniqJoin(arr) { return [...new Set(arr.filter((x) => x && x !== "unknown" && x !== "no_clear_offer"))].join("|"); }
@@ -754,6 +758,260 @@ function buildChanges(snapshots, ads, prevSnapByBrand, prevAdsByBrand, weekDate)
 }
 
 /* ============================================================
+   VISUAL INTELLIGENCE — heuristic fallback (rule-based)
+   PROVIDER: process.env.VISUAL_ANALYSIS_PROVIDER = heuristic | ai (MVP: heuristic)
+   ============================================================ */
+const VISUAL_PROVIDER = (process.env.VISUAL_ANALYSIS_PROVIDER || "heuristic").trim().toLowerCase();
+const VKW = {
+  beforeAfter: ["trước sau", "trước/sau", "before after", "lột xác", "transformation", "sau liệu trình", "kết quả sau"],
+  doctor: ["bác sĩ", "ts.bs", "ths.bs", "bs.", "doctor", "dr.", "chuyên gia", "phác đồ", "y khoa"],
+  offer: ["giảm", "ưu đãi", "tặng", "sale", " off", "đồng giá", "combo", "trọn gói", "khuyến mãi", "giá gốc", "miễn phí"],
+  ugc: ["review", "trải nghiệm", "khách hàng", "chia sẻ", "cảm nhận", "nhật ký"],
+  education: ["bạn có biết", "vì sao", "tại sao", "cơ chế", "giải thích", "hiểu đúng", "kiến thức"],
+  luxury: ["cao cấp", "đẳng cấp", "luxury", "sang trọng", "thanh xuân", "quý cô", "tinh hoa"],
+  clinic: ["phòng khám", "cơ sở", "bệnh viện", "trang thiết bị"],
+  product: ["sản phẩm", "kem", "serum", "tinh chất"],
+  testimonialShot: ["tin nhắn", "phản hồi", "feedback"],
+  risk: ["cam kết", "100%", "khỏi hẳn", "vĩnh viễn", "tận gốc", "thần kỳ", "trẻ hơn 10 tuổi", "xóa sạch", "tuyệt đối", "duy nhất"],
+};
+const PRICE_RE2 = /(\d[\d.,]*\s?(?:k|đ|tr|triệu|vnđ|%))/i;
+const vhas = (t, kws) => kws.some((k) => t.includes(k));
+const vclamp = (n) => Math.max(0, Math.min(100, Math.round(n)));
+const vrisk = (s) => (s >= 66 ? "high" : s >= 33 ? "medium" : "low");
+
+function analyzeVisualFallback(ad) {
+  const t = [ad.primary_text, ad.headline, ad.hook_text, ad.ad_snapshot_url, ad.thumbnail_url, ad.media_url]
+    .filter(Boolean).join(" \n ").toLowerCase();
+  const media = lc(ad.media_type);
+  const creative_type = media.includes("video") ? "video" : (media.includes("carousel") || media.includes("dco") || media.includes("dpa")) ? "carousel" : media.includes("image") ? "image" : "unknown";
+  const thumb = ad.thumbnail_url || "";
+  const mediaUrl = ad.media_url || "";
+  const hasAsset = !!(thumb || mediaUrl);
+  const fmtHint = lc(ad.content_format);
+
+  let visual_format = "unknown";
+  if (vhas(t, VKW.beforeAfter) || fmtHint === "before_after") visual_format = "before_after";
+  else if (vhas(t, VKW.doctor) || fmtHint === "doctor_explainer") visual_format = "doctor_expert";
+  else if (vhas(t, VKW.testimonialShot)) visual_format = "testimonial_screenshot";
+  else if (vhas(t, VKW.ugc) || fmtHint === "customer_testimonial" || fmtHint === "kol_review") visual_format = "ugc_selfie";
+  else if (vhas(t, VKW.offer) || PRICE_RE2.test(t) || fmtHint === "offer_promotion") visual_format = "offer_banner";
+  else if (vhas(t, VKW.luxury)) visual_format = "luxury_beauty";
+  else if (vhas(t, VKW.clinic) || fmtHint === "facility_trust") visual_format = "clinic_room";
+  else if (vhas(t, VKW.product)) visual_format = "product_packshot";
+  else if (vhas(t, VKW.education) || fmtHint === "educational_post") visual_format = "educational";
+
+  const ANGLE = { before_after: "transformation", doctor_expert: "authority", educational: "education", offer_banner: "promotion", luxury_beauty: "luxury", ugc_selfie: "social_proof", testimonial_screenshot: "social_proof" };
+  const visual_angle = ANGLE[visual_format] || "unknown";
+
+  const doctor_presence = vhas(t, VKW.doctor);
+  const before_after_presence = visual_format === "before_after" || vhas(t, VKW.beforeAfter);
+  const offer_visual_presence = vhas(t, VKW.offer) || PRICE_RE2.test(t);
+  const ugcish = vhas(t, VKW.ugc) || vhas(t, VKW.testimonialShot);
+  const text_overlay_presence = offer_visual_presence || before_after_presence || !!lc(ad.headline);
+  const human_presence = doctor_presence || ugcish || before_after_presence || ["facial_rejuvenation", "lifting_firming"].includes(lc(ad.service_or_product));
+
+  const clinical_score = vclamp((doctor_presence ? 55 : 0) + (vhas(t, VKW.education) ? 25 : 0) + (lc(ad.proof_point).includes("doctor") ? 20 : 0) + (vhas(t, VKW.clinic) ? 10 : 0));
+  const beauty_luxury_score = vclamp((vhas(t, VKW.luxury) ? 50 : 0) + (lc(ad.proof_point).includes("kol") ? 30 : 0) + (visual_format === "luxury_beauty" ? 25 : 10));
+  const ugc_score = vclamp((ugcish ? 55 : 0) + (fmtHint.includes("testimonial") ? 25 : 0) + (creative_type === "video" ? 10 : 0));
+  const trust_signal_score = vclamp(clinical_score * 0.5 + ugc_score * 0.3 + (lc(ad.proof_point).includes("media") ? 20 : 0));
+  const offer_visibility_score = vclamp((offer_visual_presence ? 50 : 0) + (PRICE_RE2.test(t) ? 30 : 0) + (t.includes("giá gốc") ? 15 : 0));
+  const scroll_stop_score = vclamp((before_after_presence ? 40 : 0) + (offer_visibility_score > 60 ? 25 : 0) + (creative_type === "video" ? 20 : 10) + (vhas(t, VKW.luxury) ? 10 : 0));
+
+  const risk_terms = VKW.risk.filter((k) => t.includes(k));
+  const medical_claim_risk = vrisk(risk_terms.length * 30 + (doctor_presence && risk_terms.length ? 20 : 0));
+  const before_after_risk = before_after_presence ? (risk_terms.length ? "high" : "medium") : "low";
+  const promotion_claim_risk = vrisk((t.includes("giá gốc") ? 50 : 0) + (offer_visibility_score > 70 ? 30 : 0));
+  const claim_risk_score = vclamp(risk_terms.length * 25 + (before_after_presence ? 20 : 0) + (promotion_claim_risk === "high" ? 20 : 0));
+  const visual_risk_level = vrisk(claim_risk_score);
+  const risk_reasons = [];
+  if (risk_terms.length) risk_reasons.push(`Từ ngữ tuyệt đối: ${risk_terms.join(", ")}`);
+  if (before_after_presence) risk_reasons.push("Có visual trước/sau (compliance)");
+  if (promotion_claim_risk === "high") risk_reasons.push("Neo giá gốc / giảm sâu");
+
+  let seryn_action = "monitor";
+  if (visual_format === "offer_banner" || visual_angle === "promotion") seryn_action = "counter";
+  else if (visual_format === "doctor_expert" || visual_format === "educational") seryn_action = "adapt";
+  else if (before_after_presence && risk_terms.length) seryn_action = "avoid";
+  else if (visual_format === "luxury_beauty") seryn_action = "counter";
+
+  const summaryBits = [visual_format.replace(/_/g, " "), doctor_presence ? "có bác sĩ" : "", before_after_presence ? "before/after" : "", offer_visual_presence ? "nhấn ưu đãi" : ""].filter(Boolean);
+  const visual_insight_summary = `Creative ${creative_type} dạng ${summaryBits.join(", ") || "chưa rõ"}.` + (hasAsset ? "" : " (limited analysis — no media asset)");
+
+  return {
+    ad_id: String(ad.ad_id || ""), brand: String(ad.brand_name || ""), page_id: String(ad.page_id || ""),
+    creative_type, media_url: mediaUrl, thumbnail_url: thumb, snapshot_url: ad.ad_snapshot_url || "",
+    image_urls: thumb ? JSON.stringify([String(thumb)]) : "[]", video_preview_url: "", has_media_asset: hasAsset,
+    text_overlay_raw: "", text_overlay_summary: String(ad.headline || ad.hook_text || "").slice(0, 120),
+    offer_from_visual: ad.offer_detected && ad.offer_detected !== "no_clear_offer" ? String(ad.offer_detected) : "",
+    claim_from_visual: risk_terms.join("|"), risk_terms_from_visual: JSON.stringify(risk_terms),
+    visual_format, visual_angle, human_presence, doctor_presence, before_after_presence, text_overlay_presence, offer_visual_presence,
+    clinical_score, beauty_luxury_score, ugc_score, trust_signal_score, offer_visibility_score, scroll_stop_score,
+    confidence_score: hasAsset ? 0.55 : 0.35, confidence_reason: hasAsset ? "Heuristic text + media hint." : "Heuristic text (chưa có media).",
+    visual_risk_level, risk_reasons: JSON.stringify(risk_reasons), claim_risk_score, before_after_risk, medical_claim_risk, promotion_claim_risk,
+    visual_insight_summary, seryn_action, last_seen_date: ad.week_date || "",
+  };
+}
+
+function buildVisualRows(allAds, weekDate) {
+  if (VISUAL_PROVIDER !== "heuristic") warn(`VISUAL_ANALYSIS_PROVIDER="${VISUAL_PROVIDER}" chưa hỗ trợ — dùng heuristic.`);
+  return allAds.filter((a) => a.ad_id).map((a) => ({ ...analyzeVisualFallback(a), last_seen_date: a.week_date || weekDate }));
+}
+
+function buildBrandVisualSummary(visualRows, weekDate) {
+  const byBrand = {};
+  for (const v of visualRows) (byBrand[v.brand] ||= []).push(v);
+  const r = (a, b) => (b > 0 ? Math.round((a / b) * 100) / 100 : 0);
+  const avgv = (arr) => (arr.length ? Math.round(arr.reduce((s, n) => s + Number(n), 0) / arr.length) : 0);
+  return Object.entries(byBrand).map(([brand, list]) => {
+    const n = list.length;
+    return {
+      brand, week_date: weekDate, total_creatives: n,
+      before_after_rate: r(list.filter((x) => x.before_after_presence).length, n),
+      doctor_rate: r(list.filter((x) => x.doctor_presence).length, n),
+      ugc_rate: r(list.filter((x) => x.visual_format === "ugc_selfie" || x.ugc_score >= 50).length, n),
+      offer_banner_rate: r(list.filter((x) => x.visual_format === "offer_banner" || x.offer_visual_presence).length, n),
+      high_risk_rate: r(list.filter((x) => x.visual_risk_level === "high").length, n),
+      avg_clinical_score: avgv(list.map((x) => x.clinical_score)),
+      avg_luxury_score: avgv(list.map((x) => x.beauty_luxury_score)),
+      top_visual_formats: topCounts(list.map((x) => x.visual_format)),
+      dominant_visual_angle: topCounts(list.map((x) => x.visual_angle)).split("|")[0] || "",
+    };
+  });
+}
+
+function buildVisualPatterns(visualRows, weekDate) {
+  const groups = {};
+  for (const v of visualRows) {
+    const key = [v.brand, v.visual_format, v.visual_angle, v.offer_from_visual || "no_offer"].join("|");
+    (groups[key] ||= []).push(v);
+  }
+  const out = [];
+  let idx = 0;
+  for (const [, list] of Object.entries(groups)) {
+    if (list.length < 2 && list[0].visual_format === "unknown") continue;
+    const rep = list[0];
+    out.push({
+      id: `vp-${rep.brand.split(" ")[0]}-${++idx}`, week_date: weekDate, brand: rep.brand,
+      visual_format: rep.visual_format, visual_angle: rep.visual_angle, hook_type: "", offer_type: rep.offer_from_visual || "",
+      ad_count: list.length, is_signal: list.length >= 3, representative_ad_id: rep.ad_id,
+      summary: `${list.length} creative cùng ${String(rep.visual_format).replace(/_/g, " ")} / ${rep.visual_angle}${rep.offer_from_visual ? ` · ${rep.offer_from_visual}` : ""}.`,
+      recommended_seryn_response: rep.seryn_action,
+    });
+  }
+  return out.sort((a, b) => b.ad_count - a.ad_count);
+}
+
+/* ============================================================
+   WEEKLY CHANGE INSIGHTS — phát hiện thay đổi chiến lược thật
+   ============================================================ */
+function calculateConfidence({ evidenceCount = 0, hasPreviousWeek = false, dataCompleteness = 1 }) {
+  let c = 0.4 + Math.min(evidenceCount, 5) * 0.08 + (hasPreviousWeek ? 0.15 : 0);
+  c = c * (0.6 + 0.4 * Math.max(0, Math.min(1, dataCompleteness)));
+  return Math.round(Math.max(0.2, Math.min(0.95, c)) * 100) / 100;
+}
+function topOf(list, key) {
+  const c = {};
+  for (const x of list) { const v = String(x[key] || "").trim(); if (v && v !== "unknown") c[v] = (c[v] || 0) + 1; }
+  const e = Object.entries(c).sort((a, b) => b[1] - a[1])[0];
+  return e ? e[0] : "";
+}
+function actionFromType(ct) {
+  if (ct === "offer_changed" || ct === "brand_scaled_up") return "counter";
+  if (ct === "service_focus_shifted" || ct === "hook_changed" || ct === "visual_format_shifted") return "monitor";
+  if (ct === "new_campaign_theme" || ct === "same_concept_new_variants") return "adapt";
+  if (ct === "page_inactive") return "monitor";
+  return "monitor";
+}
+
+function generateWeeklyChangeInsights(currentAds, previousAds, currentVisual, previousVisual, snapshots, prevSnapByBrand, weekDate, prevWeek) {
+  const adsByBrand = {}; for (const a of currentAds) (adsByBrand[a.brand_name] ||= []).push(a);
+  const prevByBrand = {}; for (const a of previousAds) (prevByBrand[a.brand_name] ||= []).push(a);
+  const visByBrand = {}; for (const v of currentVisual) (visByBrand[v.brand] ||= []).push(v);
+  const prevVisByBrand = {}; for (const v of previousVisual) (prevVisByBrand[v.brand] ||= []).push(v);
+  const out = [];
+  let n = 0;
+  const push = (brand, change_type, severity, evidenceCount, summary, evidence, extra = {}) => {
+    out.push({
+      id: `wc-${slugId(brand)}-${change_type}-${++n}`, brand, week_start: weekDate, previous_week_start: prevWeek || "",
+      change_type, severity, confidence_score: calculateConfidence({ evidenceCount, hasPreviousWeek: !!prevWeek, dataCompleteness: extra._dc ?? 1 }),
+      summary, evidence, affected_ads: extra.affected_ads || "", previous_value: extra.previous_value || "", current_value: extra.current_value || "",
+      recommended_action: extra.recommended_action || actionFromType(change_type),
+    });
+  };
+
+  for (const snap of snapshots) {
+    const brand = snap.brand_name;
+    const cur = adsByBrand[brand] || [];
+    const prev = prevByBrand[brand] || [];
+    const prevSnap = prevSnapByBrand[brand];
+    const curActive = Number(snap.total_active_ads || cur.length);
+    const prevActive = prevSnap ? Number(prevSnap.total_active_ads || 0) : prev.length;
+
+    // Scaling up/down
+    if (prevSnap || prev.length) {
+      const delta = curActive - prevActive;
+      const pctChg = prevActive > 0 ? delta / prevActive : (curActive > 0 ? 1 : 0);
+      if (delta >= 3 && pctChg >= 0.3) push(brand, "brand_scaled_up", pctChg >= 0.5 ? "high" : "medium", cur.length,
+        `${brand} tăng quy mô quảng cáo.`, `Active ads ${prevActive} → ${curActive} (${delta >= 0 ? "+" : ""}${Math.round(pctChg * 100)}%).`, { previous_value: `${prevActive} ad`, current_value: `${curActive} ad` });
+      else if (delta <= -3 && pctChg <= -0.3) push(brand, "brand_scaled_down", pctChg <= -0.5 ? "high" : "medium", prev.length,
+        `${brand} giảm quy mô quảng cáo.`, `Active ads ${prevActive} → ${curActive} (${Math.round(pctChg * 100)}%).`, { previous_value: `${prevActive} ad`, current_value: `${curActive} ad` });
+    }
+
+    // New page / page inactive
+    const curPages = new Set(cur.map((a) => String(a.page_id)).filter(Boolean));
+    const prevPages = new Set(prev.map((a) => String(a.page_id)).filter(Boolean));
+    const newPages = [...curPages].filter((p) => !prevPages.has(p));
+    const gonePages = [...prevPages].filter((p) => !curPages.has(p));
+    if (newPages.length && prevPages.size) push(brand, "new_page_detected", "medium", newPages.length, `${brand} chạy ad qua page mới.`, `Page mới: ${newPages.join(", ")}.`, { current_value: newPages.join("|") });
+    if (gonePages.length && curPages.size === 0 && prevPages.size) push(brand, "page_inactive", "low", gonePages.length, `${brand} ngừng chạy ad ở page cũ.`, `Page không còn active ads: ${gonePages.join(", ")}.`, { previous_value: gonePages.join("|") });
+
+    // Offer / hook / service shift (cần prev)
+    if (prev.length) {
+      const co = topOf(cur, "offer_detected"), po = topOf(prev, "offer_detected");
+      if (co && po && co !== po) push(brand, "offer_changed", "medium", cur.filter((a) => a.offer_detected === co).length, `${brand} đổi ưu đãi chủ đạo.`, `Top offer "${po}" → "${co}".`, { previous_value: po, current_value: co });
+      const ch = topOf(cur, "hook_type"), ph = topOf(prev, "hook_type");
+      if (ch && ph && ch !== ph) push(brand, "hook_changed", "low", cur.filter((a) => a.hook_type === ch).length, `${brand} đổi hook chủ đạo.`, `Top hook "${ph}" → "${ch}".`, { previous_value: ph, current_value: ch });
+      const cs = topOf(cur, "service_or_product"), ps = topOf(prev, "service_or_product");
+      if (cs && ps && cs !== ps) push(brand, "service_focus_shifted", "medium", cur.filter((a) => a.service_or_product === cs).length, `${brand} dịch chuyển dịch vụ trọng tâm.`, `Top service "${ps}" → "${cs}".`, { previous_value: ps, current_value: cs });
+    }
+
+    // New campaign theme / same concept variants (từ ad mới tuần này)
+    const newAds = cur.filter((a) => String(a.is_new_this_week) === "true");
+    if (newAds.length >= 3) {
+      const themeKey = (a) => `${a.service_or_product}|${a.hook_type}|${a.offer_detected}`;
+      const counts = {};
+      for (const a of newAds) counts[themeKey(a)] = (counts[themeKey(a)] || 0) + 1;
+      const [topTheme, topCnt] = Object.entries(counts).sort((x, y) => y[1] - x[1])[0] || ["", 0];
+      if (topCnt >= 3) {
+        const sameAds = newAds.filter((a) => themeKey(a) === topTheme).map((a) => a.ad_id).slice(0, 8).join("|");
+        const prevHasTheme = prev.some((a) => themeKey(a) === topTheme);
+        if (!prevHasTheme) push(brand, "new_campaign_theme", "medium", topCnt, `${brand} tung chủ đề campaign mới.`, `${topCnt} ad mới cùng concept (${topTheme.replace(/\|/g, " · ")}), tuần trước chưa có.`, { affected_ads: sameAds });
+        else push(brand, "same_concept_new_variants", "low", topCnt, `${brand} nhân nhiều biến thể cùng concept.`, `${topCnt} ad mới cùng concept (${topTheme.replace(/\|/g, " · ")}).`, { affected_ads: sameAds });
+      }
+    }
+
+    // Visual format shift (confidence cap 0.7 nếu thiếu visual)
+    const cv = visByBrand[brand] || [], pv = prevVisByBrand[brand] || [];
+    if (cv.length && pv.length) {
+      const cf = topOf(cv, "visual_format"), pf = topOf(pv, "visual_format");
+      if (cf && pf && cf !== pf) {
+        const ins = { previous_value: pf, current_value: cf, _dc: 0.7 };
+        push(brand, "visual_format_shifted", "medium", cv.filter((x) => x.visual_format === cf).length, `${brand} dịch chuyển định dạng visual.`, `Top visual "${pf}" → "${cf}".`, ins);
+      }
+    } else if (cv.length && !pv.length) {
+      // có visual tuần này nhưng thiếu tuần trước -> chỉ ghi nhận với confidence thấp nếu một format chiếm >=30% ad mới
+      const newCv = cv.filter((x) => newAds.some((a) => a.ad_id === x.ad_id));
+      const dominant = topOf(newCv, "visual_format");
+      if (dominant && newCv.filter((x) => x.visual_format === dominant).length / Math.max(1, newCv.length) >= 0.3 && newCv.length >= 3) {
+        push(brand, "visual_format_shifted", "low", newCv.length, `${brand}: visual mới ${dominant.replace(/_/g, " ")} chiếm tỉ trọng cao trong ad mới.`, `${dominant} ≥30% creative mới (thiếu dữ liệu visual tuần trước).`, { current_value: dominant, _dc: 0.5 });
+      }
+    }
+  }
+  return out;
+}
+function slugId(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24); }
+
+/* ============================================================
    MAIN
    ============================================================ */
 async function main() {
@@ -774,6 +1032,8 @@ async function main() {
   // đọc dữ liệu cũ TRƯỚC khi ghi đè (cho weekly change)
   const prevSnap = await readTabObjects(sheets, "Brand Weekly Snapshot");
   const prevAds = await readTabObjects(sheets, "Ad Level Analysis");
+  const prevVisual = await readTabObjects(sheets, "Visual Analysis");
+  const prevWeek = prevSnap[0]?.week_date || "";
   const prevSnapByBrand = {}; for (const r of prevSnap) prevSnapByBrand[r.brand_name] = r;
   const prevAdsByBrand = {}; for (const r of prevAds) (prevAdsByBrand[r.brand_name] ||= []).push(r);
   const prevAdIds = new Set(prevAds.map((r) => r.ad_id).filter(Boolean));
@@ -807,14 +1067,24 @@ async function main() {
   const changes = buildChanges(snapshots, allAds, prevSnapByBrand, prevAdsByBrand, weekDate);
   const recs = buildRecommendations(allAds, allScaled, weekDate);
 
+  // ---- Visual Intelligence + Weekly Change Insights ----
+  const visualRows = buildVisualRows(allAds, weekDate);
+  const brandVisual = buildBrandVisualSummary(visualRows, weekDate);
+  const visualPatterns = buildVisualPatterns(visualRows, weekDate);
+  const changeInsights = generateWeeklyChangeInsights(allAds, prevAds, visualRows, prevVisual, snapshots, prevSnapByBrand, weekDate, prevWeek);
+
   console.log(`\nGhi Google Sheets:`);
   await writeTab(sheets, titles, "Brand Weekly Snapshot", HEADERS.snapshot, snapshots);
   await writeTab(sheets, titles, "Ad Level Analysis", HEADERS.ad, allAds);
   await writeTab(sheets, titles, "Scaled Content Analysis", HEADERS.scaled, allScaled);
   await writeTab(sheets, titles, "Weekly Strategy Change", HEADERS.change, changes);
   await writeTab(sheets, titles, "SERYN Content Recommendations", HEADERS.rec, recs);
+  await writeTab(sheets, titles, "Visual Analysis", HEADERS.visual, visualRows);
+  await writeTab(sheets, titles, "Brand Visual Summary", HEADERS.brandVisual, brandVisual);
+  await writeTab(sheets, titles, "Visual Pattern Analysis", HEADERS.visualPattern, visualPatterns);
+  await writeTab(sheets, titles, "Weekly Change Insights", HEADERS.changeInsight, changeInsights);
 
-  console.log(`\nXong. ${snapshots.length} brand · ${allAds.length} ad · ${allScaled.length} cụm scale · ${recs.length} gợi ý.`);
+  console.log(`\nXong. ${snapshots.length} brand · ${allAds.length} ad · ${allScaled.length} cụm scale · ${recs.length} gợi ý · ${visualRows.length} visual · ${changeInsights.length} change-insight.`);
   if (warnings.length) console.log(`Cảnh báo: ${warnings.length} (xem log [!] phía trên).`);
   console.log(`→ Dashboard Vercel: bấm "Refresh Online Data" (hoặc reload) để thấy dữ liệu mới.`);
 }
