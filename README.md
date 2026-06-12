@@ -55,10 +55,14 @@ Sau khi cập nhật, **phải Deploy lại Apps Script** (`docs/google-apps-scr
 `spy:weekly` giờ là **incremental**: chỉ phân tích ad **mới** hoặc ad có `content_hash`/`visual_hash`
 **thay đổi**; ad cũ không đổi → **reuse** từ tab `Ad Analysis Cache` (giảm chi phí AI, tăng tốc, ổn định).
 - Cột mới trên Ad Level/Visual: `content_hash, visual_hash, analysis_status, reused_from_cache, analysis_version, last_analyzed_at`.
-- Tab mới: `Ad Analysis Cache`, `Crawl Runs`, `Raw Ads Archive`, `Historical Weekly Snapshots`, `Pattern Cache` (đều optional).
-- **Chống kết luận sai:** chỉ kết luận `scaled_down`/`page_inactive` khi crawl brand đó THÀNH CÔNG; crawl lỗi → `carried_forward`.
+- Tab mới: `Ad Analysis Cache`, `Crawl Runs`, `Page Crawl Logs`, `Raw Ads Archive`, `Historical Weekly Snapshots`, `Pattern Cache` (đều optional).
+- **Check-before-analysis:** tính hash TRƯỚC → cache hit (hash + prompt/provider version khớp) thì KHÔNG gọi AI, tái dùng kết quả.
+- **Cache merge:** giữ cache của ad đã dừng (`keptOld`), dedup `ad_id|content_hash|visual_hash`, giữ `first_seen_date`/`last_seen_date`.
+- **Page Crawl Logs:** log mỗi page (status, ads_fetched, error) cho mọi provider; `Raw Ads Archive` ghi cho mọi provider (custom/mock không rỗng).
+- **Chống kết luận sai:** chỉ kết luận `scaled_down`/`page_inactive` khi crawl page/brand đó THÀNH CÔNG; crawl lỗi → cảnh báo + `carried_forward`.
+- **Creative assets:** map thêm `image_urls`, `video_preview_url`, `carousel_image_urls` từ ScrapeCreators/custom.
 - Dashboard: badge New/Cached/Changed/Carried/No media trên creative; banner data-quality + "AI calls saved" trong Thay đổi tuần.
-- Env mới: `VISUAL_AI_PROVIDER`, `MAX_AI_ANALYSIS_PER_RUN`, `AI_BATCH_SIZE`, `AI_RETRY_LIMIT`, `TEXT_ANALYSIS_PROMPT_VERSION`, `VISUAL_ANALYSIS_PROMPT_VERSION`.
+- Env mới (GitHub Actions qua Repository `vars`, key qua `secrets`): `ADS_SOURCE_COUNTRY`, `ADS_SOURCE_MAX_ADS`, `VISUAL_AI_PROVIDER`, `VISUAL_AI_API_KEY`, `MAX_AI_ANALYSIS_PER_RUN`, `AI_BATCH_SIZE`, `AI_RETRY_LIMIT`, `TEXT_ANALYSIS_PROMPT_VERSION`, `VISUAL_ANALYSIS_PROMPT_VERSION`.
 
 ---
 

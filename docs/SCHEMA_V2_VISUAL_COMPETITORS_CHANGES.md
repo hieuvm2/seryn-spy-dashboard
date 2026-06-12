@@ -138,3 +138,38 @@ khi ≥3 ad active cùng pattern).
 `VISUAL_AI_PROVIDER=heuristic|ai`, `MAX_AI_ANALYSIS_PER_RUN`, `AI_BATCH_SIZE`, `AI_RETRY_LIMIT`,
 `TEXT_ANALYSIS_PROMPT_VERSION`, `VISUAL_ANALYSIS_PROMPT_VERSION`. Khi bật `ai`: chỉ gọi AI cho ad
 `newly_analyzed`/`changed_reanalyzed` (KHÔNG gọi cho `reused_from_cache`). Đổi prompt version → buộc phân tích lại.
+
+---
+
+## v3.1 — Production hardening (incremental pipeline)
+
+### Check-before-analysis
+Mỗi ad: tính `content_hash` + `visual_hash` TRƯỚC → tra `Ad Analysis Cache`. Nếu cache hit **và**
+`analysis_version`+`analysis_provider` (`<provider>/<VISUAL_AI_PROVIDER>`) khớp → **không phân tích lại**,
+tái dùng `text_analysis_json`/`visual_analysis_json`, đặt `analysis_status=reused_from_cache`. Miss → `newly_analyzed`;
+hash đổi (hoặc đổi prompt/provider version) → `changed_reanalyzed`.
+
+### Cache merge (giữ ad đã dừng)
+Cache mới = `[curCacheRows, ...keptOld]` với `keptOld` = các dòng cache cũ có `ad_id` KHÔNG còn trong tuần này
+(không bị mất khi ad dừng). Dedup theo khoá `ad_id|content_hash|visual_hash`. Giữ `first_seen_date` (từ cache/archive/start_date)
+và cập nhật `last_seen_date=week_date`. Cache header thêm `first_seen_date, last_seen_date`.
+
+### Tab `Page Crawl Logs` (append, MỚI)
+`crawl_run_id, week_date, brand, page_id, status, ads_fetched, error_message, started_at, finished_at`.
+Ghi cho MỌI provider (scrapecreators ghi log thật mỗi page; mock/custom dùng `fakePageLogs`).
+
+### page_inactive theo từng page_id
+Chỉ kết luận `page_inactive` cho page mà crawl **THÀNH CÔNG** nhưng tuần này 0 ad. Page crawl lỗi → chỉ cảnh báo
+(partial crawl), KHÔNG kết luận. `generateWeeklyChangeInsights(..., crawlOk, pageOk)`.
+
+### Raw Ads Archive cho mọi provider
+Dùng `r._raw` nếu có (scrapecreators payload gốc), nếu không dùng bản normalized → KHÔNG bao giờ rỗng với custom/mock.
+
+### Creative asset fields (ScrapeCreators/custom)
+mapScAd map thêm `image_urls` (snapshot.images), `video_preview_url`, `carousel_image_urls` (snapshot.cards).
+`Visual Analysis` thêm cột `carousel_image_urls`.
+
+### GitHub Actions env
+`weekly-spy.yml` thêm `ADS_SOURCE_COUNTRY, ADS_SOURCE_MAX_ADS, VISUAL_AI_PROVIDER, VISUAL_AI_API_KEY,
+MAX_AI_ANALYSIS_PER_RUN, AI_BATCH_SIZE, AI_RETRY_LIMIT, TEXT_ANALYSIS_PROMPT_VERSION, VISUAL_ANALYSIS_PROMPT_VERSION`
+(qua Repository `vars`, key qua `secrets`).

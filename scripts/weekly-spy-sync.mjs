@@ -434,11 +434,17 @@ function mapScAd(a, brand, pageId) {
   const platforms = Array.isArray(a.publisher_platform) ? a.publisher_platform.join("|") : (a.publisher_platform || "Facebook");
   const media = s.display_format || ((s.videos || []).length ? "VIDEO" : "IMAGE");
   const body = (s.body && (s.body.text || (typeof s.body === "string" ? s.body : ""))) || s.caption || "";
-  const img = (s.images || [])[0] || {};
-  const vid = (s.videos || [])[0] || {};
-  const card = (s.cards || [])[0] || {};
+  const imgs = s.images || [];
+  const vids = s.videos || [];
+  const cards = s.cards || [];
+  const img = imgs[0] || {};
+  const vid = vids[0] || {};
+  const card = cards[0] || {};
   const thumbnail_url = img.resized_image_url || img.original_image_url || vid.video_preview_image_url || card.resized_image_url || card.original_image_url || card.video_preview_image_url || "";
   const media_url = vid.video_hd_url || vid.video_sd_url || img.original_image_url || thumbnail_url || "";
+  const image_urls = imgs.map((x) => x.resized_image_url || x.original_image_url).filter(Boolean);
+  const video_preview_url = vid.video_preview_image_url || "";
+  const carousel_image_urls = cards.map((c) => c.resized_image_url || c.original_image_url || c.video_preview_image_url).filter(Boolean);
   return {
     page_id: a.page_id || pageId,
     page_name: a.page_name || brand.brand_name,
@@ -456,6 +462,9 @@ function mapScAd(a, brand, pageId) {
     // ---- media thật + grouping ----
     thumbnail_url,
     media_url,
+    image_urls,
+    video_preview_url,
+    carousel_image_urls,
     collation_id: a.collation_id ? String(a.collation_id) : "",
     image_fingerprint: imageFingerprint(thumbnail_url),
     // ---- raw để archive ----
@@ -465,8 +474,11 @@ function mapScAd(a, brand, pageId) {
 async function scrapeCreatorsAdsForBrand(brand) {
   const out = [];
   let errored = false, pagesOk = 0, pagesFail = 0;
+  const pageLogs = [];
   for (const pageId of brand.page_ids) {
-    let cursor = undefined, pages = 0, ok = false;
+    let cursor = undefined, pages = 0, ok = false, errMsg = "";
+    const startedAt = nowISO();
+    const before = out.length;
     try {
       do {
         const json = await scFetch(pageId, cursor);
@@ -476,38 +488,63 @@ async function scrapeCreatorsAdsForBrand(brand) {
         pages++; ok = true;
       } while (cursor && out.length < SC_MAX_ADS_PER_PAGE && pages < 5);
     } catch (e) {
-      errored = true;
-      warn(`ScrapeCreators lỗi cho "${brand.brand_name}" (page ${pageId}): ${e?.message || e}`);
+      errored = true; errMsg = String(e?.message || e);
+      warn(`ScrapeCreators lỗi cho "${brand.brand_name}" (page ${pageId}): ${errMsg}`);
     }
     if (ok) pagesOk++; else pagesFail++;
+    pageLogs.push({ brand: brand.brand_name, page_id: pageId, status: ok ? "ok" : "error", ads_fetched: out.length - before, error_message: errMsg, started_at: startedAt, finished_at: nowISO() });
   }
-  return { ads: out, errored, pagesOk, pagesFail };
+  return { ads: out, errored, pagesOk, pagesFail, pageLogs };
 }
 
-/** Trả { ads, errored, pagesOk, pagesFail }. errored=true khi lỗi API. */
+/** Page logs giả lập cho provider không-per-page (mock/custom): 1 log/page. */
+function fakePageLogs(brand, ads, ok) {
+  const ts = nowISO();
+  return brand.page_ids.map((pid) => ({ brand: brand.brand_name, page_id: pid, status: ok ? "ok" : "error", ads_fetched: ads.filter((a) => String(a.page_id) === String(pid)).length, error_message: "", started_at: ts, finished_at: ts }));
+}
+
+/** Trả { ads, errored, pagesOk, pagesFail, pageLogs }. errored=true khi lỗi API. */
 async function pullAds(brand) {
   const nPages = brand.page_ids.length;
-  if (PROVIDER === "mock") return { ads: mockAdsForBrand(brand), errored: false, pagesOk: nPages, pagesFail: 0 };
+  if (PROVIDER === "mock") { const ads = mockAdsForBrand(brand); return { ads, errored: false, pagesOk: nPages, pagesFail: 0, pageLogs: fakePageLogs(brand, ads, true) }; }
   if (PROVIDER === "scrapecreators") return scrapeCreatorsAdsForBrand(brand);
-  if (PROVIDER === "custom") return { ads: await customAdsForBrand(brand), errored: false, pagesOk: nPages, pagesFail: 0 };
+  if (PROVIDER === "custom") { const ads = await customAdsForBrand(brand); return { ads, errored: false, pagesOk: nPages, pagesFail: 0, pageLogs: fakePageLogs(brand, ads, true) }; }
   warn(`ADS_SOURCE_PROVIDER="${PROVIDER}" không hỗ trợ — không bịa dữ liệu, bỏ qua "${brand.brand_name}".`);
-  return { ads: [], errored: false, pagesOk: 0, pagesFail: nPages };
+  return { ads: [], errored: false, pagesOk: 0, pagesFail: nPages, pageLogs: fakePageLogs(brand, [], false) };
 }
 
 /* ============================================================
    ANALYZE — raw ad -> Ad Level row
    ============================================================ */
-function analyzeAd(raw, brand, weekDate, prevAdIds) {
-  const text = [raw.headline, raw.primary_text, raw.description].join(" \n ");
+function adText(raw) { return [raw.headline, raw.primary_text, raw.description].join(" \n "); }
+
+/** Phần phân tích text (AI/heuristic) — tách riêng để CHECK-BEFORE-ANALYSIS reuse từ cache. */
+function computeTextAnalysis(raw) {
+  const text = adText(raw);
   const service = matchFirst(text, SERVICE_KEYWORDS, "unknown");
   const format = matchFirst(text, FORMAT_KEYWORDS, "unknown");
   const hook = matchFirst(text, HOOK_KEYWORDS, "unknown");
-  const angle = ANGLE_BY_HOOK[hook] || "unknown";
-  const proof = PROOF_BY_FORMAT[format] || "unknown";
-  const funnel = FUNNEL_BY_HOOK[hook] || "consideration";
+  return {
+    hook_type: hook, service_or_product: service, content_format: format,
+    content_angle: ANGLE_BY_HOOK[hook] || "unknown", proof_point: PROOF_BY_FORMAT[format] || "unknown",
+    funnel_stage: FUNNEL_BY_HOOK[hook] || "consideration",
+    offer_detected: detectOffer(text), price_detected: detectPrice(text),
+  };
+}
+function hashAd(raw) {
+  return {
+    content_hash: buildContentHash({ ...raw, ad_id: raw.ad_id, offer_detected: detectOffer(adText(raw)) }),
+    visual_hash: buildVisualHash({ ...raw, creative_type: String(raw.media_type || "").toLowerCase() }),
+  };
+}
+
+/** opts.reuse = text-analysis từ cache (cache hit -> KHÔNG phân tích lại). opts.hashes = precomputed. */
+function analyzeAd(raw, brand, weekDate, prevAdIds, opts = {}) {
   const days = daysActive(raw.start_date);
   const sc = scaleByDuration(days);
   const adId = raw.ad_id || `${brand.brand_name}-${raw.start_date}`;
+  const ta = opts.reuse || computeTextAnalysis(raw);
+  const { content_hash, visual_hash } = opts.hashes || hashAd(raw);
   return {
     week_date: weekDate,
     brand_name: brand.brand_name,
@@ -523,30 +560,34 @@ function analyzeAd(raw, brand, weekDate, prevAdIds) {
     headline: raw.headline || "",
     primary_text: raw.primary_text || "",
     hook_text: (raw.headline || raw.primary_text || "").slice(0, 160),
-    hook_type: hook,
-    service_or_product: service,
-    price_detected: detectPrice(text),
-    offer_detected: detectOffer(text),
-    content_format: format,
-    content_angle: angle,
-    proof_point: proof,
+    hook_type: ta.hook_type,
+    service_or_product: ta.service_or_product,
+    price_detected: ta.price_detected,
+    offer_detected: ta.offer_detected,
+    content_format: ta.content_format,
+    content_angle: ta.content_angle,
+    proof_point: ta.proof_point,
     cta: raw.cta || "",
-    funnel_stage: funnel,
+    funnel_stage: ta.funnel_stage,
     is_new_this_week: prevAdIds.has(adId) ? "false" : "true",
     was_seen_previous_week: prevAdIds.has(adId) ? "true" : "false",
     is_likely_scaled: "false", // điều chỉnh sau khi cluster
     scale_level: sc.level,
     scale_reason: "",
     notes: "",
-    // media thật + grouping (không nằm trong HEADERS.ad -> chỉ dùng cho visual)
+    // media thật + grouping (chỉ dùng cho visual/archive)
     thumbnail_url: raw.thumbnail_url || "",
     media_url: raw.media_url || "",
+    image_urls: raw.image_urls || [],
+    video_preview_url: raw.video_preview_url || "",
+    carousel_image_urls: raw.carousel_image_urls || [],
     collation_id: raw.collation_id || "",
     image_fingerprint: raw.image_fingerprint || "",
     landing_url: raw.link_url || "",
-    content_hash: buildContentHash({ ...raw, ad_id: adId, offer_detected: detectOffer(text) }),
-    visual_hash: buildVisualHash({ ...raw, creative_type: String(raw.media_type || "").toLowerCase() }),
+    content_hash,
+    visual_hash,
     _raw: raw._raw,
+    _reused: !!opts.reuse,
     _scaleLabel: sc.label,
   };
 }
@@ -575,13 +616,14 @@ const HEADERS = {
   scaled: "week_date,brand_name,content_cluster_id,representative_ad_id,representative_hook,service_or_product,price_detected,offer_detected,content_format,content_angle,proof_point,number_of_similar_ads,longest_days_active,average_days_active,scale_level,why_it_is_scaling,competitor_strategy_interpretation,seryn_should_copy_adapt_counter_avoid,seryn_reframe".split(","),
   change: "week_date,brand_name,active_ads_change,new_ads_count,stopped_ads_count,new_services_detected,removed_services,new_offers_detected,removed_offers,new_content_angles,removed_content_angles,scaled_content_new,scaled_content_still_running,strategic_change_type,change_summary,seryn_implication".split(","),
   rec: "week_date,recommendation_type,market_signal,competitor_evidence,seryn_content_niche,suggested_content_format,suggested_hook,content_style,main_message,proof_to_use,cta,kpi,priority".split(","),
-  visual: "ad_id,brand,page_id,creative_type,media_url,thumbnail_url,snapshot_url,image_urls,video_preview_url,has_media_asset,text_overlay_raw,text_overlay_summary,offer_from_visual,claim_from_visual,risk_terms_from_visual,visual_format,visual_angle,human_presence,doctor_presence,before_after_presence,text_overlay_presence,offer_visual_presence,clinical_score,beauty_luxury_score,ugc_score,trust_signal_score,offer_visibility_score,scroll_stop_score,confidence_score,confidence_reason,visual_risk_level,risk_reasons,claim_risk_score,before_after_risk,medical_claim_risk,promotion_claim_risk,visual_insight_summary,seryn_action,creative_signature,cluster_size,content_hash,visual_hash,analysis_status,reused_from_cache,analysis_version,last_analyzed_at,last_seen_date".split(","),
+  visual: "ad_id,brand,page_id,creative_type,media_url,thumbnail_url,snapshot_url,image_urls,video_preview_url,carousel_image_urls,has_media_asset,text_overlay_raw,text_overlay_summary,offer_from_visual,claim_from_visual,risk_terms_from_visual,visual_format,visual_angle,human_presence,doctor_presence,before_after_presence,text_overlay_presence,offer_visual_presence,clinical_score,beauty_luxury_score,ugc_score,trust_signal_score,offer_visibility_score,scroll_stop_score,confidence_score,confidence_reason,visual_risk_level,risk_reasons,claim_risk_score,before_after_risk,medical_claim_risk,promotion_claim_risk,visual_insight_summary,seryn_action,creative_signature,cluster_size,content_hash,visual_hash,analysis_status,reused_from_cache,analysis_version,last_analyzed_at,last_seen_date".split(","),
   brandVisual: "brand,week_date,total_creatives,before_after_rate,doctor_rate,ugc_rate,offer_banner_rate,high_risk_rate,avg_clinical_score,avg_luxury_score,top_visual_formats,dominant_visual_angle,notes".split(","),
   visualPattern: "id,week_date,brand,visual_format,visual_angle,hook_type,offer_type,ad_count,is_signal,representative_ad_id,summary,recommended_seryn_response".split(","),
   changeInsight: "id,brand,week_start,previous_week_start,change_type,severity,confidence_score,summary,evidence,affected_ads,previous_value,current_value,recommended_action".split(","),
-  cache: "ad_id,brand,page_id,content_hash,visual_hash,analysis_version,analysis_provider,analysis_status,reused_from_cache,text_analysis_json,visual_analysis_json,last_analyzed_at".split(","),
+  cache: "ad_id,brand,page_id,content_hash,visual_hash,analysis_version,analysis_provider,analysis_status,reused_from_cache,text_analysis_json,visual_analysis_json,first_seen_date,last_seen_date,last_analyzed_at".split(","),
   rawArchive: "crawl_run_id,week_date,brand,page_id,ad_id,content_hash,visual_hash,status,source_provider,source_country,first_seen_date,last_seen_date,raw_json".split(","),
   crawlRuns: "crawl_run_id,started_at,finished_at,week_date,provider,country,total_brands,total_pages,success_pages,failed_pages,total_ads_fetched,new_ads_count,changed_ads_count,reused_ads_count,analyzed_ads_count,carried_forward_count,status,error_summary".split(","),
+  pageCrawlLogs: "crawl_run_id,week_date,brand,page_id,status,ads_fetched,error_message,started_at,finished_at".split(","),
   historical: "week_date,brand,active_ads_count,new_ads_count,stopped_ads_count,changed_ads_count,reused_ads_count,top_service,top_hook,top_offer,top_visual_format,crawl_status,snapshot_json".split(","),
   patternCache: "pattern_id,pattern_hash,brand,service_type,hook_type,offer_type,visual_format,visual_angle,first_seen_date,last_seen_date,ads_count,active_days_avg,example_ads,scale_signal".split(","),
 };
@@ -919,10 +961,12 @@ function analyzeVisualFallback(ad) {
   const summaryBits = [visual_format.replace(/_/g, " "), doctor_presence ? "có bác sĩ" : "", before_after_presence ? "before/after" : "", offer_visual_presence ? "nhấn ưu đãi" : ""].filter(Boolean);
   const visual_insight_summary = `Creative ${creative_type} dạng ${summaryBits.join(", ") || "chưa rõ"}.` + (hasAsset ? "" : " (limited analysis — no media asset)");
 
+  const imageUrls = Array.isArray(ad.image_urls) && ad.image_urls.length ? ad.image_urls.map(String) : (thumb ? [String(thumb)] : []);
+  const carousel = Array.isArray(ad.carousel_image_urls) ? ad.carousel_image_urls.map(String) : [];
   return {
     ad_id: String(ad.ad_id || ""), brand: String(ad.brand_name || ""), page_id: String(ad.page_id || ""),
     creative_type, media_url: mediaUrl, thumbnail_url: thumb, snapshot_url: ad.ad_snapshot_url || "",
-    image_urls: thumb ? JSON.stringify([String(thumb)]) : "[]", video_preview_url: "", has_media_asset: hasAsset,
+    image_urls: JSON.stringify(imageUrls), video_preview_url: ad.video_preview_url || "", carousel_image_urls: JSON.stringify(carousel), has_media_asset: hasAsset,
     text_overlay_raw: "", text_overlay_summary: String(ad.headline || ad.hook_text || "").slice(0, 120),
     offer_from_visual: ad.offer_detected && ad.offer_detected !== "no_clear_offer" ? String(ad.offer_detected) : "",
     claim_from_visual: risk_terms.join("|"), risk_terms_from_visual: JSON.stringify(risk_terms),
@@ -1015,8 +1059,9 @@ function actionFromType(ct) {
   return "monitor";
 }
 
-function generateWeeklyChangeInsights(currentAds, previousAds, currentVisual, previousVisual, snapshots, prevSnapByBrand, weekDate, prevWeek, crawlOk) {
+function generateWeeklyChangeInsights(currentAds, previousAds, currentVisual, previousVisual, snapshots, prevSnapByBrand, weekDate, prevWeek, crawlOk, pageOk) {
   const isOk = (brand) => (crawlOk ? crawlOk[brand] !== false : true); // crawl thất bại -> không kết luận dừng/giảm
+  const pageIsOk = (pid) => (pageOk ? pageOk[String(pid)] === true : true); // chỉ kết luận page_inactive nếu page đó crawl OK
   const adsByBrand = {}; for (const a of currentAds) (adsByBrand[a.brand_name] ||= []).push(a);
   const prevByBrand = {}; for (const a of previousAds) (prevByBrand[a.brand_name] ||= []).push(a);
   const visByBrand = {}; for (const v of currentVisual) (visByBrand[v.brand] ||= []).push(v);
@@ -1058,9 +1103,13 @@ function generateWeeklyChangeInsights(currentAds, previousAds, currentVisual, pr
     const newPages = [...curPages].filter((p) => !prevPages.has(p));
     const gonePages = [...prevPages].filter((p) => !curPages.has(p));
     if (newPages.length && prevPages.size) push(brand, "new_page_detected", "medium", newPages.length, `${brand} chạy ad qua page mới.`, `Page mới: ${newPages.join(", ")}.`, { current_value: newPages.join("|") });
-    if (gonePages.length && curPages.size === 0 && prevPages.size && isOk(brand)) push(brand, "page_inactive", "low", gonePages.length, `${brand} ngừng chạy ad ở page cũ.`, `Page không còn active ads: ${gonePages.join(", ")} (crawl brand THÀNH CÔNG).`, { previous_value: gonePages.join("|") });
-    else if (gonePages.length && curPages.size === 0 && prevPages.size && !isOk(brand))
-      warn(`Bỏ qua 'page_inactive' cho "${brand}" vì crawl lỗi — giữ carried_forward.`);
+    // page_inactive XÉT THEO TỪNG page_id: chỉ kết luận cho page crawl OK mà tuần này 0 ad.
+    if (gonePages.length && prevPages.size) {
+      const confirmed = gonePages.filter((p) => pageIsOk(p));
+      const uncertain = gonePages.filter((p) => !pageIsOk(p));
+      if (confirmed.length) push(brand, "page_inactive", "low", confirmed.length, `${brand} ngừng chạy ad ở page cũ.`, `Page crawl THÀNH CÔNG nhưng 0 ad: ${confirmed.join(", ")}.`, { previous_value: confirmed.join("|") });
+      if (uncertain.length) warn(`"${brand}": ${uncertain.length} page crawl lỗi (${uncertain.join(", ")}) — KHÔNG kết luận page_inactive (partial crawl).`);
+    }
 
     // Offer / hook / service shift (cần prev)
     if (prev.length) {
@@ -1149,28 +1198,37 @@ async function main() {
   const runId = crawlRunId(weekDate);
   const startedAt = nowISO();
   const crawlOkByBrand = {};
+  const pageOk = {};            // page_id -> true nếu crawl page đó thành công
+  const allPageLogs = [];
   let totalPages = 0, successPages = 0, failedPages = 0;
   let newCount = 0, changedCount = 0, reusedCount = 0, carriedCount = 0;
   const ANALYSIS_VER = `${ANALYSIS_VERSION}/t:${TEXT_PROMPT_VERSION}/v:${VISUAL_PROMPT_VERSION}`;
+  const PROVIDER_KEY = `${PROVIDER}/${VISUAL_AI_PROVIDER}`;
   const archiveRows = [];
 
-  /** Gán analysis_status theo cache (incremental): new / reused / changed. */
-  function tagCache(ad) {
-    const c = cacheById[ad.ad_id];
+  /** CHECK-BEFORE-ANALYSIS: hash trước -> cache hit (+ version/provider khớp) thì reuse, không phân tích lại. */
+  function analyzeWithCache(r, brand) {
+    const hashes = hashAd(r);
+    const c = cacheById[r.ad_id];
+    const versionMatch = c && c.analysis_version === ANALYSIS_VER && c.analysis_provider === PROVIDER_KEY;
+    const hit = !!versionMatch && c.content_hash === hashes.content_hash && c.visual_hash === hashes.visual_hash;
+    let reuse = null;
+    if (hit) { try { reuse = JSON.parse(c.text_analysis_json); } catch { reuse = null; } }
+    const ad = analyzeAd(r, brand, weekDate, prevAdIds, { reuse, hashes });
     if (!c) { ad.analysis_status = "newly_analyzed"; ad.reused_from_cache = "false"; ad.last_analyzed_at = nowISO(); newCount++; }
-    else if (c.content_hash === ad.content_hash && c.visual_hash === ad.visual_hash) {
-      ad.analysis_status = "reused_from_cache"; ad.reused_from_cache = "true"; ad.last_analyzed_at = c.last_analyzed_at || nowISO(); reusedCount++;
-    } else { ad.analysis_status = "changed_reanalyzed"; ad.reused_from_cache = "false"; ad.last_analyzed_at = nowISO(); changedCount++; }
+    else if (hit) { ad.analysis_status = "reused_from_cache"; ad.reused_from_cache = "true"; ad.last_analyzed_at = c.last_analyzed_at || nowISO(); reusedCount++; }
+    else { ad.analysis_status = "changed_reanalyzed"; ad.reused_from_cache = "false"; ad.last_analyzed_at = nowISO(); changedCount++; }
     ad.analysis_version = ANALYSIS_VER;
     return ad;
   }
 
   const allAds = [], snapshots = [], allScaled = [];
   for (const brand of competitors) {
-    const { ads: raw, errored, pagesOk = 0, pagesFail = 0 } = await pullAds(brand);
+    const { ads: raw, errored, pagesOk = 0, pagesFail = 0, pageLogs = [] } = await pullAds(brand);
     totalPages += pagesOk + pagesFail; successPages += pagesOk; failedPages += pagesFail;
     const crawlOk = !errored;
     crawlOkByBrand[brand.brand_name] = crawlOk;
+    for (const pl of pageLogs) { pageOk[String(pl.page_id)] = pl.status === "ok"; allPageLogs.push({ crawl_run_id: runId, week_date: weekDate, ...pl }); }
     let ads;
     if (!raw.length && errored && (prevAdsByBrand[brand.brand_name] || []).length) {
       const carried = prevAdsByBrand[brand.brand_name];
@@ -1179,17 +1237,19 @@ async function main() {
       carriedCount += ads.length;
     } else {
       if (!raw.length) warn(`Brand "${brand.brand_name}": 0 ad thu được (crawl ${crawlOk ? "OK" : "lỗi"}).`);
-      ads = raw.map((r) => tagCache(analyzeAd(r, brand, weekDate, prevAdIds)));
+      ads = raw.map((r) => analyzeWithCache(r, brand));
       ads = applyScale(ads);
-      // raw archive (chỉ khi có _raw)
-      for (const r of raw) if (r._raw) archiveRows.push({
-        crawl_run_id: runId, week_date: weekDate, brand: brand.brand_name, page_id: r.page_id, ad_id: r.ad_id,
-        content_hash: buildContentHash({ ...r, offer_detected: detectOffer([r.headline, r.primary_text, r.description].join(" ")) }),
-        visual_hash: buildVisualHash({ ...r, creative_type: String(r.media_type || "").toLowerCase() }),
-        status: r.status || "ACTIVE", source_provider: PROVIDER, source_country: SC_COUNTRY,
-        first_seen_date: archiveFirstSeen[r.ad_id] || r.start_date || weekDate, last_seen_date: weekDate,
-        raw_json: JSON.stringify(r._raw).slice(0, 8000),
-      });
+      // raw archive — MỌI provider (có _raw thì lưu raw, không thì lưu object normalized)
+      for (const r of raw) {
+        const { _raw, _reused, ...rest } = r;
+        archiveRows.push({
+          crawl_run_id: runId, week_date: weekDate, brand: brand.brand_name, page_id: r.page_id, ad_id: r.ad_id,
+          ...hashAd(r),
+          status: r.status || "ACTIVE", source_provider: PROVIDER, source_country: SC_COUNTRY,
+          first_seen_date: archiveFirstSeen[r.ad_id] || r.start_date || weekDate, last_seen_date: weekDate,
+          raw_json: JSON.stringify(_raw || rest).slice(0, 8000),
+        });
+      }
     }
     const scaled = buildScaled(brand, ads, weekDate);
     snapshots.push(buildSnapshot(brand, ads, scaled, weekDate));
@@ -1215,21 +1275,35 @@ async function main() {
   }
   const brandVisual = buildBrandVisualSummary(visualRows, weekDate);
   const visualPatterns = buildVisualPatterns(visualRows, weekDate);
-  const changeInsights = generateWeeklyChangeInsights(allAds, prevAds, visualRows, prevVisual, snapshots, prevSnapByBrand, weekDate, prevWeek, crawlOkByBrand);
+  const changeInsights = generateWeeklyChangeInsights(allAds, prevAds, visualRows, prevVisual, snapshots, prevSnapByBrand, weekDate, prevWeek, crawlOkByBrand, pageOk);
 
-  // ---- Cache rows (1/ad hiện tại) ----
+  // ---- Cache rows (current) + MERGE với cache cũ (không mất cache của ad đã dừng) ----
   const visById = {}; for (const v of visualRows) visById[v.ad_id] = v;
-  const cacheRows = allAds.map((a) => {
+  const curCacheRows = allAds.map((a) => {
     const v = visById[a.ad_id] || {};
+    const old = cacheById[a.ad_id];
     return {
       ad_id: a.ad_id, brand: a.brand_name, page_id: a.page_id, content_hash: a.content_hash || "", visual_hash: a.visual_hash || "",
-      analysis_version: a.analysis_version || ANALYSIS_VER, analysis_provider: `${PROVIDER}/${VISUAL_AI_PROVIDER}`,
+      analysis_version: a.analysis_version || ANALYSIS_VER, analysis_provider: PROVIDER_KEY,
       analysis_status: a.analysis_status || "newly_analyzed", reused_from_cache: a.reused_from_cache || "false",
-      text_analysis_json: JSON.stringify({ hook_type: a.hook_type, service: a.service_or_product, format: a.content_format, angle: a.content_angle, offer: a.offer_detected, scale_level: a.scale_level }),
+      // text_analysis_json đúng shape computeTextAnalysis -> reuse trực tiếp lần sau
+      text_analysis_json: JSON.stringify({ hook_type: a.hook_type, service_or_product: a.service_or_product, content_format: a.content_format, content_angle: a.content_angle, proof_point: a.proof_point, funnel_stage: a.funnel_stage, offer_detected: a.offer_detected, price_detected: a.price_detected }),
       visual_analysis_json: JSON.stringify({ visual_format: v.visual_format, seryn_action: v.seryn_action, clinical: v.clinical_score, risk: v.visual_risk_level, confidence: v.confidence_score }),
+      first_seen_date: (old && old.first_seen_date) || archiveFirstSeen[a.ad_id] || a.start_date || weekDate,
+      last_seen_date: weekDate,
       last_analyzed_at: a.last_analyzed_at || nowISO(),
     };
   });
+  const curAdIds = new Set(curCacheRows.map((r) => r.ad_id));
+  // giữ cache cũ của ad KHÔNG còn xuất hiện tuần này (đã dừng) — không mất kết quả phân tích.
+  const keptOld = prevCache.filter((r) => r.ad_id && !curAdIds.has(r.ad_id));
+  const mergedCache = [...curCacheRows, ...keptOld];
+  // dedup theo ad_id + content_hash + visual_hash (an toàn nếu cache cũ có dòng trùng).
+  const cacheRows = []; const _seenCacheKey = new Set();
+  for (const r of mergedCache) {
+    const k = `${r.ad_id}|${r.content_hash}|${r.visual_hash}`;
+    if (_seenCacheKey.has(k)) continue; _seenCacheKey.add(k); cacheRows.push(r);
+  }
 
   // ---- Historical snapshots (append) ----
   const histRows = snapshots.map((s) => {
@@ -1290,6 +1364,7 @@ async function main() {
   await appendTab(sheets, titles, "Raw Ads Archive", HEADERS.rawArchive, archiveRows);
   await appendTab(sheets, titles, "Historical Weekly Snapshots", HEADERS.historical, histRows);
   await appendTab(sheets, titles, "Crawl Runs", HEADERS.crawlRuns, [crawlRunRow]);
+  await appendTab(sheets, titles, "Page Crawl Logs", HEADERS.pageCrawlLogs, allPageLogs);
 
   const aiSaved = reusedCount + carriedCount; // ad không cần gọi AI lại
   console.log(`\nXong. ${snapshots.length} brand · ${allAds.length} ad · ${newCount} mới · ${changedCount} đổi · ${reusedCount} reuse-cache · ${carriedCount} carried.`);
