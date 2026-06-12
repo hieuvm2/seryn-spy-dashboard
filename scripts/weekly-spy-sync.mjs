@@ -342,8 +342,82 @@ async function customAdsForBrand(brand) {
   return out;
 }
 
+/* ---------- ScrapeCreators (Facebook Ad Library) ---------- */
+const SC_ADS_URL = "https://api.scrapecreators.com/v1/facebook/adLibrary/company/ads";
+const SC_COUNTRY = (process.env.ADS_SOURCE_COUNTRY || "VN").trim().toUpperCase();
+const SC_MAX_ADS_PER_PAGE = Number(process.env.ADS_SOURCE_MAX_ADS || 80);
+function scKeys() {
+  return (process.env.ADS_SOURCE_API_KEY || "").split(",").map((s) => s.trim()).filter(Boolean);
+}
+async function scFetch(pageId, cursor) {
+  const keys = scKeys();
+  if (!keys.length) throw new Error("Thiếu ADS_SOURCE_API_KEY cho provider=scrapecreators.");
+  const u = new URL(SC_ADS_URL);
+  u.searchParams.set("pageId", pageId);
+  if (SC_COUNTRY) u.searchParams.set("country", SC_COUNTRY);
+  if (cursor) u.searchParams.set("cursor", cursor);
+  let lastErr = "";
+  for (const key of keys) { // rotation khi 1 key hết credit
+    const res = await fetch(u.toString(), { headers: { "x-api-key": key } });
+    if (res.status === 402 || res.status === 429) { lastErr = `HTTP ${res.status}`; continue; }
+    if (!res.ok) { lastErr = `HTTP ${res.status}`; break; }
+    const json = await res.json();
+    if (json.success === false) {
+      if (/credit/i.test(json.message || "")) { lastErr = json.message; continue; }
+      throw new Error(json.message || "ScrapeCreators error");
+    }
+    return json;
+  }
+  throw new Error(lastErr || "ScrapeCreators: tất cả key đều lỗi/hết credit.");
+}
+function unixToISO(sec) {
+  if (!sec) return "";
+  const n = Number(sec);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  return new Date(n * 1000).toISOString().slice(0, 10);
+}
+function mapScAd(a, brand, pageId) {
+  const s = a.snapshot || {};
+  const platforms = Array.isArray(a.publisher_platform) ? a.publisher_platform.join("|") : (a.publisher_platform || "Facebook");
+  const media = s.display_format || ((s.videos || []).length ? "VIDEO" : "IMAGE");
+  const body = (s.body && (s.body.text || (typeof s.body === "string" ? s.body : ""))) || s.caption || "";
+  return {
+    page_id: a.page_id || pageId,
+    page_name: a.page_name || brand.brand_name,
+    ad_id: String(a.ad_archive_id || a.ad_id || ""),
+    ad_snapshot_url: a.url || (a.ad_archive_id ? `https://www.facebook.com/ads/library/?id=${a.ad_archive_id}` : ""),
+    status: a.is_active ? "ACTIVE" : "INACTIVE",
+    start_date: unixToISO(a.start_date),
+    media_type: String(media).toLowerCase(),
+    platforms,
+    headline: s.title || "",
+    primary_text: body,
+    description: s.link_description || "",
+    cta: s.cta_text || s.cta_type || "",
+  };
+}
+async function scrapeCreatorsAdsForBrand(brand) {
+  const out = [];
+  for (const pageId of brand.page_ids) {
+    let cursor = undefined, pages = 0;
+    try {
+      do {
+        const json = await scFetch(pageId, cursor);
+        const ads = json.results || json.ads || [];
+        for (const a of ads) out.push(mapScAd(a, brand, pageId));
+        cursor = json.cursor || json.nextCursor || json.next_cursor || undefined;
+        pages++;
+      } while (cursor && out.length < SC_MAX_ADS_PER_PAGE && pages < 5);
+    } catch (e) {
+      warn(`ScrapeCreators lỗi cho "${brand.brand_name}" (page ${pageId}): ${e?.message || e}`);
+    }
+  }
+  return out;
+}
+
 async function pullAds(brand) {
   if (PROVIDER === "mock") return mockAdsForBrand(brand);
+  if (PROVIDER === "scrapecreators") return scrapeCreatorsAdsForBrand(brand);
   if (PROVIDER === "custom") return customAdsForBrand(brand);
   warn(`ADS_SOURCE_PROVIDER="${PROVIDER}" không hỗ trợ — không bịa dữ liệu, bỏ qua "${brand.brand_name}".`);
   return [];

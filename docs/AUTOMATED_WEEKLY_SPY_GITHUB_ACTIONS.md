@@ -74,13 +74,25 @@ Repo GitHub → **Settings → Secrets and variables → Actions → New reposit
 
 ## 9. Đổi provider từ mock sang ads thật
 
+### Cách A — ScrapeCreators (Facebook Ad Library) — khuyến nghị
+Pull ads thật trực tiếp theo `page_id` của tab `Competitors`.
+1. Lấy API key tại <https://scrapecreators.com/dashboard>.
+2. Đặt Secrets trên GitHub:
+   - `ADS_SOURCE_PROVIDER` = `scrapecreators`
+   - `ADS_SOURCE_API_KEY` = key (có thể nhiều key phân cách `,` để tự rotation khi hết credit)
+   - (tùy chọn) `ADS_SOURCE_COUNTRY` = `VN`, `ADS_SOURCE_MAX_ADS` = `80`
+3. Chạy lại workflow. Script gọi `GET /v1/facebook/adLibrary/company/ads?pageId=...` (header `x-api-key`),
+   map ad → classify (service/format/hook) → scale detect → cluster → ghi 5 bảng.
+   - Brand `0 ad` (page tắt ad hoặc chạy qua page khác) → ghi warning, **không bịa**, xử lý brand còn lại.
+   - Mỗi page_id tốn ~1 credit; tab `Competitors` 13 brand ≈ 19 page call/lần chạy.
+
+### Cách B — API ads tùy biến (provider=custom)
 1. Dựng/được cấp một API trả ads theo `brand_name` + `page_id` (JSON).
    - Script chấp nhận mảng ads ở `json`, `json.ads`, hoặc `json.data`; mỗi ad map các field:
      `ad_id/id`, `headline/title`, `primary_text/body/ad_creative_body`, `start_date/ad_delivery_start_time`,
      `media_type`, `platforms`, `cta`, `ad_snapshot_url`...
 2. Đặt Secrets: `ADS_SOURCE_PROVIDER=custom`, `ADS_SOURCE_API_URL=<url>`, (tùy chọn) `ADS_SOURCE_API_KEY=<key>`.
-3. Chạy lại workflow. Script tự classify (service/format/hook), detect scale, cluster, và sinh 5 bảng.
-   - API lỗi cho brand nào → ghi warning, **không bịa dữ liệu**, vẫn xử lý brand còn lại.
+3. Chạy lại workflow. Script tự classify, detect scale, cluster, và sinh 5 bảng.
 
 ---
 
