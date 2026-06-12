@@ -114,15 +114,15 @@ const DEFAULT_COMPETITORS = [
   { brand_name: "Bệnh viện JW Hàn Quốc", page_ids: "101055868985301|400844936646543", page_urls: "https://www.facebook.com/benhvienjw.vn", active: "TRUE", notes: "default" },
   { brand_name: "Viện Thẩm Mỹ LG Clinic", page_ids: "138495609852248", page_urls: "https://www.facebook.com/vienthammylgclinic", active: "TRUE", notes: "default" },
   { brand_name: "Bệnh viện Thẩm mỹ Kangnam", page_ids: "359285057508884", page_urls: "https://www.facebook.com/Thammykangnam", active: "TRUE", notes: "default" },
-  { brand_name: "Thẩm mỹ viện Ngọc Dung", page_ids: "372398605948395|108877052096057", page_urls: "https://www.facebook.com/ngocdungbeautycenter", active: "TRUE", notes: "default" },
-  { brand_name: "Pensilia Beauty Clinic", page_ids: "108600987972847", page_urls: "https://www.facebook.com/pensilia", active: "TRUE", notes: "default" },
+  { brand_name: "Thẩm mỹ viện Ngọc Dung", page_ids: "105431292369518|372398605948395|108877052096057", page_urls: "https://www.facebook.com/ngocdungbeautycenter", active: "TRUE", notes: "default" },
+  { brand_name: "Pensilia Beauty Clinic", page_ids: "291660597514323|108600987972847", page_urls: "https://www.facebook.com/pensilia", active: "TRUE", notes: "default" },
   { brand_name: "Thẩm mỹ Thu Cúc", page_ids: "101804119684503|500793556456269|938714509514807", page_urls: "https://www.facebook.com/thammythucuc.com.vn/", active: "TRUE", notes: "default" },
   { brand_name: "Thẩm mỹ Đông Á", page_ids: "160104667517819|102483108454334", page_urls: "https://www.facebook.com/ThamMyDongA/", active: "TRUE", notes: "default" },
   { brand_name: "Bệnh viện Thẩm mỹ Gangwhoo", page_ids: "112411351351957", page_urls: "https://www.facebook.com/benhvienthammygangwhoo", active: "TRUE", notes: "default" },
   { brand_name: "Shynh House", page_ids: "422033221305938", page_urls: "https://www.facebook.com/vienchamsocdaspashynhhouse", active: "TRUE", notes: "default" },
   { brand_name: "Lavender By Chang", page_ids: "887334961357859", page_urls: "https://www.facebook.com/LavenderByChang/", active: "TRUE", notes: "default" },
   { brand_name: "Thẩm mỹ viện Seoul Center", page_ids: "322462184801000", page_urls: "https://www.facebook.com/thammyvienseoulcenter/", active: "TRUE", notes: "default" },
-  { brand_name: "Lux Beauty Center", page_ids: "102187195024006", page_urls: "https://www.facebook.com/deluxbeautycenter/", active: "TRUE", notes: "default" },
+  { brand_name: "Lux Beauty Center", page_ids: "103915115173880", page_urls: "https://www.facebook.com/deluxbeautycenter/", active: "TRUE", notes: "default" },
   { brand_name: "SeoulSpa.Vn", page_ids: "108687825073367", page_urls: "https://www.facebook.com/SeoulSpa.Vn", active: "TRUE", notes: "default" },
 ];
 
@@ -398,6 +398,7 @@ function mapScAd(a, brand, pageId) {
 }
 async function scrapeCreatorsAdsForBrand(brand) {
   const out = [];
+  let errored = false;
   for (const pageId of brand.page_ids) {
     let cursor = undefined, pages = 0;
     try {
@@ -409,18 +410,20 @@ async function scrapeCreatorsAdsForBrand(brand) {
         pages++;
       } while (cursor && out.length < SC_MAX_ADS_PER_PAGE && pages < 5);
     } catch (e) {
+      errored = true;
       warn(`ScrapeCreators lỗi cho "${brand.brand_name}" (page ${pageId}): ${e?.message || e}`);
     }
   }
-  return out;
+  return { ads: out, errored };
 }
 
+/** Trả { ads, errored }. errored=true khi lỗi API (≠ "page thật sự 0 ad"). */
 async function pullAds(brand) {
-  if (PROVIDER === "mock") return mockAdsForBrand(brand);
+  if (PROVIDER === "mock") return { ads: mockAdsForBrand(brand), errored: false };
   if (PROVIDER === "scrapecreators") return scrapeCreatorsAdsForBrand(brand);
-  if (PROVIDER === "custom") return customAdsForBrand(brand);
+  if (PROVIDER === "custom") return { ads: await customAdsForBrand(brand), errored: false };
   warn(`ADS_SOURCE_PROVIDER="${PROVIDER}" không hỗ trợ — không bịa dữ liệu, bỏ qua "${brand.brand_name}".`);
-  return [];
+  return { ads: [], errored: false };
 }
 
 /* ============================================================
@@ -781,10 +784,19 @@ async function main() {
 
   const allAds = [], snapshots = [], allScaled = [];
   for (const brand of competitors) {
-    const raw = await pullAds(brand);
-    if (!raw.length) { warn(`Brand "${brand.brand_name}": 0 ad thu được.`); }
-    let ads = raw.map((r) => analyzeAd(r, brand, weekDate, prevAdIds));
-    ads = applyScale(ads);
+    const { ads: raw, errored } = await pullAds(brand);
+    let ads;
+    if (!raw.length && errored && (prevAdsByBrand[brand.brand_name] || []).length) {
+      // Lỗi API (vd hết credit) + có data tuần trước -> GIỮ LẠI, không ghi đè rỗng.
+      const carried = prevAdsByBrand[brand.brand_name];
+      warn(`Brand "${brand.brand_name}": pull lỗi — giữ lại ${carried.length} ad của tuần trước (không ghi đè rỗng).`);
+      // Giữ nguyên các cột đã phân tích tuần trước (gồm scale_*), chỉ đổi week_date + ghi chú.
+      ads = carried.map((r) => ({ ...r, week_date: weekDate, notes: ((r.notes || "") + " | carried_forward (pull error)").trim() }));
+    } else {
+      if (!raw.length) warn(`Brand "${brand.brand_name}": 0 ad thu được.`);
+      ads = raw.map((r) => analyzeAd(r, brand, weekDate, prevAdIds));
+      ads = applyScale(ads);
+    }
     const scaled = buildScaled(brand, ads, weekDate);
     snapshots.push(buildSnapshot(brand, ads, scaled, weekDate));
     allAds.push(...ads);
