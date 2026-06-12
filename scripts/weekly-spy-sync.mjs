@@ -111,11 +111,19 @@ async function writeTab(sheets, titles, name, headers, rows) {
    COMPETITORS — đọc watchlist
    ============================================================ */
 const DEFAULT_COMPETITORS = [
-  { brand_name: "Bệnh viện JW Hàn Quốc", page_ids: "400844936646543|101055868985301", page_urls: "https://www.facebook.com/benhvienjw.vn", active: "TRUE", notes: "default" },
+  { brand_name: "Bệnh viện JW Hàn Quốc", page_ids: "101055868985301|400844936646543", page_urls: "https://www.facebook.com/benhvienjw.vn", active: "TRUE", notes: "default" },
   { brand_name: "Viện Thẩm Mỹ LG Clinic", page_ids: "138495609852248", page_urls: "https://www.facebook.com/vienthammylgclinic", active: "TRUE", notes: "default" },
   { brand_name: "Bệnh viện Thẩm mỹ Kangnam", page_ids: "359285057508884", page_urls: "https://www.facebook.com/Thammykangnam", active: "TRUE", notes: "default" },
-  { brand_name: "Thẩm mỹ viện Ngọc Dung", page_ids: "372398605948395", page_urls: "https://www.facebook.com/ngocdungbeautycenter", active: "TRUE", notes: "default" },
+  { brand_name: "Thẩm mỹ viện Ngọc Dung", page_ids: "372398605948395|108877052096057", page_urls: "https://www.facebook.com/ngocdungbeautycenter", active: "TRUE", notes: "default" },
   { brand_name: "Pensilia Beauty Clinic", page_ids: "108600987972847", page_urls: "https://www.facebook.com/pensilia", active: "TRUE", notes: "default" },
+  { brand_name: "Thẩm mỹ Thu Cúc", page_ids: "101804119684503|500793556456269|938714509514807", page_urls: "https://www.facebook.com/thammythucuc.com.vn/", active: "TRUE", notes: "default" },
+  { brand_name: "Thẩm mỹ Đông Á", page_ids: "160104667517819|102483108454334", page_urls: "https://www.facebook.com/ThamMyDongA/", active: "TRUE", notes: "default" },
+  { brand_name: "Bệnh viện Thẩm mỹ Gangwhoo", page_ids: "112411351351957", page_urls: "https://www.facebook.com/benhvienthammygangwhoo", active: "TRUE", notes: "default" },
+  { brand_name: "Shynh House", page_ids: "422033221305938", page_urls: "https://www.facebook.com/vienchamsocdaspashynhhouse", active: "TRUE", notes: "default" },
+  { brand_name: "Lavender By Chang", page_ids: "887334961357859", page_urls: "https://www.facebook.com/LavenderByChang/", active: "TRUE", notes: "default" },
+  { brand_name: "Thẩm mỹ viện Seoul Center", page_ids: "322462184801000", page_urls: "https://www.facebook.com/thammyvienseoulcenter/", active: "TRUE", notes: "default" },
+  { brand_name: "Lux Beauty Center", page_ids: "102187195024006", page_urls: "https://www.facebook.com/deluxbeautycenter/", active: "TRUE", notes: "default" },
+  { brand_name: "SeoulSpa.Vn", page_ids: "108687825073367", page_urls: "https://www.facebook.com/SeoulSpa.Vn", active: "TRUE", notes: "default" },
 ];
 
 function isTrue(v) { return ["true", "1", "yes", "x", "có"].includes(String(v || "").trim().toLowerCase()); }
