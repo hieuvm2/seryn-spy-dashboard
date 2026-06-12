@@ -118,11 +118,10 @@ export function clearWeeklyHistory(): void {
 const SOURCE_KEY = "seryn_spy_source_v2";
 
 export const SOURCE_LABELS: Record<DataSourceType, string> = {
-  demo: "DEMO DATA",
-  "local-csv": "LOCAL CSV DATA",
-  "local-folder": "LOCAL PROJECT FOLDER",
-  "online-sheet": "ONLINE SHEET DATA",
-  "offline-cache": "OFFLINE CACHE",
+  demo: "DỮ LIỆU MẪU",
+  "local-csv": "CSV THỦ CÔNG",
+  "online-sheet": "GOOGLE SHEETS",
+  "offline-cache": "BẢN OFFLINE",
 };
 
 export function saveSourceType(src: DataSourceType): void {
@@ -131,7 +130,7 @@ export function saveSourceType(src: DataSourceType): void {
 export function loadSourceType(): DataSourceType | null {
   try {
     const v = localStorage.getItem(SOURCE_KEY);
-    return v === "demo" || v === "local-csv" || v === "local-folder" || v === "online-sheet" || v === "offline-cache" ? v : null;
+    return v === "demo" || v === "local-csv" || v === "online-sheet" || v === "offline-cache" ? v : null;
   } catch {
     return null;
   }
@@ -439,99 +438,6 @@ export function scaleMeta(level: unknown): { label: string; tone: "slate" | "sky
 
 export { STORAGE_KEY };
 
-/* ============================================================
-   Tự động nạp từ thư mục project (File System Access API)
-   Chrome/Edge. Người dùng chọn thư mục C:\seryn-spy-agent một
-   lần -> đọc cả 5 CSV từ đường dẫn cố định.
-   ============================================================ */
-
-/** Đường dẫn 5 output trong project (tương đối từ thư mục gốc đã chọn). */
-export const PROJECT_FILES: Record<SpyTableName, string> = {
-  brandWeeklySnapshot: "outputs/weekly_snapshots/brand_weekly_snapshot.csv",
-  adLevelAnalysis: "outputs/normalized_ads/ad_level_analysis.csv",
-  scaledContentAnalysis: "outputs/normalized_ads/scaled_content_analysis.csv",
-  weeklyStrategyChange: "outputs/weekly_snapshots/weekly_strategy_change.csv",
-  serynContentRecommendations: "outputs/creative_briefs/seryn_content_recommendations.csv",
-};
-
-export function isDirectoryPickerSupported(): boolean {
-  return typeof (window as any).showDirectoryPicker === "function";
-}
-
-/* --- IndexedDB nhỏ gọn để nhớ thư mục đã chọn --- */
-function idbOpen(): Promise<IDBDatabase | null> {
-  return new Promise((resolve) => {
-    try {
-      const req = indexedDB.open("seryn-spy-fs", 1);
-      req.onupgradeneeded = () => req.result.createObjectStore("kv");
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => resolve(null);
-    } catch {
-      resolve(null);
-    }
-  });
-}
-export async function rememberDirHandle(handle: any): Promise<void> {
-  const db = await idbOpen();
-  if (db) db.transaction("kv", "readwrite").objectStore("kv").put(handle, "dir");
-}
-export async function getRememberedDirHandle(): Promise<any | null> {
-  const db = await idbOpen();
-  if (!db) return null;
-  return new Promise((resolve) => {
-    const r = db.transaction("kv", "readonly").objectStore("kv").get("dir");
-    r.onsuccess = () => resolve(r.result || null);
-    r.onerror = () => resolve(null);
-  });
-}
-
-export async function pickProjectDirectory(): Promise<any | null> {
-  if (!isDirectoryPickerSupported()) return null;
-  return (window as any).showDirectoryPicker({ mode: "read" });
-}
-
-export async function ensureDirReadPermission(handle: any): Promise<boolean> {
-  try {
-    const opts = { mode: "read" };
-    if ((await handle.queryPermission(opts)) === "granted") return true;
-    return (await handle.requestPermission(opts)) === "granted";
-  } catch {
-    return false;
-  }
-}
-
-async function readFileFromDir(dir: any, path: string): Promise<string | null> {
-  try {
-    const parts = path.split("/");
-    let d = dir;
-    for (let i = 0; i < parts.length - 1; i++) d = await d.getDirectoryHandle(parts[i]);
-    const fh = await d.getFileHandle(parts[parts.length - 1]);
-    const f = await fh.getFile();
-    return await f.text();
-  } catch {
-    return null;
-  }
-}
-
-/** Đọc cả 5 CSV từ thư mục đã chọn. Trả về rows từng bảng + danh sách
- *  đã nạp / thiếu. Không ném lỗi nếu thiếu file. */
-export async function loadAllCsvFromDirectory(dir: any): Promise<{
-  tables: Partial<Record<SpyTableName, Record<string, string>[]>>;
-  loaded: SpyTableName[];
-  missing: SpyTableName[];
-}> {
-  const tables: Partial<Record<SpyTableName, Record<string, string>[]>> = {};
-  const loaded: SpyTableName[] = [];
-  const missing: SpyTableName[] = [];
-  for (const key of Object.keys(PROJECT_FILES) as SpyTableName[]) {
-    const text = await readFileFromDir(dir, PROJECT_FILES[key]);
-    const rows = text != null ? parseCSV(text) : [];
-    if (rows.length) {
-      tables[key] = rows;
-      loaded.push(key);
-    } else {
-      missing.push(key);
-    }
-  }
-  return { tables, loaded, missing };
-}
+/* Nguồn dữ liệu: Google Sheets (online) hoặc nhập CSV thủ công. Tính năng
+   "đọc cả thư mục project" (File System Access API) đã được gỡ — chỉ chạy
+   được trên máy cá nhân và không dùng được trên bản online. */

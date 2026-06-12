@@ -47,9 +47,9 @@ export default function Sidebar({ activeSection, setActiveSection, weekDate }: S
         </div>
         <div>
           <h1 className="text-base font-extrabold tracking-tight text-slate-900 leading-tight">
-            SERYN <span className="text-cyan-600">TÌNH BÁO</span>
+            SERYN <span className="text-cyan-600">INSIGHTS</span>
           </h1>
-          <p className="text-[10px] font-mono tracking-wider uppercase text-slate-500 font-bold">Bộ phân tích đối thủ</p>
+          <p className="text-[10px] font-mono tracking-wider uppercase text-slate-500 font-bold">Phân tích quảng cáo cạnh tranh</p>
         </div>
       </div>
 
@@ -90,7 +90,7 @@ export default function Sidebar({ activeSection, setActiveSection, weekDate }: S
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center font-mono text-xs font-bold text-slate-700">BI</div>
           <div>
-            <p className="text-sm font-bold text-slate-800">SERYN Theo Dõi QC</p>
+            <p className="text-sm font-bold text-slate-800">SERYN Insights</p>
             <p className="text-xs font-mono text-slate-500 font-semibold">Thị trường Việt Nam</p>
           </div>
         </div>

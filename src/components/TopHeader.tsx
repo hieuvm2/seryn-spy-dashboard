@@ -1,5 +1,5 @@
 import React from "react";
-import { Globe, Upload, Trash2, FlaskConical, FolderOpen, FileSpreadsheet, Cloud, CloudOff, RefreshCw } from "lucide-react";
+import { Globe, Upload, Trash2, FlaskConical, FileSpreadsheet, Cloud, CloudOff, RefreshCw } from "lucide-react";
 import type { DataSourceType } from "../types";
 import { SOURCE_LABELS } from "../utils/spyData";
 
@@ -15,7 +15,6 @@ interface TopHeaderProps {
 const SOURCE_STYLE: Record<DataSourceType, { cls: string; Icon: any }> = {
   demo: { cls: "bg-amber-50 border-amber-200 text-amber-700", Icon: FlaskConical },
   "local-csv": { cls: "bg-emerald-50 border-emerald-200 text-emerald-700", Icon: FileSpreadsheet },
-  "local-folder": { cls: "bg-cyan-50 border-cyan-200 text-cyan-700", Icon: FolderOpen },
   "online-sheet": { cls: "bg-indigo-50 border-indigo-200 text-indigo-700", Icon: Cloud },
   "offline-cache": { cls: "bg-slate-100 border-slate-300 text-slate-600", Icon: CloudOff },
 };
@@ -27,9 +26,9 @@ export default function TopHeader({ dataSource, market = "Vietnam", weekDate, is
     <header className="sticky top-0 z-20 w-full h-16 bg-white/85 backdrop-blur-md border-b border-slate-200 px-8 flex items-center justify-between text-slate-800">
       <div className="flex items-center gap-4 max-w-[62%] truncate">
         <div className="flex flex-col">
-          <span className="text-xs font-semibold text-slate-500 font-mono">SERYN — Tình báo quảng cáo đối thủ theo tuần</span>
+          <span className="text-xs font-semibold text-slate-500 font-mono">SERYN · Phân tích quảng cáo cạnh tranh</span>
           <p className="text-base font-extrabold text-slate-900 truncate">
-            Theo dõi quảng cáo đối thủ {weekDate ? <span className="text-slate-400 font-bold">· tuần {weekDate}</span> : null}
+            Phân tích quảng cáo đối thủ {weekDate ? <span className="text-slate-400 font-bold">· tuần {weekDate}</span> : null}
           </p>
         </div>
 

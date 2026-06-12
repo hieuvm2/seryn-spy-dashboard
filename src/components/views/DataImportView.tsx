@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Upload, Database, Trash2, Download, CheckCircle2, FileSpreadsheet, FolderOpen, RefreshCw, Activity, History, AlertTriangle, Cloud } from "lucide-react";
+import { Upload, Database, Trash2, Download, CheckCircle2, FileSpreadsheet, RefreshCw, Activity, History, AlertTriangle, Cloud } from "lucide-react";
 import type { SpyDashboardData, SpyTableName, DataSourceType } from "../../types";
 import {
   parseCSV,
@@ -8,12 +8,6 @@ import {
   mergeImportedTable,
   TABLE_LABELS,
   SOURCE_LABELS,
-  isDirectoryPickerSupported,
-  pickProjectDirectory,
-  ensureDirReadPermission,
-  loadAllCsvFromDirectory,
-  rememberDirHandle,
-  getRememberedDirHandle,
   checkDataHealth,
   getHistoryWeeks,
   loadWeeklyHistory,
@@ -49,22 +43,15 @@ export default function DataImportView({
   onClear: () => void;
 }) {
   const [status, setStatus] = useState<{ msg: string; ok: boolean } | null>(null);
-  const [supported] = useState(isDirectoryPickerSupported());
-  const [remembered, setRemembered] = useState<any | null>(null);
-  const [busy, setBusy] = useState(false);
   const [weeks, setWeeks] = useState<string[]>([]);
 
-  // #6/#7: Refresh Online Data (Google Sheets) — App.tsx sở hữu fetch + state.
+  // Refresh Online Data (Google Sheets) — App.tsx sở hữu fetch + state.
   const refreshOnline = async () => {
     const r = await onRefreshOnline();
     setStatus({ msg: r.msg, ok: r.ok });
   };
 
-  useEffect(() => {
-    getRememberedDirHandle().then((h) => { if (h) setRemembered(h); });
-  }, []);
-
-  // Refresh saved-week list whenever data changes (after import/sample/folder load).
+  // Refresh saved-week list whenever data changes (after import/sample load).
   useEffect(() => { setWeeks(getHistoryWeeks()); }, [data]);
 
   const health = checkDataHealth(data);
@@ -78,42 +65,6 @@ export default function DataImportView({
     } else {
       setStatus({ msg: `Không tìm thấy snapshot tuần ${wk}.`, ok: false });
     }
-  };
-
-  const autoLoadFromDir = async (existing?: any) => {
-    if (!supported) {
-      setStatus({ msg: "Trình duyệt này không hỗ trợ chọn thư mục. Hãy dùng Chrome/Edge, hoặc nhập từng file bên dưới.", ok: false });
-      return;
-    }
-    setBusy(true);
-    try {
-      const dir = existing || (await pickProjectDirectory());
-      if (!dir) { setBusy(false); return; }
-      if (!(await ensureDirReadPermission(dir))) {
-        setStatus({ msg: "Bị từ chối quyền đọc thư mục.", ok: false });
-        setBusy(false);
-        return;
-      }
-      const { tables, loaded, missing } = await loadAllCsvFromDirectory(dir);
-      if (!loaded.length) {
-        setStatus({ msg: "Không tìm thấy CSV nào trong outputs/. Hãy chọn đúng thư mục gốc dự án (chứa thư mục outputs/).", ok: false });
-        setBusy(false);
-        return;
-      }
-      let next = data;
-      for (const t of loaded) next = mergeImportedTable(next, t, tables[t]!);
-      onDataChange(next, "local-folder");
-      await rememberDirHandle(dir);
-      setRemembered(dir);
-      setStatus({
-        msg: `Đã tự động nạp ${loaded.length}/5 bảng từ thư mục “${dir.name}”` +
-          (missing.length ? ` (thiếu: ${missing.map((m) => TABLE_LABELS[m]).join(", ")})` : "") + ".",
-        ok: true,
-      });
-    } catch (e: any) {
-      if (e?.name !== "AbortError") setStatus({ msg: "Lỗi nạp thư mục: " + (e?.message || e), ok: false });
-    }
-    setBusy(false);
   };
 
   const handleFile = (file: File, forced?: SpyTableName) => {
@@ -164,7 +115,7 @@ export default function DataImportView({
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex flex-col gap-1.5 border-l-2 border-cyan-500 pl-4">
           <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">NHẬP DỮ LIỆU</span>
-          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Nạp 5 tệp CSV từ hệ thống theo dõi</h2>
+          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Nạp dữ liệu phân tích quảng cáo</h2>
           <p className="text-sm text-slate-600 font-medium">Nhập từng bảng (tự nhận diện theo dòng tiêu đề). Dữ liệu lưu trong trình duyệt — tuần sau dùng để so sánh.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -218,43 +169,6 @@ export default function DataImportView({
         </button>
         {!onlineConfigured && (
           <p className="text-[11px] text-amber-600 font-semibold mt-3">⚠️ Chưa cấu hình <code className="bg-slate-100 px-1 rounded">VITE_GOOGLE_SHEETS_API_URL</code>. Bấm Refresh sẽ báo <b>Missing VITE_GOOGLE_SHEETS_API_URL</b>. Thêm biến này trên Vercel rồi redeploy để bật chế độ ONLINE SHEET DATA.</p>
-        )}
-      </div>
-
-      {/* Tự động nạp cả thư mục */}
-      <div className="bg-white border border-cyan-200 rounded-2xl p-5 shadow-sm">
-        <div className="flex items-center gap-2 mb-1">
-          <FolderOpen className="w-4 h-4 text-cyan-600" />
-          <h3 className="text-sm font-extrabold text-slate-800">Tự động nạp từ thư mục project</h3>
-        </div>
-        <p className="text-xs text-slate-500 font-medium mb-2">
-          Chọn thư mục gốc dự án (vd <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">C:\seryn-spy-agent</code>) một lần — hệ thống tự đọc cả 5 tệp CSV trong <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">outputs/</code>, không cần nhập từng file.
-        </p>
-        <p className="text-[11px] text-amber-600 font-semibold mb-4 flex items-start gap-1.5">
-          <span>⚠️</span>
-          <span>Chỉ chạy trên <b>Chrome/Edge</b> và đọc <b>thư mục local trên máy bạn</b>. Bản online (Vercel) <b>không thể tự đọc</b> folder local — khi đó hãy dùng <b>Nhập CSV thủ công</b> bên dưới.</span>
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => autoLoadFromDir()}
-            disabled={!supported || busy}
-            className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm transition cursor-pointer"
-          >
-            <FolderOpen className="w-4 h-4" /> {busy ? "Đang nạp…" : "Chọn thư mục & nạp tự động"}
-          </button>
-          {remembered && (
-            <button
-              onClick={() => autoLoadFromDir(remembered)}
-              disabled={busy}
-              className="flex items-center gap-2 bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-bold border border-slate-200 transition cursor-pointer"
-              title="Nạp lại từ thư mục đã nhớ"
-            >
-              <RefreshCw className="w-4 h-4 text-cyan-600" /> Nạp lại từ “{remembered.name}”
-            </button>
-          )}
-        </div>
-        {!supported && (
-          <p className="text-[11px] text-amber-600 font-semibold mt-3">⚠️ Trình duyệt này không hỗ trợ chọn thư mục — hãy dùng Chrome/Edge, hoặc nhập từng file ở phần dưới.</p>
         )}
       </div>
 

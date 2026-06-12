@@ -15,7 +15,7 @@ export type ViewId =
   | "data-import";
 
 /** Nguồn dữ liệu đang hiển thị. */
-export type DataSourceType = "demo" | "local-csv" | "local-folder" | "online-sheet" | "offline-cache";
+export type DataSourceType = "demo" | "local-csv" | "online-sheet" | "offline-cache";
 
 export type BrandWeeklySnapshot = {
   week_date: string;
