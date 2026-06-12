@@ -303,6 +303,9 @@ export type VisualAnalysis = {
   /* --- Lớp 5: Strategy --- */
   visual_insight_summary: string;
   seryn_action: SerynVisualAction;
+  /* --- Grouping (gom creative giống nhau) --- */
+  creative_signature?: string;
+  cluster_size?: number;
   /* --- Manual review (frontend override) --- */
   reviewed?: boolean;
   review_note?: string;

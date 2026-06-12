@@ -376,11 +376,24 @@ function unixToISO(sec) {
   if (!Number.isFinite(n) || n <= 0) return "";
   return new Date(n * 1000).toISOString().slice(0, 10);
 }
+/** Vân tay ảnh ổn định (tên file fbcdn, bỏ query token) -> dedup creative trùng. */
+function imageFingerprint(url) {
+  if (!url) return "";
+  const path = String(url).split("?")[0];
+  const file = path.split("/").pop() || "";
+  const m = file.match(/^([0-9]+_[0-9]+)/); // <id>_<id>
+  return m ? m[1] : file;
+}
 function mapScAd(a, brand, pageId) {
   const s = a.snapshot || {};
   const platforms = Array.isArray(a.publisher_platform) ? a.publisher_platform.join("|") : (a.publisher_platform || "Facebook");
   const media = s.display_format || ((s.videos || []).length ? "VIDEO" : "IMAGE");
   const body = (s.body && (s.body.text || (typeof s.body === "string" ? s.body : ""))) || s.caption || "";
+  const img = (s.images || [])[0] || {};
+  const vid = (s.videos || [])[0] || {};
+  const card = (s.cards || [])[0] || {};
+  const thumbnail_url = img.resized_image_url || img.original_image_url || vid.video_preview_image_url || card.resized_image_url || card.original_image_url || card.video_preview_image_url || "";
+  const media_url = vid.video_hd_url || vid.video_sd_url || img.original_image_url || thumbnail_url || "";
   return {
     page_id: a.page_id || pageId,
     page_name: a.page_name || brand.brand_name,
@@ -394,6 +407,11 @@ function mapScAd(a, brand, pageId) {
     primary_text: body,
     description: s.link_description || "",
     cta: s.cta_text || s.cta_type || "",
+    // ---- media thật + grouping ----
+    thumbnail_url,
+    media_url,
+    collation_id: a.collation_id ? String(a.collation_id) : "",
+    image_fingerprint: imageFingerprint(thumbnail_url),
   };
 }
 async function scrapeCreatorsAdsForBrand(brand) {
@@ -470,6 +488,11 @@ function analyzeAd(raw, brand, weekDate, prevAdIds) {
     scale_level: sc.level,
     scale_reason: "",
     notes: "",
+    // media thật + grouping (không nằm trong HEADERS.ad -> chỉ dùng cho visual)
+    thumbnail_url: raw.thumbnail_url || "",
+    media_url: raw.media_url || "",
+    collation_id: raw.collation_id || "",
+    image_fingerprint: raw.image_fingerprint || "",
     _scaleLabel: sc.label,
   };
 }
@@ -498,7 +521,7 @@ const HEADERS = {
   scaled: "week_date,brand_name,content_cluster_id,representative_ad_id,representative_hook,service_or_product,price_detected,offer_detected,content_format,content_angle,proof_point,number_of_similar_ads,longest_days_active,average_days_active,scale_level,why_it_is_scaling,competitor_strategy_interpretation,seryn_should_copy_adapt_counter_avoid,seryn_reframe".split(","),
   change: "week_date,brand_name,active_ads_change,new_ads_count,stopped_ads_count,new_services_detected,removed_services,new_offers_detected,removed_offers,new_content_angles,removed_content_angles,scaled_content_new,scaled_content_still_running,strategic_change_type,change_summary,seryn_implication".split(","),
   rec: "week_date,recommendation_type,market_signal,competitor_evidence,seryn_content_niche,suggested_content_format,suggested_hook,content_style,main_message,proof_to_use,cta,kpi,priority".split(","),
-  visual: "ad_id,brand,page_id,creative_type,media_url,thumbnail_url,snapshot_url,image_urls,video_preview_url,has_media_asset,text_overlay_raw,text_overlay_summary,offer_from_visual,claim_from_visual,risk_terms_from_visual,visual_format,visual_angle,human_presence,doctor_presence,before_after_presence,text_overlay_presence,offer_visual_presence,clinical_score,beauty_luxury_score,ugc_score,trust_signal_score,offer_visibility_score,scroll_stop_score,confidence_score,confidence_reason,visual_risk_level,risk_reasons,claim_risk_score,before_after_risk,medical_claim_risk,promotion_claim_risk,visual_insight_summary,seryn_action,last_seen_date".split(","),
+  visual: "ad_id,brand,page_id,creative_type,media_url,thumbnail_url,snapshot_url,image_urls,video_preview_url,has_media_asset,text_overlay_raw,text_overlay_summary,offer_from_visual,claim_from_visual,risk_terms_from_visual,visual_format,visual_angle,human_presence,doctor_presence,before_after_presence,text_overlay_presence,offer_visual_presence,clinical_score,beauty_luxury_score,ugc_score,trust_signal_score,offer_visibility_score,scroll_stop_score,confidence_score,confidence_reason,visual_risk_level,risk_reasons,claim_risk_score,before_after_risk,medical_claim_risk,promotion_claim_risk,visual_insight_summary,seryn_action,creative_signature,cluster_size,last_seen_date".split(","),
   brandVisual: "brand,week_date,total_creatives,before_after_rate,doctor_rate,ugc_rate,offer_banner_rate,high_risk_rate,avg_clinical_score,avg_luxury_score,top_visual_formats,dominant_visual_angle,notes".split(","),
   visualPattern: "id,week_date,brand,visual_format,visual_angle,hook_type,offer_type,ad_count,is_signal,representative_ad_id,summary,recommended_seryn_response".split(","),
   changeInsight: "id,brand,week_start,previous_week_start,change_type,severity,confidence_score,summary,evidence,affected_ads,previous_value,current_value,recommended_action".split(","),
@@ -854,7 +877,17 @@ function analyzeVisualFallback(ad) {
 
 function buildVisualRows(allAds, weekDate) {
   if (VISUAL_PROVIDER !== "heuristic") warn(`VISUAL_ANALYSIS_PROVIDER="${VISUAL_PROVIDER}" chưa hỗ trợ — dùng heuristic.`);
-  return allAds.filter((a) => a.ad_id).map((a) => ({ ...analyzeVisualFallback(a), last_seen_date: a.week_date || weekDate }));
+  const rows = allAds.filter((a) => a.ad_id).map((a) => {
+    const v = { ...analyzeVisualFallback(a), last_seen_date: a.week_date || weekDate };
+    // creative_signature: ưu tiên collation FB (gom biến thể cùng 1 ad) -> vân tay ảnh -> key heuristic.
+    v.creative_signature = (a.collation_id ? `coll-${a.collation_id}` : "") || a.image_fingerprint || `${v.brand}|${v.visual_format}|${v.visual_angle}|${v.offer_from_visual || "no_offer"}`;
+    return v;
+  });
+  // cluster_size: số ad cùng creative_signature (gom creative giống nhau).
+  const sizes = {};
+  for (const v of rows) sizes[v.creative_signature] = (sizes[v.creative_signature] || 0) + 1;
+  for (const v of rows) v.cluster_size = sizes[v.creative_signature];
+  return rows;
 }
 
 function buildBrandVisualSummary(visualRows, weekDate) {

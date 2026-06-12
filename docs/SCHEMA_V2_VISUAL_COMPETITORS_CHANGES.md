@@ -27,8 +27,20 @@ visual_insight_summary, seryn_action, last_seen_date
 - `*_presence`, `has_media_asset`: TRUE/FALSE · `*_score`: 0–100 · `confidence_score`: 0–1
 - `*_risk` / `visual_risk_level`: low | medium | high · `seryn_action`: copy|adapt|counter|avoid|monitor
 - Mảng (`image_urls`, `risk_terms_from_visual`, `risk_reasons`) lưu JSON string.
-- **Thiếu media thật** (provider chưa trả thumbnail) → vẫn tạo record, `has_media_asset=FALSE`,
-  UI hiển thị *"limited analysis — no media asset"* và hạ confidence.
+- `media_url`/`thumbnail_url`: URL ảnh/video thật từ ScrapeCreators (token fbcdn hết hạn sau ~vài ngày).
+- `creative_signature`: gom creative giống nhau (ưu tiên `coll-<collation_id>` của Facebook → vân tay
+  tên file ảnh → key heuristic). `cluster_size`: số ad cùng signature.
+- **Thiếu media thật** → vẫn tạo record, `has_media_asset=FALSE`, UI báo *"limited analysis — no media asset"*, confidence thấp.
+
+### Quy trình review visual định kỳ (đọc ảnh thật — không tốn phí AI)
+Gom creative giống nhau để chỉ phân tích 1 đại diện/cụm rồi áp cho cả cụm:
+```
+npm run spy:weekly                 # pipeline lưu media_url + creative_signature + cluster_size
+npm run visual:fetch -- 40         # gom cụm, tải 40 ảnh đại diện (cụm lớn nhất) -> work/visual_review/
+#   → xem ảnh, điền work/visual_review/analysis.json (mỗi entry 1 creative_signature)
+npm run visual:write               # áp phân tích cho MỌI ad cùng signature -> ghi Sheet (confidence 0.85)
+```
+Mỗi đợt phân tích top N cụm (theo số ad) → phủ nhiều ad nhất với ít lượt nhìn. Phần đuôi dài giữ heuristic.
 
 ## 2) Tab `Brand Visual Summary` (pipeline ghi)
 ```

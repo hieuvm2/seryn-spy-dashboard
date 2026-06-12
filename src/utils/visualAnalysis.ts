@@ -23,6 +23,14 @@ const REVIEW_KEY = "seryn_visual_reviews_v1";
 
 const lc = (s?: unknown) => String(s ?? "").toLowerCase();
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+
+/** Vân tay ảnh ổn định (tên file fbcdn, bỏ query) -> gom creative trùng. */
+export function imageFingerprint(url?: string): string {
+  if (!url) return "";
+  const file = String(url).split("?")[0].split("/").pop() || "";
+  const m = file.match(/^(\d+_\d+)/);
+  return m ? m[1] : file;
+}
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 const has = (t: string, kws: string[]) => kws.some((k) => t.includes(k));
 
@@ -174,6 +182,7 @@ export function analyzeVisualFromAd(ad: AdLevelAnalysis): VisualAnalysis {
     promotion_claim_risk,
     visual_insight_summary,
     seryn_action,
+    creative_signature: imageFingerprint(thumb) || `${ad.brand_name}|${visual_format}|${visual_angle}|${ad.offer_detected || "no_offer"}`,
   };
 }
 
@@ -196,16 +205,37 @@ function applyReviews(items: VisualAnalysis[]): VisualAnalysis[] {
   });
 }
 
+/** Gán cluster_size theo creative_signature nếu Sheet chưa có. */
+function attachClusterSizes(items: VisualAnalysis[]): VisualAnalysis[] {
+  const sizes: Record<string, number> = {};
+  for (const x of items) { const k = x.creative_signature || x.ad_id; sizes[k] = (sizes[k] || 0) + 1; }
+  return items.map((x) => (x.cluster_size && x.cluster_size > 0 ? x : { ...x, cluster_size: sizes[x.creative_signature || x.ad_id] }));
+}
+
 /** Nguồn visual chính: tab Sheet nếu có, ngược lại derive từ adLevel. */
 export function getVisualAnalysis(data: SpyDashboardData): { items: VisualAnalysis[]; source: "sheet" | "derived" } {
   const fromSheet = data.visualAnalysis ?? [];
   if (fromSheet.length) {
-    // chuẩn hóa kiểu boolean/number từ Sheet (string -> đúng kiểu) qua heuristic nhẹ
-    const norm = fromSheet.map(normalizeVisualRow);
+    const norm = attachClusterSizes(fromSheet.map(normalizeVisualRow));
     return { items: applyReviews(norm), source: "sheet" };
   }
-  const derived = (data.adLevelAnalysis ?? []).filter((a) => a.ad_id).map(analyzeVisualFromAd);
+  const derived = attachClusterSizes((data.adLevelAnalysis ?? []).filter((a) => a.ad_id).map(analyzeVisualFromAd));
   return { items: applyReviews(derived), source: "derived" };
+}
+
+/** Gom theo creative_signature -> 1 đại diện/cụm (ưu tiên đã review > confidence > có media). */
+export function buildVisualClusters(items: VisualAnalysis[]): VisualAnalysis[] {
+  const groups: Record<string, VisualAnalysis[]> = {};
+  for (const x of items) (groups[x.creative_signature || x.ad_id] ||= []).push(x);
+  const reps = Object.values(groups).map((list) => {
+    const rep = [...list].sort((a, b) =>
+      (Number(b.reviewed || 0) - Number(a.reviewed || 0)) ||
+      (Number(b.confidence_score) - Number(a.confidence_score)) ||
+      (Number(b.has_media_asset || 0) - Number(a.has_media_asset || 0))
+    )[0];
+    return { ...rep, cluster_size: list.length };
+  });
+  return reps.sort((a, b) => Number(b.cluster_size) - Number(a.cluster_size));
 }
 
 function toBool(v: unknown): boolean {
@@ -261,6 +291,8 @@ export function normalizeVisualRow(r: Record<string, unknown>): VisualAnalysis {
     promotion_claim_risk: (String(r.promotion_claim_risk ?? "low") as CreativeRisk) || "low",
     visual_insight_summary: String(r.visual_insight_summary ?? ""),
     seryn_action: (String(r.seryn_action ?? "monitor") as SerynVisualAction) || "monitor",
+    creative_signature: r.creative_signature ? String(r.creative_signature) : undefined,
+    cluster_size: r.cluster_size !== undefined && r.cluster_size !== "" ? num(r.cluster_size) : undefined,
   };
 }
 

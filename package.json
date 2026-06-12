@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "spy:sync": "node scripts/run-weekly-spy-and-sync.mjs",
-    "spy:weekly": "node scripts/weekly-spy-sync.mjs"
+    "spy:weekly": "node scripts/weekly-spy-sync.mjs",
+    "visual:fetch": "node scripts/visual-review.mjs fetch",
+    "visual:write": "node scripts/visual-review.mjs write"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",

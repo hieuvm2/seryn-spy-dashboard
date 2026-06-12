@@ -6,6 +6,7 @@ import {
   getVisualAnalysis,
   buildBrandVisualSummaries,
   buildVisualPatterns,
+  buildVisualClusters,
   saveVisualReview,
 } from "../../utils/visualAnalysis";
 
@@ -55,6 +56,7 @@ export default function VisualIntelligenceView({ data }: { data: SpyDashboardDat
   const [risk, setRisk] = useState("all");
   const [action, setAction] = useState("all");
   const [note, setNote] = useState<string | null>(null);
+  const [grouped, setGrouped] = useState(true);
   const flash = (m: string) => { setNote(m); window.setTimeout(() => setNote(null), 2400); };
 
   const brands = useMemo(() => Array.from(new Set(items.map((x) => x.brand).filter(Boolean))).sort(), [items]);
@@ -191,12 +193,15 @@ export default function VisualIntelligenceView({ data }: { data: SpyDashboardDat
         <select value={vformat} onChange={(e) => setVformat(e.target.value)} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700"><option value="all">Mọi format</option>{formats.map((f) => <option key={f} value={f}>{fmt(f)}</option>)}</select>
         <select value={risk} onChange={(e) => setRisk(e.target.value)} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700"><option value="all">Mọi risk</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
         <select value={action} onChange={(e) => setAction(e.target.value)} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700"><option value="all">Mọi action</option>{ACTIONS.map((a) => <option key={a} value={a}>{a}</option>)}</select>
-        <span className="text-xs text-slate-400 font-mono">{rows.length} creatives</span>
+        <button onClick={() => setGrouped((g) => !g)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${grouped ? "bg-cyan-600 text-white border-cyan-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`} title="Gom các creative giống nhau (1 đại diện/cụm)">
+          {grouped ? "Đang gom creative" : "Hiện tất cả"}
+        </button>
+        <span className="text-xs text-slate-400 font-mono">{(grouped ? buildVisualClusters(rows) : rows).length}{grouped ? ` cụm / ${rows.length} ad` : " creatives"}</span>
       </div>
 
       {/* Visual cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {rows.slice(0, 60).map((x) => (
+        {(grouped ? buildVisualClusters(rows) : rows).slice(0, 60).map((x) => (
           <div key={x.ad_id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex gap-4">
             <div className="w-24 h-24 shrink-0 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center">
               {x.thumbnail_url
@@ -206,8 +211,11 @@ export default function VisualIntelligenceView({ data }: { data: SpyDashboardDat
             <div className="flex-1 min-w-0 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <h4 className="font-extrabold text-slate-800 truncate">{x.brand}</h4>
-                  <p className="text-[10px] text-slate-400 font-mono truncate">{x.ad_id} · {x.creative_type}</p>
+                  <h4 className="font-extrabold text-slate-800 truncate flex items-center gap-1.5">
+                    {x.brand}
+                    {grouped && Number(x.cluster_size) > 1 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200">×{x.cluster_size}</span>}
+                  </h4>
+                  <p className="text-[10px] text-slate-400 font-mono truncate">{x.ad_id} · {x.creative_type}{x.reviewed ? " · ✓vision" : ""}</p>
                 </div>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded border shrink-0 ${RISK_TONE[String(x.visual_risk_level)] || RISK_TONE.low}`}>{String(x.visual_risk_level).toUpperCase()} RISK</span>
               </div>
