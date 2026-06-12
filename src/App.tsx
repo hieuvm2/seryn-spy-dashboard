@@ -156,7 +156,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex font-sans selection:bg-cyan-100 selection:text-cyan-900">
-      <Sidebar activeSection={activeSection} setActiveSection={goView} weekDate={weekDate} />
+      <Sidebar activeSection={activeSection} setActiveSection={goView} />
 
       <div className="flex-1 pl-64 flex flex-col min-h-screen">
         <TopHeader

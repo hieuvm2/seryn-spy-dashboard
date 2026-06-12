@@ -16,17 +16,6 @@ import type { ViewId } from "../types";
 interface SidebarProps {
   activeSection: ViewId;
   setActiveSection: (sec: ViewId) => void;
-  weekDate?: string;
-}
-
-/** Thứ Hai của tuần hiện tại (yyyy-MM-dd) — tính theo ngày hệ thống. */
-function currentWeekMonday(): string {
-  const d = new Date();
-  const day = (d.getDay() + 6) % 7; // 0 = thứ Hai
-  d.setDate(d.getDate() - day);
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${m}-${dd}`;
 }
 
 const menuItems: { id: ViewId; label: string; icon: any }[] = [
@@ -41,7 +30,7 @@ const menuItems: { id: ViewId; label: string; icon: any }[] = [
   { id: "data-import", label: "Nhập dữ liệu", icon: Upload },
 ];
 
-export default function Sidebar({ activeSection, setActiveSection, weekDate }: SidebarProps) {
+export default function Sidebar({ activeSection, setActiveSection }: SidebarProps) {
   const handleNav = (id: ViewId) => {
     setActiveSection(id);
     window.location.hash = id;
@@ -61,14 +50,6 @@ export default function Sidebar({ activeSection, setActiveSection, weekDate }: S
           </h1>
           <p className="text-[10px] font-mono tracking-wider uppercase text-slate-500 font-bold">Phân tích quảng cáo cạnh tranh</p>
         </div>
-      </div>
-
-      <div className="p-4 mx-4 mt-4 bg-slate-50 border border-slate-200 rounded-xl shadow-xs">
-        <p className="text-[11px] uppercase tracking-wider font-extrabold text-cyan-600 mb-1">TUẦN HIỆN TẠI</p>
-        <p className="text-sm font-extrabold text-slate-800 font-mono">{currentWeekMonday()}</p>
-        {weekDate && weekDate !== currentWeekMonday() && (
-          <p className="text-[10px] text-slate-400 font-mono mt-1">Dữ liệu: tuần {weekDate}</p>
-        )}
       </div>
 
       {/* Nav */}
