@@ -19,6 +19,16 @@ interface SidebarProps {
   weekDate?: string;
 }
 
+/** Thứ Hai của tuần hiện tại (yyyy-MM-dd) — tính theo ngày hệ thống. */
+function currentWeekMonday(): string {
+  const d = new Date();
+  const day = (d.getDay() + 6) % 7; // 0 = thứ Hai
+  d.setDate(d.getDate() - day);
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${dd}`;
+}
+
 const menuItems: { id: ViewId; label: string; icon: any }[] = [
   { id: "overview", label: "Tổng quan", icon: LayoutDashboard },
   { id: "brands", label: "Đối thủ", icon: FileSpreadsheet },
@@ -53,12 +63,13 @@ export default function Sidebar({ activeSection, setActiveSection, weekDate }: S
         </div>
       </div>
 
-      {weekDate && (
-        <div className="p-4 mx-4 mt-4 bg-slate-50 border border-slate-200 rounded-xl shadow-xs">
-          <p className="text-[11px] uppercase tracking-wider font-extrabold text-cyan-600 mb-1">TUẦN ĐANG XEM</p>
-          <p className="text-sm font-extrabold text-slate-800 font-mono">{weekDate}</p>
-        </div>
-      )}
+      <div className="p-4 mx-4 mt-4 bg-slate-50 border border-slate-200 rounded-xl shadow-xs">
+        <p className="text-[11px] uppercase tracking-wider font-extrabold text-cyan-600 mb-1">TUẦN HIỆN TẠI</p>
+        <p className="text-sm font-extrabold text-slate-800 font-mono">{currentWeekMonday()}</p>
+        {weekDate && weekDate !== currentWeekMonday() && (
+          <p className="text-[10px] text-slate-400 font-mono mt-1">Dữ liệu: tuần {weekDate}</p>
+        )}
+      </div>
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
