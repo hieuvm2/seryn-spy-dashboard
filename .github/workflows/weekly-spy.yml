@@ -1,10 +1,11 @@
 name: Weekly Spy Sync
 
-# Chạy tự động 02:00 UTC thứ Hai (~09:00 sáng thứ Hai giờ Việt Nam, UTC+7).
+# Chạy tự động 02:07 UTC thứ Hai (~09:07 sáng thứ Hai giờ Việt Nam, UTC+7).
+# Lệch mốc tròn (phút 07 thay vì 00) để giảm khả năng bị GitHub trễ/drop run.
 # Có thể chạy thủ công qua tab Actions (workflow_dispatch).
 on:
   schedule:
-    - cron: "0 2 * * 1"
+    - cron: "7 2 * * 1"
   workflow_dispatch: {}
 
 # Không cần ghi vào repo; chỉ gọi Google Sheets API.
