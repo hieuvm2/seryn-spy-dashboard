@@ -33,8 +33,8 @@ const menuItems: { id: ViewId; label: string; icon: any }[] = [
   { id: "weekly-changes", label: "Thay đổi tuần", icon: Layers },
   { id: "seryn-recommendations", label: "Gợi ý cho SERYN", icon: Lightbulb },
   { id: "competitor-setup", label: "Competitor Setup", icon: Users },
-  { id: "market-research", label: "Market Research", icon: Globe },
-  { id: "competitor-discovery", label: "Competitor Discovery", icon: Search },
+  { id: "market-research", label: "Nghiên cứu thị trường", icon: Globe },
+  { id: "competitor-discovery", label: "Phát hiện đối thủ", icon: Search },
   { id: "data-import", label: "Nhập dữ liệu", icon: Upload },
 ];
 
