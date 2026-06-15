@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { TrendingUp, Globe, Gauge, Lightbulb, FileSearch, AlertTriangle, Info } from "lucide-react";
-import type { SpyDashboardData, MarketSizeEstimate } from "../../types";
+import type { SpyDashboardData, MarketSizeEstimate, MarketResearchRun } from "../../types";
 
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const pct = (v: unknown) => `${Math.round(num(v) * 100)}%`;
@@ -73,9 +73,13 @@ export default function MarketResearchView({ data }: { data: SpyDashboardData })
     );
   }
 
+  const health = buildHealth(latestRun, size, sources.length);
+
   return (
     <div className="space-y-6">
       <Header />
+
+      {health.length > 0 && <HealthBanner items={health} />}
 
       {/* A. Market Overview */}
       <Section icon={Globe} title="A. Tổng quan thị trường" desc={latestRun ? `${latestRun.market} · ${latestRun.geo} · ${latestRun.service_category} — run ${latestRun.status} @ ${latestRun.finished_at || latestRun.started_at}` : undefined}>
@@ -229,6 +233,29 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border border-slate-200 p-3">
       <p className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-bold">{label}</p>
       <p className="text-lg font-extrabold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+type HealthItem = { level: "warn" | "info"; text: string };
+function buildHealth(run: MarketResearchRun | undefined, size: MarketSizeEstimate | undefined, sourceCount: number): HealthItem[] {
+  const out: HealthItem[] = [];
+  if (run && String(run.status) === "failed") out.push({ level: "warn", text: "Run gần nhất THẤT BẠI — kiểm tra log GitHub Actions (EXA_API_KEY / queries lỗi)." });
+  else if (run && String(run.status) === "partial") out.push({ level: "warn", text: `Run gần nhất chạy một phần (partial): ${run.error_summary || "một số query Exa lỗi"}.` });
+  if (run && String(run.cost_guard_status || "").includes("deep_search")) out.push({ level: "info", text: "Deep search đang bật — chi phí Exa có thể cao hơn." });
+  if (size && num(size.confidence_score) < 0.4) out.push({ level: "info", text: `Độ tin cậy quy mô thị trường thấp (${pct(size.confidence_score)}) — thiếu ${size.missing_data || "dữ liệu định lượng"}. Chỉ dùng định hướng.` });
+  if (sourceCount > 0 && sourceCount < 10) out.push({ level: "info", text: `Chỉ có ${sourceCount} nguồn — tăng max_queries/max_results để dữ liệu giàu hơn.` });
+  return out;
+}
+function HealthBanner({ items }: { items: HealthItem[] }) {
+  return (
+    <div className="space-y-1.5">
+      {items.map((it, i) => (
+        <div key={i} className={`flex items-center gap-2 text-xs rounded-lg px-3 py-2 border ${it.level === "warn" ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-sky-50 border-sky-200 text-sky-800"}`}>
+          {it.level === "warn" ? <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> : <Info className="w-3.5 h-3.5 shrink-0" />}
+          <span>{it.text}</span>
+        </div>
+      ))}
     </div>
   );
 }

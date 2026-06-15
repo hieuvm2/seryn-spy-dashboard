@@ -25,16 +25,85 @@ export function extractWebsiteUrl(result) {
   return url;
 }
 
-/** Đoán brand name từ title/url (best-effort). */
+// Tín hiệu title KHÔNG phải tên brand (bài SEO/blog/câu hỏi).
+const JUNK_TITLE_SIGNALS = [
+  "?", "bao nhiêu", "giá bao", "chi phí", "bảng giá", "báo giá", "là gì",
+  "gồm những gì", "có nên", "có tốt", "có hiệu quả", "cách ", "tại sao",
+  "như thế nào", "review", "đánh giá", "top ", "tốp ", "list ", "danh sách",
+  "kinh nghiệm", "lưu ý", "webtretho", "wiki", "hỏi đáp", "tư vấn", "tin tức",
+];
+// Tiền tố chung cần bỏ khi đứng đầu title.
+const GENERIC_PREFIX = /^(giới thiệu|trang chủ|home|về chúng tôi|dịch vụ|bảng giá|báo giá|khuyến mãi|ưu đãi|tin tức|blog|liên hệ|website chính thức)\b[\s:–—\-|]*/i;
+// Đuôi site-name cần bỏ.
+const TRAILING_SUFFIX = /\s*[-–—|]\s*(facebook|trang chủ|home|official|chính hãng|website).*$/i;
+
+/** Title có vẻ là bài blog/SEO/câu hỏi (không phải tên brand)? */
+export function looksLikeJunkTitle(title) {
+  const t = lc(title).trim();
+  if (!t || t.length < 2) return true;
+  return JUNK_TITLE_SIGNALS.some((w) => t.includes(w));
+}
+
+// Domain tổng hợp/blog/diễn đàn — không phải brand clinic.
+const AGGREGATOR_DOMAINS = /facebook|instagram|tiktok|youtube|google|wordpress|blogspot|medium|webtretho|tienphong|vnexpress|dantri|foody|shopee|lazada|tiki|news|bao|wiki/i;
+// Subdomain chung cần bỏ để lấy label brand thật.
+const GENERIC_SUBDOMAIN = new Set(["www", "blog", "tin", "news", "shop", "m", "web", "store", "vi", "en"]);
+
+/** Brand suy ra từ domain (khi title là junk): "thammyvienthienha.vn" -> "Thammyvienthienha". */
+export function brandFromDomain(url) {
+  const d = extractDomain(str(url));
+  if (!d || AGGREGATOR_DOMAINS.test(d)) return "";
+  // bỏ subdomain chung (blog., tin.…), lấy label đăng ký chính.
+  const parts = d.split(".").filter((p) => !GENERIC_SUBDOMAIN.has(p));
+  const label = (parts[0] || "").replace(/[^a-z0-9]+/gi, " ").trim();
+  if (!label || label.length < 3) return "";
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+/**
+ * Đoán brand name (best-effort). Title junk -> ưu tiên domain; FB result ->
+ * giữ page name (đã được làm sạch). Trả "" nếu không lấy được brand đáng tin.
+ */
 export function extractCandidateBrand(result) {
-  const title = str(result?.title);
-  // cắt phần sau dấu | - – :  thường là tagline
-  let brand = title.split(/[|\-–—:]/)[0].trim();
-  if (!brand || brand.length < 2) {
-    const d = extractDomain(str(result?.url)).split(".")[0];
-    brand = d ? d.replace(/[^a-z0-9]+/gi, " ").trim() : "";
+  const url = str(result?.url);
+  const isFb = /facebook\.com/i.test(extractDomain(url));
+  let title = str(result?.title).replace(TRAILING_SUFFIX, "").trim();
+
+  // FB result: title chính là page name -> chỉ làm sạch, không coi là junk.
+  if (isFb) {
+    const seg = title.split(/[|\-–—:]/)[0].replace(GENERIC_PREFIX, "").trim();
+    return seg.slice(0, 80);
+  }
+
+  // Non-FB từ site tổng hợp/báo/diễn đàn -> KHÔNG phải đối thủ, bỏ.
+  if (AGGREGATOR_DOMAINS.test(extractDomain(url))) return "";
+
+  // Non-FB: nếu title là bài SEO/câu hỏi -> lấy brand từ domain.
+  if (looksLikeJunkTitle(title)) {
+    return brandFromDomain(url).slice(0, 80);
+  }
+
+  let brand = title.split(/[|\-–—:]/)[0].replace(GENERIC_PREFIX, "").trim();
+  if (!brand || brand.length < 2 || looksLikeJunkTitle(brand)) {
+    brand = brandFromDomain(url);
   }
   return brand.slice(0, 80);
+}
+
+/**
+ * Điểm chất lượng brand (0–1): tên giống doanh nghiệp thật (có từ khóa
+ * clinic/spa/thẩm mỹ, hoặc là proper noun ngắn gọn) cao; câu hỏi/blog thấp.
+ */
+export function brandQualityScore(brand) {
+  const b = lc(brand).trim();
+  if (!b || b.length < 2) return 0;
+  if (looksLikeJunkTitle(b)) return 0.15;
+  let s = 0.5;
+  if (/clinic|spa|tham\s*my|thẩm\s*mỹ|beauty|aesthetic|da\s*liễu|da\s*lieu|bệnh viện|benh vien|phòng khám|phong kham|center|viện/i.test(b)) s += 0.35;
+  const words = b.split(/\s+/).length;
+  if (words <= 5) s += 0.1;       // tên brand thường ngắn
+  if (words > 8) s -= 0.25;       // câu dài -> giống tiêu đề bài viết
+  return Math.max(0, Math.min(1, Math.round(s * 100) / 100));
 }
 
 /** Tìm mọi link social trong text/result. */
@@ -113,22 +182,29 @@ export function scoreCompetitorCandidate(candidate, context = {}) {
   const fanpage_confidence_score = isNumericPageId(candidate.facebook_page_id)
     ? 0.95 : (candidate.facebook_url ? 0.55 : 0.2);
 
+  const brand_quality_score = brandQualityScore(candidate.brand_name);
+
   const competitor_relevance_score = Math.round(
     (service_match_score * 0.4 + geo_match_score * 0.3 + source_credibility_score * 0.3) * 100) / 100;
 
-  const overall = (
+  // Mục tiêu cuối là spy ads qua Facebook page_id -> fanpage quan trọng hơn website.
+  // Nhiều clinic chỉ chạy ad qua page FB, không có website chính.
+  const base = (
     service_match_score * 0.25 +
     geo_match_score * 0.2 +
     source_credibility_score * 0.15 +
-    website_confidence_score * 0.15 +
-    fanpage_confidence_score * 0.25
+    website_confidence_score * 0.1 +
+    fanpage_confidence_score * 0.3
   );
+  // Brand junk (tiêu đề blog/câu hỏi) bị phạt mạnh để không nổi lên đầu danh sách.
+  const overall = base * (0.4 + 0.6 * brand_quality_score);
   return {
     service_match_score: round2(service_match_score),
     geo_match_score: round2(geo_match_score),
     source_credibility_score: round2(source_credibility_score),
     website_confidence_score: round2(website_confidence_score),
     fanpage_confidence_score: round2(fanpage_confidence_score),
+    brand_quality_score: round2(brand_quality_score),
     competitor_relevance_score,
     overall_confidence_score: round2(overall),
   };

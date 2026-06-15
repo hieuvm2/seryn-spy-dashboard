@@ -131,39 +131,59 @@ async function main() {
 
 /* ---------- builders ---------- */
 function buildTrendSignals(sources, cfg, weekDate) {
-  // gom theo service từ detected_services; đếm mention -> strength.
-  const byService = new Map();
-  for (const s of sources) {
-    const services = String(s.detected_services || "").split("|").filter(Boolean);
-    const list = services.length ? services : ["general"];
-    for (const sc of list) {
-      const o = byService.get(sc) || { mentions: 0, growth: 0, offers: 0, cred: 0, urls: [], problems: new Set() };
-      o.mentions++;
-      if (s.detected_growth_claims) o.growth++;
-      if (s.detected_offers) o.offers++;
-      o.cred += num(s.credibility_score);
-      o.urls.push(s.source_url);
-      String(s.detected_customer_problems || "").split("|").filter(Boolean).forEach((p) => o.problems.add(p));
-      byService.set(sc, o);
+  // Chỉ tính nguồn đủ liên quan (relevance >= 0.35) để strength không bị nhiễu.
+  const relevant = sources.filter((s) => num(s.relevance_score) >= 0.35);
+  const pool = relevant.length ? relevant : sources;
+
+  // Gom theo 2 chiều: service category + customer problem (concern cụ thể).
+  const agg = (keyFn) => {
+    const m = new Map();
+    for (const s of pool) {
+      for (const k of keyFn(s)) {
+        if (!k) continue;
+        const o = m.get(k) || { mentions: 0, growth: 0, offers: 0, cred: 0, urls: [], evid: new Set() };
+        o.mentions++;
+        if (s.detected_growth_claims) o.growth++;
+        if (s.detected_offers) o.offers++;
+        o.cred += num(s.credibility_score);
+        if (s.source_url) o.urls.push(s.source_url);
+        String(s.detected_customer_problems || "").split("|").filter(Boolean).forEach((p) => o.evid.add(p));
+        String(s.detected_trend_keywords || "").split("|").filter(Boolean).forEach((p) => o.evid.add(p));
+        m.set(k, o);
+      }
     }
-  }
-  const rows = [];
-  for (const [sc, o] of byService) {
-    const strength = Math.round(Math.min(1, o.mentions / 6 + o.growth / 5) * 100) / 100;
+    return m;
+  };
+
+  const mk = (topic, sc, o, type) => {
+    // strength có trọng số credibility; chuẩn hóa theo số nguồn liên quan.
+    const avgCred = o.cred / Math.max(1, o.mentions);
+    const strength = Math.round(Math.min(1, (o.mentions / 6) * 0.6 + (o.growth / 4) * 0.3 + avgCred * 0.1) * 100) / 100;
     const direction = o.growth >= 2 ? "up" : (o.mentions >= 3 ? "emerging" : "stable");
-    rows.push({
-      week_date: weekDate, geo: cfg.geo, topic: sc, service_category: sc,
-      trend_signal: `${o.mentions} web mentions, ${o.growth} growth claims, ${o.offers} offer signals`,
-      signal_type: o.growth ? "report_claim" : "web_mentions",
-      source: o.urls.slice(0, 3).join("|"),
-      evidence: [...o.problems].slice(0, 5).join("|"),
-      direction,
-      strength_score: strength,
-      confidence_score: Math.round(Math.min(1, o.cred / Math.max(1, o.mentions)) * 100) / 100,
+    return {
+      week_date: weekDate, geo: cfg.geo, topic, service_category: sc,
+      trend_signal: `${o.mentions} nguồn liên quan · ${o.growth} growth claim · ${o.offers} offer signal`,
+      signal_type: o.growth >= 2 ? "report_claim" : type,
+      source: [...new Set(o.urls)].slice(0, 3).join("|"),
+      evidence: [...o.evid].slice(0, 6).join("|"),
+      direction, strength_score: strength,
+      confidence_score: Math.round(Math.min(1, avgCred * 0.7 + Math.min(1, o.mentions / 5) * 0.3) * 100) / 100,
       first_seen_date: weekDate,
-    });
+    };
+  };
+
+  const byService = agg((s) => { const v = String(s.detected_services || "").split("|").filter(Boolean); return v.length ? v : ["general"]; });
+  const byProblem = agg((s) => String(s.detected_customer_problems || "").split("|").filter(Boolean));
+
+  const rows = [];
+  for (const [sc, o] of byService) rows.push(mk(sc, sc, o, "web_mentions"));
+  for (const [p, o] of byProblem) { if (o.mentions >= 2) rows.push(mk(p, "consumer_problem", o, "consumer_problem_mentions")); }
+  // dedup theo topic, giữ bản strength cao nhất.
+  const seen = new Map();
+  for (const r of rows.sort((a, b) => b.strength_score - a.strength_score)) {
+    if (!seen.has(r.topic)) seen.set(r.topic, r);
   }
-  return rows.sort((a, b) => b.strength_score - a.strength_score);
+  return [...seen.values()].sort((a, b) => b.strength_score - a.strength_score).slice(0, 25);
 }
 
 function buildCompetitorActivity(competitors, adLevel, snapshot, sources, cfg, weekDate) {

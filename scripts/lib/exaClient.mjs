@@ -99,20 +99,33 @@ export async function exaSearch(query, options = {}) {
     body.includeDomains = options.includeDomains;
   }
 
-  try {
-    const res = await fetch(EXA_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
+  // Retry với backoff cho lỗi tạm thời (429 / 5xx / network). Tối đa 3 lần.
+  const maxAttempts = Math.max(1, Number(options.retries ?? 3));
+  let lastErr = "";
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(EXA_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const raw = Array.isArray(json?.results) ? json.results : [];
+        return { ok: true, query, results: raw.map(normalizeExaResult), error: "", attempts: attempt };
+      }
       const txt = await res.text().catch(() => "");
-      return { ok: false, query, results: [], error: `HTTP ${res.status} ${txt.slice(0, 200)}` };
+      lastErr = `HTTP ${res.status} ${txt.slice(0, 200)}`;
+      // 4xx (trừ 429) là lỗi cố định -> không retry.
+      if (res.status < 500 && res.status !== 429) {
+        return { ok: false, query, results: [], error: lastErr, attempts: attempt };
+      }
+    } catch (e) {
+      lastErr = e?.message || String(e);
     }
-    const json = await res.json();
-    const raw = Array.isArray(json?.results) ? json.results : [];
-    return { ok: true, query, results: raw.map(normalizeExaResult), error: "" };
-  } catch (e) {
-    return { ok: false, query, results: [], error: e?.message || String(e) };
+    if (attempt < maxAttempts) await sleep(400 * attempt); // backoff tuyến tính
   }
+  return { ok: false, query, results: [], error: lastErr, attempts: maxAttempts };
 }
+
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }

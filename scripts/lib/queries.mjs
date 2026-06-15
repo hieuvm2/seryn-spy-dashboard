@@ -28,20 +28,25 @@ export function buildMarketResearchQueries(services, geo, maxQueries) {
   return dedupeCap([...generic, ...out], maxQueries);
 }
 
-/** Query tìm đối thủ (general + facebook + website/social). */
+/** Query tìm đối thủ — ưu tiên trang clinic/fanpage thật, hạn chế blog "giá/review". */
 export function buildCompetitorQueries(services, geo, maxQueries) {
   const out = [];
   for (const sc of services) {
     const s = label(sc);
     out.push(
-      `top clinic ${s} ${geo}`,
-      `${s} thẩm mỹ viện ${geo} uy tín`,
-      `${s} spa clinic ${geo} bảng giá`,
-      `site:facebook.com ${s} thẩm mỹ ${geo}`,
-      `site:facebook.com ${s} clinic ${geo} ưu đãi`,
+      // brand/clinic-oriented (ít ra bài SEO hơn "giá/review")
+      `thẩm mỹ viện ${s} ${geo}`,
+      `phòng khám da liễu ${s} ${geo}`,
+      // fanpage-oriented (tăng khả năng ra Facebook page có page_id)
+      `site:facebook.com thẩm mỹ viện ${s} ${geo}`,
+      `site:facebook.com phòng khám ${s} ${geo}`,
     );
   }
-  out.push(`best aesthetic clinic ${geo}`, `Vietnam aesthetic clinic ${geo}`);
+  out.push(
+    `thẩm mỹ viện uy tín ${geo}`,
+    `phòng khám thẩm mỹ ${geo}`,
+    `site:facebook.com thẩm mỹ viện ${geo}`,
+  );
   return dedupeCap(out, maxQueries);
 }
 

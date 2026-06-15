@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Users, Check, X, Copy, AlertTriangle, ExternalLink, Search } from "lucide-react";
-import type { SpyDashboardData, CompetitorDiscoveryCandidate } from "../../types";
+import { Check, X, Copy, AlertTriangle, ExternalLink, Search, Info } from "lucide-react";
+import type { SpyDashboardData, CompetitorDiscoveryCandidate, CompetitorDiscoveryRun } from "../../types";
 import {
   applyOverrides, approveCandidate, rejectCandidate, markDuplicate, setPageId,
   computeReadyForSpy, isNumericPageId, discoveryWriteConfigured,
@@ -73,9 +73,22 @@ export default function CompetitorDiscoveryView({ data }: { data: SpyDashboardDa
     );
   }
 
+  const health = buildHealth(latestRun, counts);
+
   return (
     <div className="space-y-6">
       <Header writeOn={discoveryWriteConfigured()} />
+
+      {health.length > 0 && (
+        <div className="space-y-1.5">
+          {health.map((it, i) => (
+            <div key={i} className={`flex items-center gap-2 text-xs rounded-lg px-3 py-2 border ${it.level === "warn" ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-sky-50 border-sky-200 text-sky-800"}`}>
+              {it.level === "warn" ? <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> : <Info className="w-3.5 h-3.5 shrink-0" />}
+              <span>{it.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* A. Discovery Summary */}
       <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
@@ -205,4 +218,17 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
       <p className={`text-lg font-extrabold ${accent ? "text-emerald-700" : "text-slate-900"}`}>{value}</p>
     </div>
   );
+}
+
+type Counts = { found: number; needs_review: number; needs_page_id: number; approved: number; duplicate: number; imported: number; ready: number };
+type HealthItem = { level: "warn" | "info"; text: string };
+function buildHealth(run: CompetitorDiscoveryRun | undefined, c: Counts): HealthItem[] {
+  const out: HealthItem[] = [];
+  if (run && String(run.status) === "failed") out.push({ level: "warn", text: "Run gần nhất THẤT BẠI — kiểm tra log GitHub Actions (EXA_API_KEY / queries lỗi)." });
+  else if (run && String(run.status) === "partial") out.push({ level: "warn", text: `Run gần nhất chạy một phần (partial): ${run.error_summary || "một số query Exa lỗi"}.` });
+  if (c.found > 0 && c.needs_page_id > 0) out.push({ level: "warn", text: `${c.needs_page_id} đối thủ thiếu page_id — bổ sung page_id (dạng số) rồi duyệt thì mới spy ads được.` });
+  if (c.approved > 0 && c.imported === 0) out.push({ level: "warn", text: `${c.approved} đối thủ đã duyệt nhưng chưa import — chạy "npm run competitors:import" để đưa vào Competitors.` });
+  if (c.found > 0 && c.ready === 0) out.push({ level: "info", text: "Chưa có đối thủ nào sẵn sàng spy (cần page_id dạng số + đã duyệt + độ tin cậy ≥ 0.65)." });
+  if (c.duplicate > 0) out.push({ level: "info", text: `${c.duplicate} đối thủ trùng với danh sách hiện có — đã tự loại khỏi import.` });
+  return out;
 }

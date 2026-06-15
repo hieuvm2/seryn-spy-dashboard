@@ -16,7 +16,7 @@ import { detectServices, detectOffers, detectPrices, detectLocations, detectClai
 import {
   normalizeBrandName, extractCandidateBrand, extractWebsiteUrl, extractSocialLinks,
   normalizeFacebookUrl, extractFacebookPageIdFromUrl, isNumericPageId,
-  scoreCompetitorCandidate, dedupeCompetitorCandidates,
+  scoreCompetitorCandidate, dedupeCompetitorCandidates, brandQualityScore,
 } from "./lib/competitorDiscoveryUtils.mjs";
 import { extractDomain } from "./lib/exaClient.mjs";
 import { buildCompetitorQueries } from "./lib/queries.mjs";
@@ -145,12 +145,28 @@ async function main() {
 
   candidates = dedupeCompetitorCandidates(candidates, existingCompetitors, prevDiscovery);
 
+  // Lọc rác TRƯỚC khi ghi: candidate không có brand đáng tin VÀ không có
+  // fanpage VÀ (không có website kèm dịch vụ) -> bỏ (thường là bài blog/SEO).
+  const before = candidates.length;
+  candidates = candidates.filter((c) => {
+    const bq = brandQualityScore(c.brand_name);
+    const hasFanpage = !!c.facebook_url;
+    const hasUsefulWebsite = !!c.website_url && !!c.detected_services;
+    if (c.duplicate_of) return true; // giữ để báo cáo duplicate
+    return bq >= 0.3 || hasFanpage || hasUsefulWebsite;
+  });
+  const droppedJunk = before - candidates.length;
+  if (droppedJunk) console.log(`  [filter] bỏ ${droppedJunk} candidate rác (brand không đáng tin, không fanpage/website).`);
+
   const discoveryRows = candidates.map((c) => {
     const sc = scoreCompetitorCandidate(c, { geo: cfg.geo, serviceCategory: cfg.serviceCategory });
     const overall = sc.overall_confidence_score;
+    const bq = sc.brand_quality_score;
     const hasNumericPid = isNumericPageId(c.facebook_page_id);
+    const hasUsefulWebsite = !!c.website_url && !!c.detected_services;
     let status, reason;
     if (c.duplicate_of) { status = "duplicate"; reason = `Trùng với "${c.duplicate_of}".`; }
+    else if (bq < 0.3 && !c.facebook_url && !hasUsefulWebsite) { status = "rejected"; reason = "Chất lượng thấp: brand giống tiêu đề bài viết/blog, không có fanpage/website rõ ràng."; }
     else if (c.facebook_url && !hasNumericPid) { status = "needs_page_id"; reason = "Có facebook_url (vanity) nhưng chưa có numeric page_id."; }
     else if (cfg.autoImport && hasNumericPid && overall >= cfg.autoImportMinConfidence) { status = "approved"; reason = "Auto-approved (high confidence + numeric page_id)."; }
     else if (overall >= cfg.discoveryMinConfidence) { status = "needs_review"; reason = "Confidence trung bình — cần review."; }
@@ -175,7 +191,8 @@ async function main() {
       fanpage_confidence_score: sc.fanpage_confidence_score, website_confidence_score: sc.website_confidence_score,
       overall_confidence_score: overall, duplicate_of: c.duplicate_of,
       status, ready_for_spy: ready_for_spy ? "TRUE" : "FALSE", reason,
-      created_at: nowISO(), updated_at: nowISO(), reviewed_at: "", reviewed_by: "", notes: "",
+      created_at: nowISO(), updated_at: nowISO(), reviewed_at: "", reviewed_by: "",
+      notes: `brand_quality=${bq}`,
     };
   });
 
@@ -189,6 +206,7 @@ async function main() {
     candidates_ready_for_spy: count((r) => r.ready_for_spy === "TRUE"),
     candidates_imported: 0,
   };
+  const rejectedCount = count((r) => r.status === "rejected");
 
   console.log(`\nGhi Google Sheets... (candidates=${discoveryRows.length})`);
   await appendTab(sheets, titles, TAB.discovery, HEADERS.discovery, discoveryRows);
@@ -201,12 +219,16 @@ async function main() {
     queries_count: queries.length, sources_count: sourcesCount,
     ...stats,
     status: failedQueries === queries.length && queries.length ? "failed" : (failedQueries ? "partial" : "ok"),
-    error_summary: failedQueries ? `${failedQueries}/${queries.length} queries failed` : "",
+    error_summary: [
+      failedQueries ? `${failedQueries}/${queries.length} queries failed` : "",
+      droppedJunk ? `dropped ${droppedJunk} junk` : "",
+      rejectedCount ? `${rejectedCount} low_quality` : "",
+    ].filter(Boolean).join("; "),
     cost_guard_status: costGuard.join("|") || "ok",
   };
   await appendTab(sheets, titles, TAB.discoveryRuns, HEADERS.discoveryRuns, [runRow]);
 
-  console.log(`\n[DONE] ${discovery_run_id} — found=${stats.candidates_found} needs_review=${stats.candidates_needs_review} ready=${stats.candidates_ready_for_spy} dup=${stats.candidates_duplicates}`);
+  console.log(`\n[DONE] ${discovery_run_id} — found=${stats.candidates_found} needs_review=${stats.candidates_needs_review} ready=${stats.candidates_ready_for_spy} dup=${stats.candidates_duplicates} rejected=${rejectedCount} (dropped junk=${droppedJunk})`);
   if (cfg.autoImport) console.log("AUTO_IMPORT_COMPETITORS=true -> chạy 'npm run competitors:import' để import approved candidate.");
 }
 
