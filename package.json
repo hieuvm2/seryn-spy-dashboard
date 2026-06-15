@@ -10,6 +10,8 @@
     "lint": "tsc --noEmit",
     "spy:sync": "node scripts/run-weekly-spy-and-sync.mjs",
     "spy:weekly": "node scripts/weekly-spy-sync.mjs",
+    "report:weekly": "node scripts/weekly-intelligence.mjs",
+    "report:test": "node scripts/validate-weekly-intel.mjs",
     "visual:fetch": "node scripts/visual-review.mjs fetch",
     "visual:write": "node scripts/visual-review.mjs write",
     "market:run": "node scripts/market-research-on-demand.mjs",

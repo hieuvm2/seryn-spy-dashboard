@@ -12,6 +12,7 @@ import CreativeBriefsView from "./components/views/CreativeBriefsView";
 import WeeklyChangesView from "./components/views/WeeklyChangesView";
 import SerynRecommendationsView from "./components/views/SerynRecommendationsView";
 import CompetitorSetupView from "./components/views/CompetitorSetupView";
+import WeeklyIntelligenceView from "./components/views/WeeklyIntelligenceView";
 import MarketResearchView from "./components/views/MarketResearchView";
 import CompetitorDiscoveryView from "./components/views/CompetitorDiscoveryView";
 import DataImportView from "./components/views/DataImportView";
@@ -39,6 +40,7 @@ const VALID_VIEWS: ViewId[] = [
   "creative-briefs",
   "weekly-changes",
   "seryn-recommendations",
+  "weekly-intelligence",
   "competitor-setup",
   "market-research",
   "competitor-discovery",
@@ -186,6 +188,7 @@ export default function App() {
           {activeSection === "creative-briefs" && <CreativeBriefsView />}
           {activeSection === "weekly-changes" && <WeeklyChangesView data={spyData} />}
           {activeSection === "seryn-recommendations" && <SerynRecommendationsView data={spyData} onGoToCreativeBriefs={() => goView("creative-briefs")} />}
+          {activeSection === "weekly-intelligence" && <WeeklyIntelligenceView data={spyData} />}
           {activeSection === "competitor-setup" && <CompetitorSetupView />}
           {activeSection === "market-research" && <MarketResearchView data={spyData} />}
           {activeSection === "competitor-discovery" && <CompetitorDiscoveryView data={spyData} />}

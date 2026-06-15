@@ -52,3 +52,12 @@ jobs:
           TEXT_ANALYSIS_PROMPT_VERSION: ${{ vars.TEXT_ANALYSIS_PROMPT_VERSION }}
           VISUAL_ANALYSIS_PROMPT_VERSION: ${{ vars.VISUAL_ANALYSIS_PROMPT_VERSION }}
         run: npm run spy:weekly
+
+      # Tạo Weekly Intelligence Report (Weekly_Summary + Action_Plan + Swipe suggestions)
+      # ngay sau khi crawl/phân tích xong. KHÔNG dùng Exa (Exa chỉ chạy thủ công).
+      - name: Generate weekly intelligence report
+        env:
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          ADS_SOURCE_PROVIDER: ${{ secrets.ADS_SOURCE_PROVIDER }}
+        run: npm run report:weekly

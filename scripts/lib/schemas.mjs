@@ -22,6 +22,10 @@ export const TAB = {
   importLog: "Competitor Import Log",
   // existing
   competitors: "Competitors",
+  // Weekly Intelligence (team report) — đầu ra MỚI, không đụng tab pipeline cũ
+  weeklySummary: "Weekly_Summary",
+  actionPlan: "Action_Plan",
+  swipeSuggestions: "Swipe_File_Suggestions",
 };
 
 export const HEADERS = {
@@ -96,6 +100,22 @@ export const HEADERS = {
   importLog: [
     "import_id", "imported_at", "discovery_id", "brand_name", "website_url", "facebook_url",
     "facebook_page_id", "target_tab", "action", "status", "error_message",
+  ],
+  weeklySummary: [
+    "week_start", "week_end", "generated_at", "total_brands_tracked", "total_pages_tracked",
+    "total_ads_active", "total_new_ads", "total_updated_ads", "total_crawl_failed_pages",
+    "top_brands_by_active_ads", "top_brands_by_new_ads", "top_hooks", "top_offers",
+    "top_service_types", "top_creative_formats", "scaled_ads_count", "new_competitors_count",
+    "data_quality_score", "executive_summary",
+  ],
+  actionPlan: [
+    "action_id", "week_start", "priority", "insight_type", "insight", "evidence",
+    "suggested_action", "related_brand", "related_ad_ids", "owner", "status",
+    "created_at", "updated_at",
+  ],
+  swipeSuggestions: [
+    "swipe_id", "week_start", "ad_id", "brand_name", "ad_url", "media_url", "thumbnail_url",
+    "hook", "offer", "angle", "format", "why_save", "how_to_adapt", "status", "saved_at",
   ],
   // tab Competitors mở rộng (backward compatible — pipeline đọc page_ids/page_urls)
   competitors: [

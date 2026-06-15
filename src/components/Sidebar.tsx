@@ -14,6 +14,7 @@ import {
   Users,
   Globe,
   Search,
+  ClipboardList,
 } from "lucide-react";
 import type { ViewId } from "../types";
 
@@ -29,7 +30,10 @@ type MenuGroup = { title: string; items: MenuItem[] };
 const menuGroups: MenuGroup[] = [
   {
     title: "Tổng quan",
-    items: [{ id: "overview", label: "Tổng quan", icon: LayoutDashboard }],
+    items: [
+      { id: "overview", label: "Tổng quan", icon: LayoutDashboard },
+      { id: "weekly-intelligence", label: "Weekly Intelligence", icon: ClipboardList },
+    ],
   },
   {
     title: "Phân tích đối thủ",

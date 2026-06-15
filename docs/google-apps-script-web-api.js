@@ -60,6 +60,10 @@ const SHEET_MAP = {
   competitorWebsiteIntelligence: "Competitor Website Intelligence",
   competitorFanpageCandidates: "Competitor Fanpage Candidates",
   competitorImportLog: "Competitor Import Log",
+  // ---- Weekly Intelligence (team report) ----
+  weeklySummary: "Weekly_Summary",
+  actionPlan: "Action_Plan",
+  swipeSuggestions: "Swipe_File_Suggestions",
 };
 
 /* Tab read/write (Swipe File, Creative Briefs, Competitors).
@@ -109,6 +113,27 @@ const RECORD_TABS = {
       "created_at", "updated_at", "reviewed_at", "reviewed_by", "notes",
     ],
     required: ["discovery_id"],
+  },
+  // Weekly Action Plan — team cập nhật status/owner từ dashboard. idField=action_id.
+  action_plan: {
+    tab: "Action_Plan",
+    idField: "action_id",
+    headers: [
+      "action_id", "week_start", "priority", "insight_type", "insight", "evidence",
+      "suggested_action", "related_brand", "related_ad_ids", "owner", "status",
+      "created_at", "updated_at",
+    ],
+    required: ["action_id"],
+  },
+  // Swipe File suggestions — team đánh dấu status (new/reviewed/used/ignored). idField=swipe_id.
+  swipe_suggestions: {
+    tab: "Swipe_File_Suggestions",
+    idField: "swipe_id",
+    headers: [
+      "swipe_id", "week_start", "ad_id", "brand_name", "ad_url", "media_url", "thumbnail_url",
+      "hook", "offer", "angle", "format", "why_save", "how_to_adapt", "status", "saved_at",
+    ],
+    required: ["swipe_id"],
   },
 };
 
@@ -228,6 +253,10 @@ function doGet(e) {
       competitorWebsiteIntelligence: sheetToObjects_(SHEET_MAP.competitorWebsiteIntelligence),
       competitorFanpageCandidates: sheetToObjects_(SHEET_MAP.competitorFanpageCandidates),
       competitorImportLog: sheetToObjects_(SHEET_MAP.competitorImportLog),
+      // ---- Weekly Intelligence ----
+      weeklySummary: sheetToObjects_(SHEET_MAP.weeklySummary),
+      actionPlan: sheetToObjects_(SHEET_MAP.actionPlan),
+      swipeSuggestions: sheetToObjects_(SHEET_MAP.swipeSuggestions),
       meta: { source: "GOOGLE_SHEETS", generatedAt: new Date().toISOString() },
     };
     return makeJson_({ ok: true, data: data });

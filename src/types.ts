@@ -13,6 +13,7 @@ export type ViewId =
   | "creative-briefs"
   | "weekly-changes"
   | "seryn-recommendations"
+  | "weekly-intelligence"
   | "competitor-setup"
   | "market-research"
   | "competitor-discovery"
@@ -167,6 +168,10 @@ export type SpyDashboardData = {
   competitorWebsiteIntelligence?: CompetitorWebsiteIntelligence[];
   competitorFanpageCandidates?: CompetitorFanpageCandidate[];
   competitorImportLog?: CompetitorImportLogItem[];
+  /* ---- Weekly Intelligence (team report) ---- */
+  weeklySummary?: WeeklySummary[];
+  actionPlan?: ActionPlanItem[];
+  swipeSuggestions?: SwipeSuggestion[];
 };
 
 /** 5 bảng CSV gốc (dùng cho import thủ công / health-check). Các tab v2
@@ -556,3 +561,85 @@ export type CompetitorImportLogItem = {
   import_id?: Str; imported_at?: Str; discovery_id?: Str; brand_name?: Str; website_url?: Str;
   facebook_url?: Str; facebook_page_id?: Str; target_tab?: Str; action?: Str; status?: Str; error_message?: Str;
 };
+
+/* ============================================================
+   WEEKLY INTELLIGENCE (team report) — Weekly_Summary / Action_Plan / Swipe
+   List-fields lưu JSON string trên Sheet; dùng parseTopList() để đọc an toàn.
+   ============================================================ */
+
+/** Item dạng {key,count} cho top hooks/offers/brands (lưu JSON string). */
+export type TopCountItem = { key: string; count: number };
+
+export type WeeklySummary = {
+  week_start?: string;
+  week_end?: string;
+  generated_at?: string;
+  total_brands_tracked?: number | string;
+  total_pages_tracked?: number | string;
+  total_ads_active?: number | string;
+  total_new_ads?: number | string;
+  total_updated_ads?: number | string;
+  total_crawl_failed_pages?: number | string;
+  top_brands_by_active_ads?: string;   // JSON string của TopCountItem[]
+  top_brands_by_new_ads?: string;
+  top_hooks?: string;
+  top_offers?: string;
+  top_service_types?: string;
+  top_creative_formats?: string;
+  scaled_ads_count?: number | string;
+  new_competitors_count?: number | string;
+  data_quality_score?: number | string;
+  executive_summary?: string;
+};
+
+export type ActionPriority = "high" | "medium" | "low" | string;
+export type ActionStatus = "new" | "reviewed" | "in_progress" | "done" | "ignored" | string;
+
+export type ActionPlanItem = {
+  action_id: string;
+  week_start?: string;
+  priority?: ActionPriority;
+  insight_type?: string;
+  insight?: string;
+  evidence?: string;
+  suggested_action?: string;
+  related_brand?: string;
+  related_ad_ids?: string;
+  owner?: string;
+  status?: ActionStatus;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type SwipeSuggestionStatus = "new" | "reviewed" | "used" | "ignored" | string;
+
+export type SwipeSuggestion = {
+  swipe_id: string;
+  week_start?: string;
+  ad_id?: string;
+  brand_name?: string;
+  ad_url?: string;
+  media_url?: string;
+  thumbnail_url?: string;
+  hook?: string;
+  offer?: string;
+  angle?: string;
+  format?: string;
+  why_save?: string;
+  how_to_adapt?: string;
+  status?: SwipeSuggestionStatus;
+  saved_at?: string;
+};
+
+/** Báo cáo data-quality dẫn xuất từ WeeklySummary (frontend tính warning hiển thị). */
+export type DataQualityReport = {
+  score: number;
+  failedPages: number;
+  level: "good" | "warning" | "low";
+};
+
+/* Alias cho các bảng pipeline cũ theo schema yêu cầu (backward-compatible map):
+   AdMaster   ≈ AdLevelAnalysis (tab "Ad Level Analysis")
+   CrawlLog   ≈ CrawlRun        (tab "Crawl Runs" + "Page Crawl Logs") */
+export type AdMaster = AdLevelAnalysis;
+export type CrawlLog = CrawlRun;

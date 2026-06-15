@@ -36,6 +36,9 @@ import type {
   CompetitorWebsiteIntelligence,
   CompetitorFanpageCandidate,
   CompetitorImportLogItem,
+  WeeklySummary,
+  ActionPlanItem,
+  SwipeSuggestion,
 } from "../types";
 import { apiGet, getApiUrl, isSheetsConfigured } from "./sheetsApi";
 
@@ -101,5 +104,9 @@ export async function fetchOnlineSpyData(apiUrl?: string): Promise<SpyDashboardD
     competitorWebsiteIntelligence: asRows<CompetitorWebsiteIntelligence>(d.competitorWebsiteIntelligence),
     competitorFanpageCandidates: asRows<CompetitorFanpageCandidate>(d.competitorFanpageCandidates),
     competitorImportLog: asRows<CompetitorImportLogItem>(d.competitorImportLog),
+    // ---- Weekly Intelligence (team report) ----
+    weeklySummary: asRows<WeeklySummary>(d.weeklySummary),
+    actionPlan: asRows<ActionPlanItem>(d.actionPlan),
+    swipeSuggestions: asRows<SwipeSuggestion>(d.swipeSuggestions),
   };
 }
