@@ -23,19 +23,20 @@ export default function TopHeader({ dataSource, market = "Vietnam", weekDate, is
   const src = SOURCE_STYLE[dataSource] || SOURCE_STYLE.demo;
   const SrcIcon = src.Icon;
   return (
-    <header className="sticky top-0 z-20 w-full h-16 bg-white/85 backdrop-blur-md border-b border-slate-200 px-8 flex items-center justify-between text-slate-800">
-      <div className="flex items-center gap-4 max-w-[62%] truncate">
-        <div className="flex flex-col">
-          <span className="text-xs font-semibold text-slate-500 font-mono">SERYN · Phân tích quảng cáo cạnh tranh</span>
-          <p className="text-base font-extrabold text-slate-900 truncate">
-            Phân tích quảng cáo đối thủ {weekDate ? <span className="text-slate-400 font-bold">· tuần {weekDate}</span> : null}
+    <header className="sticky top-0 z-20 w-full h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 flex items-center justify-between text-slate-800">
+      <div className="flex items-center gap-3.5 min-w-0">
+        <div className="flex flex-col min-w-0">
+          <span className="text-[11px] font-semibold text-slate-400 font-mono tracking-wide">PHÂN TÍCH QUẢNG CÁO CẠNH TRANH</span>
+          <p className="text-[15px] font-extrabold text-slate-900 truncate leading-tight">
+            Quảng cáo đối thủ
+            {weekDate ? <span className="text-slate-400 font-bold"> · tuần {weekDate}</span> : null}
           </p>
         </div>
 
         <div className="h-8 w-px bg-slate-200 hidden md:block" />
 
         <span
-          className={`hidden md:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-extrabold uppercase tracking-widest ${src.cls}`}
+          className={`hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-extrabold uppercase tracking-wider whitespace-nowrap ${src.cls}`}
           title="Nguồn dữ liệu đang hiển thị"
         >
           <SrcIcon className="w-3.5 h-3.5" />
@@ -44,21 +45,21 @@ export default function TopHeader({ dataSource, market = "Vietnam", weekDate, is
 
         {isOnlineLoading && (
           <span
-            className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-bold"
+            className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700 text-[11px] font-bold"
             title="Đang đồng bộ dữ liệu từ Google Sheets"
           >
             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            Syncing Google Sheets...
+            Đang đồng bộ…
           </span>
         )}
 
-        <span className="hidden lg:inline-flex items-center gap-1.5 bg-slate-50 text-slate-600 px-2.5 py-1 rounded border border-slate-200 text-xs font-bold">
+        <span className="hidden lg:inline-flex items-center gap-1.5 bg-slate-50 text-slate-600 px-3 py-1.5 rounded-full border border-slate-200 text-[11px] font-bold whitespace-nowrap">
           <Globe className="w-3.5 h-3.5 text-cyan-600" />
           {market}
         </span>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5 shrink-0">
         <button
           onClick={onClear}
           className="flex items-center gap-2 bg-white hover:bg-rose-50 text-rose-600 px-3.5 py-2 rounded-xl text-sm font-bold border border-rose-200 transition cursor-pointer"
@@ -69,7 +70,7 @@ export default function TopHeader({ dataSource, market = "Vietnam", weekDate, is
         </button>
         <button
           onClick={onImportClick}
-          className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:shadow transition cursor-pointer"
+          className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm shadow-cyan-600/20 hover:shadow-md hover:shadow-cyan-600/25 transition cursor-pointer"
         >
           <Upload className="w-3.5 h-3.5" />
           <span>Nhập dữ liệu</span>

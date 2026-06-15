@@ -24,7 +24,7 @@ const DIR_COLOR: Record<string, string> = {
 
 function Section({ icon: Icon, title, desc, children }: { icon: any; title: string; desc?: string; children: React.ReactNode }) {
   return (
-    <section className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+    <section className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
       <div className="flex items-center gap-2.5 mb-1">
         <Icon className="w-4.5 h-4.5 text-cyan-600" />
         <h3 className="text-sm font-extrabold text-slate-900">{title}</h3>
@@ -64,7 +64,7 @@ export default function MarketResearchView({ data }: { data: SpyDashboardData })
     return (
       <div className="space-y-6">
         <Header />
-        <div className="bg-white border border-dashed border-slate-300 rounded-xl p-10 text-center">
+        <div className="bg-white border border-dashed border-slate-300 rounded-2xl p-10 text-center">
           <FileSearch className="w-8 h-8 text-slate-300 mx-auto mb-3" />
           <p className="text-sm font-bold text-slate-700">Chưa chạy Market Research lần nào.</p>
           <p className="text-xs text-slate-500 mt-1">Vào GitHub → Actions chạy workflow <code className="font-mono text-cyan-700">Market Research Manual</code> để tạo dữ liệu.</p>

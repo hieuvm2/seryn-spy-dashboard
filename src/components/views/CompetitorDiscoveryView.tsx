@@ -65,7 +65,7 @@ export default function CompetitorDiscoveryView({ data }: { data: SpyDashboardDa
     return (
       <div className="space-y-6">
         <Header writeOn={discoveryWriteConfigured()} />
-        <div className="bg-white border border-dashed border-slate-300 rounded-xl p-10 text-center">
+        <div className="bg-white border border-dashed border-slate-300 rounded-2xl p-10 text-center">
           <Search className="w-8 h-8 text-slate-300 mx-auto mb-3" />
           <p className="text-sm font-bold text-slate-700">Chạy workflow <code className="font-mono text-cyan-700">Competitor Discovery Manual</code> để tìm đối thủ mới từ Exa.</p>
         </div>
@@ -119,7 +119,7 @@ export default function CompetitorDiscoveryView({ data }: { data: SpyDashboardDa
       </div>
 
       {/* B. Candidate Table */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-slate-50 text-slate-400 font-mono uppercase tracking-wider">
@@ -139,7 +139,7 @@ export default function CompetitorDiscoveryView({ data }: { data: SpyDashboardDa
       </div>
 
       {/* E. Warnings + import hướng dẫn */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800 space-y-1">
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-800 space-y-1">
         <p className="flex items-center gap-1.5 font-bold"><AlertTriangle className="w-3.5 h-3.5" /> Lưu ý khi import</p>
         <p>• Đối thủ không có <code>page_id</code> dạng số sẽ ở trạng thái <b>needs_page_id</b> — ScrapeCreators chưa thể spy ads tin cậy.</p>
         <p>• Vanity Facebook URL (facebook.com/brand) KHÔNG phải page_id. Đừng bịa page_id.</p>
