@@ -1,0 +1,73 @@
+name: Market Research Manual
+
+# Exa Market Research — CHỈ chạy thủ công. KHÔNG có schedule.
+# Không gắn vào weekly spy cron. Nếu thiếu EXA_API_KEY -> script skip exit 0.
+on:
+  workflow_dispatch:
+    inputs:
+      market:
+        description: "Market to research"
+        required: true
+        default: "clinic aesthetic beauty"
+      geo:
+        description: "Geo / location"
+        required: true
+        default: "Vietnam"
+      service_category:
+        description: "Service category: all, melasma_treatment, acne_treatment, skin_rejuvenation, laser_treatment, filler_botox, facial_spa, skin_booster, body_slimming, wellness_beauty"
+        required: false
+        default: "all"
+      max_queries:
+        description: "Max Exa queries for this run"
+        required: false
+        default: "10"
+      max_results:
+        description: "Max results per Exa query"
+        required: false
+        default: "10"
+      deep_search:
+        description: "Enable deep search. Warning: may cost more."
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+jobs:
+  market-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+      GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+
+      EXA_SEARCH_TYPE: auto
+      EXA_MAX_QUERIES_PER_MARKET: ${{ github.event.inputs.max_queries }}
+      EXA_MAX_QUERIES_PER_RUN: ${{ github.event.inputs.max_queries }}
+      EXA_MAX_RESULTS_PER_QUERY: ${{ github.event.inputs.max_results }}
+      EXA_ENABLE_DEEP_SEARCH: ${{ github.event.inputs.deep_search }}
+      EXA_SEARCH_COUNTRY: VN
+
+      MARKET_RESEARCH_RUN_MODE: manual
+      MARKET_RESEARCH_GEO: ${{ github.event.inputs.geo }}
+      MARKET_RESEARCH_DEFAULT_MARKET: ${{ github.event.inputs.market }}
+      MARKET_RESEARCH_SERVICE_CATEGORY: ${{ github.event.inputs.service_category }}
+      MARKET_SIZE_ESTIMATION_MODE: directional
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Exa market research
+        run: npm run market:run

@@ -21,6 +21,10 @@ secrets
 !package-lock.json
 !tsconfig.json
 !vercel.json
+# Schema tham chiếu cho Claude market research output (KHÔNG phải secret)
+!data/market-research/output.schema.json
+# Output Claude tạo ra (có thể chứa dữ liệu) — KHÔNG commit
+data/market-research/market_research_output.json
 
 # Vercel
 .vercel

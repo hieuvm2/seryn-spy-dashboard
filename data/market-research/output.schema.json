@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SERYN Market Research — Claude deep-analysis output",
+  "description": "Claude đọc tab 'Market Research Queue' và xuất file market_research_output.json theo schema này. Đây là directional analysis, không phải số liệu audited.",
+  "type": "object",
+  "required": ["items"],
+  "properties": {
+    "generated_at": { "type": "string" },
+    "week_date": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/item" }
+    }
+  },
+  "definitions": {
+    "item": {
+      "type": "object",
+      "required": [
+        "topic", "service_category", "geo", "insight",
+        "recommended_seryn_action", "confidence_score", "source_urls"
+      ],
+      "properties": {
+        "topic": { "type": "string" },
+        "service_category": { "type": "string" },
+        "geo": { "type": "string" },
+        "insight": { "type": "string" },
+        "evidence": { "type": "string" },
+        "market_size_assumption": { "type": "string" },
+        "opportunity_score_adjustment": { "type": "number", "minimum": -1, "maximum": 1 },
+        "recommended_seryn_action": {
+          "type": "string",
+          "enum": ["copy", "adapt", "counter", "avoid", "monitor"]
+        },
+        "suggested_content_angle": { "type": "string" },
+        "suggested_offer_angle": { "type": "string" },
+        "suggested_hook": { "type": "string" },
+        "confidence_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "source_urls": { "type": "array", "items": { "type": "string" } },
+        "missing_data": { "type": "string" },
+        "risk_notes": { "type": "string" }
+      }
+    }
+  }
+}

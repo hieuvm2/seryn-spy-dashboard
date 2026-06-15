@@ -11,7 +11,14 @@
     "spy:sync": "node scripts/run-weekly-spy-and-sync.mjs",
     "spy:weekly": "node scripts/weekly-spy-sync.mjs",
     "visual:fetch": "node scripts/visual-review.mjs fetch",
-    "visual:write": "node scripts/visual-review.mjs write"
+    "visual:write": "node scripts/visual-review.mjs write",
+    "market:run": "node scripts/market-research-on-demand.mjs",
+    "market:validate": "node scripts/validate-market-research-output.mjs",
+    "market:import": "node scripts/import-market-research-output.mjs",
+    "market:status": "node scripts/market-research-status.mjs",
+    "competitors:discover": "node scripts/competitor-discovery-on-demand.mjs",
+    "competitors:import": "node scripts/import-discovered-competitors.mjs",
+    "competitors:status": "node scripts/competitor-discovery-status.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",

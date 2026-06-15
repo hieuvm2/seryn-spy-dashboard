@@ -46,6 +46,20 @@ const SHEET_MAP = {
   adAnalysisCache: "Ad Analysis Cache",
   patternCache: "Pattern Cache",
   historicalWeeklySnapshots: "Historical Weekly Snapshots",
+  // ---- Exa Market Research (manual/on-demand) ----
+  marketResearchRuns: "Market Research Runs",
+  marketSources: "Market Sources",
+  trendSignals: "Trend Signals",
+  competitorMarketActivity: "Competitor Market Activity",
+  marketSizeEstimates: "Market Size Estimates",
+  serynOpportunityBriefs: "SERYN Opportunity Briefs",
+  marketResearchQueue: "Market Research Queue",
+  // ---- Exa Competitor Discovery (manual/on-demand) ----
+  competitorDiscoveryRuns: "Competitor Discovery Runs",
+  competitorDiscovery: "Competitor Discovery",
+  competitorWebsiteIntelligence: "Competitor Website Intelligence",
+  competitorFanpageCandidates: "Competitor Fanpage Candidates",
+  competitorImportLog: "Competitor Import Log",
 };
 
 /* Tab read/write (Swipe File, Creative Briefs, Competitors).
@@ -77,6 +91,24 @@ const RECORD_TABS = {
       "dos", "donts", "markdown",
     ],
     required: ["id", "title"],
+  },
+  // Exa Competitor Discovery — read + write (approve/reject/edit page_id).
+  // idField=discovery_id (không phải "id"). Update đúng dòng theo discovery_id.
+  competitor_discovery: {
+    tab: "Competitor Discovery",
+    idField: "discovery_id",
+    headers: [
+      "discovery_id", "discovery_run_id", "week_date", "geo", "market", "service_category",
+      "brand_name", "normalized_brand_name", "business_type", "website_url", "website_domain",
+      "facebook_url", "facebook_page_id", "facebook_page_name", "instagram_url", "tiktok_url",
+      "phone", "address", "location", "detected_services", "detected_offers", "detected_prices",
+      "source_urls", "source_titles", "source_types", "evidence_summary",
+      "competitor_relevance_score", "service_match_score", "geo_match_score",
+      "source_credibility_score", "fanpage_confidence_score", "website_confidence_score",
+      "overall_confidence_score", "duplicate_of", "status", "ready_for_spy", "reason",
+      "created_at", "updated_at", "reviewed_at", "reviewed_by", "notes",
+    ],
+    required: ["discovery_id"],
   },
 };
 
@@ -141,7 +173,8 @@ function recordToRow_(conf, record) {
 
 /** Tìm số dòng (1-based, gồm header) theo id; -1 nếu không thấy. */
 function findRowById_(sheet, conf, id) {
-  const idCol = conf.headers.indexOf("id") + 1; // 1-based
+  const idField = conf.idField || "id";
+  const idCol = conf.headers.indexOf(idField) + 1; // 1-based
   if (idCol < 1) return -1;
   const last = sheet.getLastRow();
   if (last < 2) return -1;
@@ -181,6 +214,20 @@ function doGet(e) {
       visualPatternAnalysis: sheetToObjects_(SHEET_MAP.visualPatternAnalysis),
       weeklyChangeInsights: sheetToObjects_(SHEET_MAP.weeklyChangeInsights),
       crawlRuns: sheetToObjects_(SHEET_MAP.crawlRuns),
+      // ---- Exa Market Research (tab thiếu -> [] , không crash) ----
+      marketResearchRuns: sheetToObjects_(SHEET_MAP.marketResearchRuns),
+      marketSources: sheetToObjects_(SHEET_MAP.marketSources),
+      trendSignals: sheetToObjects_(SHEET_MAP.trendSignals),
+      competitorMarketActivity: sheetToObjects_(SHEET_MAP.competitorMarketActivity),
+      marketSizeEstimates: sheetToObjects_(SHEET_MAP.marketSizeEstimates),
+      serynOpportunityBriefs: sheetToObjects_(SHEET_MAP.serynOpportunityBriefs),
+      marketResearchQueue: sheetToObjects_(SHEET_MAP.marketResearchQueue),
+      // ---- Exa Competitor Discovery ----
+      competitorDiscoveryRuns: sheetToObjects_(SHEET_MAP.competitorDiscoveryRuns),
+      competitorDiscovery: sheetToObjects_(SHEET_MAP.competitorDiscovery),
+      competitorWebsiteIntelligence: sheetToObjects_(SHEET_MAP.competitorWebsiteIntelligence),
+      competitorFanpageCandidates: sheetToObjects_(SHEET_MAP.competitorFanpageCandidates),
+      competitorImportLog: sheetToObjects_(SHEET_MAP.competitorImportLog),
       meta: { source: "GOOGLE_SHEETS", generatedAt: new Date().toISOString() },
     };
     return makeJson_({ ok: true, data: data });
@@ -226,7 +273,7 @@ function doPost(e) {
       }
     }
 
-    const id = String(record.id).trim();
+    const id = String(record[conf.idField || "id"]).trim();
     const existingRow = findRowById_(sheet, conf, id);
     const row = recordToRow_(conf, record);
 

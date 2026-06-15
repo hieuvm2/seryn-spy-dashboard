@@ -24,6 +24,18 @@ import type {
   VisualPattern,
   WeeklyChangeInsight,
   CrawlRun,
+  MarketResearchRun,
+  MarketSource,
+  TrendSignal,
+  CompetitorMarketActivity,
+  MarketSizeEstimate,
+  OpportunityBrief,
+  MarketResearchQueueItem,
+  CompetitorDiscoveryRun,
+  CompetitorDiscoveryCandidate,
+  CompetitorWebsiteIntelligence,
+  CompetitorFanpageCandidate,
+  CompetitorImportLogItem,
 } from "../types";
 import { apiGet, getApiUrl, isSheetsConfigured } from "./sheetsApi";
 
@@ -76,5 +88,18 @@ export async function fetchOnlineSpyData(apiUrl?: string): Promise<SpyDashboardD
     visualPatternAnalysis: asRows<VisualPattern>(d.visualPatternAnalysis),
     weeklyChangeInsights: asRows<WeeklyChangeInsight>(d.weeklyChangeInsights),
     crawlRuns: asRows<CrawlRun>(d.crawlRuns),
+    // ---- Exa Market Research & Competitor Discovery (tab thiếu -> []) ----
+    marketResearchRuns: asRows<MarketResearchRun>(d.marketResearchRuns),
+    marketSources: asRows<MarketSource>(d.marketSources),
+    trendSignals: asRows<TrendSignal>(d.trendSignals),
+    competitorMarketActivity: asRows<CompetitorMarketActivity>(d.competitorMarketActivity),
+    marketSizeEstimates: asRows<MarketSizeEstimate>(d.marketSizeEstimates),
+    serynOpportunityBriefs: asRows<OpportunityBrief>(d.serynOpportunityBriefs),
+    marketResearchQueue: asRows<MarketResearchQueueItem>(d.marketResearchQueue),
+    competitorDiscoveryRuns: asRows<CompetitorDiscoveryRun>(d.competitorDiscoveryRuns),
+    competitorDiscovery: asRows<CompetitorDiscoveryCandidate>(d.competitorDiscovery),
+    competitorWebsiteIntelligence: asRows<CompetitorWebsiteIntelligence>(d.competitorWebsiteIntelligence),
+    competitorFanpageCandidates: asRows<CompetitorFanpageCandidate>(d.competitorFanpageCandidates),
+    competitorImportLog: asRows<CompetitorImportLogItem>(d.competitorImportLog),
   };
 }

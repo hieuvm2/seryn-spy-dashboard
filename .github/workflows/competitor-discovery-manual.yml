@@ -1,0 +1,79 @@
+name: Competitor Discovery Manual
+
+# Exa Competitor Discovery — CHỈ chạy thủ công. KHÔNG có schedule.
+# Không gắn vào weekly spy cron. Thiếu EXA_API_KEY -> script skip exit 0.
+on:
+  workflow_dispatch:
+    inputs:
+      market:
+        description: "Market"
+        required: true
+        default: "clinic aesthetic beauty"
+      geo:
+        description: "Geo"
+        required: true
+        default: "Vietnam"
+      service_category:
+        description: "Service category or all"
+        required: false
+        default: "all"
+      max_queries:
+        description: "Max Exa queries"
+        required: false
+        default: "10"
+      max_results:
+        description: "Max results per query"
+        required: false
+        default: "10"
+      auto_import:
+        description: "Auto import high-confidence competitors with numeric page_id"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+jobs:
+  competitor-discovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+      GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+
+      MARKET_RESEARCH_RUN_MODE: manual
+      MARKET_RESEARCH_DEFAULT_MARKET: ${{ github.event.inputs.market }}
+      MARKET_RESEARCH_GEO: ${{ github.event.inputs.geo }}
+      MARKET_RESEARCH_SERVICE_CATEGORY: ${{ github.event.inputs.service_category }}
+
+      EXA_SEARCH_TYPE: auto
+      EXA_MAX_QUERIES_PER_RUN: ${{ github.event.inputs.max_queries }}
+      EXA_MAX_RESULTS_PER_QUERY: ${{ github.event.inputs.max_results }}
+      EXA_ENABLE_DEEP_SEARCH: false
+      EXA_SEARCH_COUNTRY: VN
+
+      AUTO_IMPORT_COMPETITORS: ${{ github.event.inputs.auto_import }}
+      COMPETITOR_AUTO_IMPORT_MIN_CONFIDENCE: "0.80"
+      COMPETITOR_DISCOVERY_MIN_CONFIDENCE: "0.55"
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run competitor discovery
+        run: npm run competitors:discover
+
+      - name: Import approved/high-confidence competitors
+        if: ${{ github.event.inputs.auto_import == 'true' }}
+        run: npm run competitors:import
