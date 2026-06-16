@@ -7,8 +7,6 @@ import BrandsView from "./components/views/BrandsView";
 import ScaledContentView from "./components/views/ScaledContentView";
 import HookIntelligenceView from "./components/views/HookIntelligenceView";
 import VisualIntelligenceView from "./components/views/VisualIntelligenceView";
-import SwipeFileView from "./components/views/SwipeFileView";
-import CreativeBriefsView from "./components/views/CreativeBriefsView";
 import WeeklyChangesView from "./components/views/WeeklyChangesView";
 import SerynRecommendationsView from "./components/views/SerynRecommendationsView";
 import CompetitorSetupView from "./components/views/CompetitorSetupView";
@@ -37,8 +35,6 @@ const VALID_VIEWS: ViewId[] = [
   "scaled-content",
   "top-hooks",
   "visual-intelligence",
-  "swipe-file",
-  "creative-briefs",
   "weekly-changes",
   "seryn-recommendations",
   "weekly-intelligence",
@@ -183,13 +179,11 @@ export default function App() {
         <main className="p-8 flex-1 max-w-7xl w-full mx-auto pb-24">
           {activeSection === "overview" && <OverviewView data={spyData} />}
           {activeSection === "brands" && <BrandsView data={spyData} onSelectBrand={setSelectedBrand} />}
-          {activeSection === "scaled-content" && <ScaledContentView data={spyData} onGoToCreativeBriefs={() => goView("creative-briefs")} />}
-          {activeSection === "top-hooks" && <HookIntelligenceView data={spyData} onGoToCreativeBriefs={() => goView("creative-briefs")} />}
+          {activeSection === "scaled-content" && <ScaledContentView data={spyData} />}
+          {activeSection === "top-hooks" && <HookIntelligenceView data={spyData} />}
           {activeSection === "visual-intelligence" && <VisualIntelligenceView data={spyData} />}
-          {activeSection === "swipe-file" && <SwipeFileView onGoToCreativeBriefs={() => goView("creative-briefs")} />}
-          {activeSection === "creative-briefs" && <CreativeBriefsView />}
           {activeSection === "weekly-changes" && <WeeklyChangesView data={spyData} />}
-          {activeSection === "seryn-recommendations" && <SerynRecommendationsView data={spyData} onGoToCreativeBriefs={() => goView("creative-briefs")} />}
+          {activeSection === "seryn-recommendations" && <SerynRecommendationsView data={spyData} />}
           {activeSection === "weekly-intelligence" && <WeeklyIntelligenceView data={spyData} />}
           {activeSection === "competitor-setup" && <CompetitorSetupView />}
           {activeSection === "market-research" && <MarketResearchView data={spyData} />}

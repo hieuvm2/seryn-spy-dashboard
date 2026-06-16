@@ -127,14 +127,6 @@ export default function ScaledContentView({
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${CACA[caca] || CACA.monitor}`}>{viLabel(r.seryn_should_copy_adapt_counter_avoid)}</span>
                 <span className="text-xs text-slate-600 flex-1">{orUnknown(r.seryn_reframe)}</span>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button onClick={() => onSave(r)} className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer">
-                  <Bookmark className="w-3.5 h-3.5 text-cyan-600" /> Lưu Swipe File
-                </button>
-                <button onClick={() => onBrief(r)} className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition cursor-pointer">
-                  <FileText className="w-3.5 h-3.5" /> Tạo Brief
-                </button>
-              </div>
             </div>
           );
         })}

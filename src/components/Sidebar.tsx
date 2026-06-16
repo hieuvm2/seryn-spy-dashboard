@@ -33,7 +33,7 @@ const menuGroups: MenuGroup[] = [
     title: "Tổng quan",
     items: [
       { id: "overview", label: "Tổng quan", icon: LayoutDashboard },
-      { id: "weekly-intelligence", label: "Weekly Intelligence", icon: ClipboardList },
+      { id: "weekly-intelligence", label: "Báo cáo tuần", icon: ClipboardList },
     ],
   },
   {
@@ -42,8 +42,8 @@ const menuGroups: MenuGroup[] = [
       { id: "brands", label: "Đối thủ", icon: FileSpreadsheet },
       { id: "scaled-content", label: "Nội dung nhân rộng", icon: Flame },
       { id: "top-hooks", label: "Phân tích Hook", icon: Zap },
-      { id: "visual-intelligence", label: "Visual Intelligence", icon: ImageIcon },
-      { id: "ad-format-funnel", label: "Format & Funnel", icon: LayoutGrid },
+      { id: "visual-intelligence", label: "Phân tích hình ảnh", icon: ImageIcon },
+      { id: "ad-format-funnel", label: "Định dạng & Phễu", icon: LayoutGrid },
       { id: "weekly-changes", label: "Thay đổi tuần", icon: Layers },
     ],
   },
@@ -58,14 +58,12 @@ const menuGroups: MenuGroup[] = [
     title: "Sáng tạo cho SERYN",
     items: [
       { id: "seryn-recommendations", label: "Gợi ý cho SERYN", icon: Lightbulb },
-      { id: "swipe-file", label: "Swipe File", icon: Bookmark },
-      { id: "creative-briefs", label: "Creative Briefs", icon: FileText },
     ],
   },
   {
     title: "Cấu hình & dữ liệu",
     items: [
-      { id: "competitor-setup", label: "Competitor Setup", icon: Users },
+      { id: "competitor-setup", label: "Cấu hình đối thủ", icon: Users },
       { id: "data-import", label: "Nhập dữ liệu", icon: Upload },
     ],
   },

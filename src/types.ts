@@ -9,8 +9,6 @@ export type ViewId =
   | "scaled-content"
   | "top-hooks"
   | "visual-intelligence"
-  | "swipe-file"
-  | "creative-briefs"
   | "weekly-changes"
   | "seryn-recommendations"
   | "weekly-intelligence"

@@ -106,12 +106,6 @@ function Card({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <button onClick={() => onBrief(r)} className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition cursor-pointer">
-          <FileText className="w-3.5 h-3.5" /> Tạo Brief
-        </button>
-        <button onClick={() => onSave(r)} className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer">
-          <Bookmark className="w-3.5 h-3.5 text-cyan-600" /> Lưu Swipe File
-        </button>
         <button onClick={() => onCopyHook(r)} className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer">
           <ClipboardCopy className="w-3.5 h-3.5 text-indigo-600" /> Copy hook
         </button>

@@ -220,14 +220,8 @@ export default function TopHooksView({
               </div>
 
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                <button onClick={() => onSave(h)} className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer">
-                  <Bookmark className="w-3.5 h-3.5 text-cyan-600" /> Lưu Swipe File
-                </button>
-                <button onClick={() => onBrief(h)} className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition cursor-pointer">
-                  <FileText className="w-3.5 h-3.5" /> Tạo Brief
-                </button>
                 <button onClick={() => onCopy(h)} className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer">
-                  <ClipboardCopy className="w-3.5 h-3.5 text-indigo-600" /> Copy rewrite
+                  <ClipboardCopy className="w-3.5 h-3.5 text-indigo-600" /> Copy câu viết lại
                 </button>
                 {!!h.ad_snapshot_url && (
                   <a href={h.ad_snapshot_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-slate-400 hover:text-cyan-600 px-2 py-1.5 rounded-lg text-xs font-bold transition">
