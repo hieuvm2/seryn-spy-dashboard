@@ -121,6 +121,29 @@ export type AdLevelAnalysis = {
   destination_type?: string;
   destination_url?: string;
   service_category?: string;
+  /* ---- deep hook analysis ---- */
+  hook_raw_text?: string;
+  hook_normalized?: string;
+  hook_category?: string;
+  hook_subcategory?: string;
+  hook_formula?: string;
+  hook_emotional_trigger?: string;
+  hook_pain_point?: string;
+  hook_desired_outcome?: string;
+  hook_promise?: string;
+  hook_proof_type?: string;
+  hook_offer_linked?: string | boolean;
+  hook_target_audience?: string;
+  hook_funnel_stage?: string;
+  hook_angle?: string;
+  hook_strength_score?: number | string;
+  hook_clarity_score?: number | string;
+  hook_specificity_score?: number | string;
+  hook_urgency_score?: number | string;
+  hook_trust_score?: number | string;
+  hook_risk_score?: number | string;
+  hook_confidence_score?: number | string;
+  hook_evidence?: string;
 };
 
 export type ScaledContentAnalysis = {
@@ -186,6 +209,68 @@ export type SerynContentRecommendation = {
   confidence_score?: number | string;
   source_urls?: string;
   recommended_action?: string;
+  /* ---- hook-based ad content generator ---- */
+  recommendation_id?: string;
+  source_hook_cluster_id?: string;
+  source_brands?: string;
+  hook_pattern?: string;
+  competitor_signal?: string;
+  recommended_seryn_action?: string;
+  content_angle?: string;
+  target_audience?: string;
+  pain_point?: string;
+  desired_outcome?: string;
+  proof_needed?: string;
+  offer_suggestion?: string;
+  risk_note?: string;
+  claim_risk_level?: string;
+  claim_safe_version?: string;
+  avoid_phrases?: string;
+  ad_copy_short?: string;
+  ad_copy_medium?: string;
+  ad_copy_long?: string;
+  headline_options?: string;
+  primary_text_options?: string;
+  cta_options?: string;
+  visual_direction?: string;
+  video_opening_3s?: string;
+  messenger_script_angle?: string;
+  landing_page_angle?: string;
+  needs_claude_hook_review?: string | boolean;
+};
+
+/** 1 dòng tab "Hook Intelligence" — cụm hook pattern trẻ hóa da. */
+export type HookCluster = {
+  hook_cluster_id: string;
+  week_date?: string;
+  service_category?: string;
+  cluster_name?: string;
+  hook_pattern?: string;
+  hook_category?: string;
+  hook_subcategory?: string;
+  hook_formula?: string;
+  hook_angle?: string;
+  pain_point?: string;
+  desired_outcome?: string;
+  offer_linked?: string;
+  proof_type?: string;
+  ads_count?: number | string;
+  brands_using?: string;
+  example_ads?: string;
+  example_hooks?: string;
+  avg_active_days?: number | string;
+  top_offer_linked?: string;
+  top_proof_type?: string;
+  top_ad_format?: string;
+  top_inferred_objective?: string;
+  scale_signal?: string;
+  confidence_score?: number | string;
+  risk_score?: number | string;
+  hook_strength_score?: number | string;
+  insight?: string;
+  recommended_seryn_action?: string;
+  needs_claude_hook_review?: string | boolean;
+  created_at?: string;
 };
 
 export type SpyDashboardData = {
@@ -205,6 +290,7 @@ export type SpyDashboardData = {
      `competitorDiscovery`. Run log gộp vào `crawlRuns` (run_type). */
   marketIntelligence?: MarketIntelligenceItem[];
   competitorDiscovery?: CompetitorDiscoveryCandidate[];
+  hookIntelligence?: HookCluster[];
   /* ---- Weekly Intelligence (team report) ---- */
   weeklySummary?: WeeklySummary[];
   actionPlan?: ActionPlanItem[];

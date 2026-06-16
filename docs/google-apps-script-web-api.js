@@ -49,6 +49,8 @@ const SHEET_MAP = {
   // ---- Exa (manual/on-demand, chỉ trẻ hóa da) — GỘP còn 2 tab ----
   marketIntelligence: "Market Intelligence",
   competitorDiscovery: "Competitor Discovery",
+  // ---- Hook Intelligence (cụm hook pattern trẻ hóa da) ----
+  hookIntelligence: "Hook Intelligence",
   // ---- Weekly Intelligence (team report) ----
   weeklySummary: "Weekly_Summary",
   actionPlan: "Action_Plan",
@@ -232,6 +234,7 @@ function doGet(e) {
       // ---- Exa (gộp 2 tab; tab thiếu -> [], không crash) ----
       marketIntelligence: sheetToObjects_(SHEET_MAP.marketIntelligence),
       competitorDiscovery: sheetToObjects_(SHEET_MAP.competitorDiscovery),
+      hookIntelligence: sheetToObjects_(SHEET_MAP.hookIntelligence),
       // ---- Weekly Intelligence ----
       weeklySummary: sheetToObjects_(SHEET_MAP.weeklySummary),
       actionPlan: sheetToObjects_(SHEET_MAP.actionPlan),

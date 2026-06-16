@@ -5,7 +5,7 @@ import BrandDetailDrawer from "./components/BrandDetailDrawer";
 import OverviewView from "./components/views/OverviewView";
 import BrandsView from "./components/views/BrandsView";
 import ScaledContentView from "./components/views/ScaledContentView";
-import TopHooksView from "./components/views/TopHooksView";
+import HookIntelligenceView from "./components/views/HookIntelligenceView";
 import VisualIntelligenceView from "./components/views/VisualIntelligenceView";
 import SwipeFileView from "./components/views/SwipeFileView";
 import CreativeBriefsView from "./components/views/CreativeBriefsView";
@@ -184,7 +184,7 @@ export default function App() {
           {activeSection === "overview" && <OverviewView data={spyData} />}
           {activeSection === "brands" && <BrandsView data={spyData} onSelectBrand={setSelectedBrand} />}
           {activeSection === "scaled-content" && <ScaledContentView data={spyData} onGoToCreativeBriefs={() => goView("creative-briefs")} />}
-          {activeSection === "top-hooks" && <TopHooksView data={spyData} onGoToCreativeBriefs={() => goView("creative-briefs")} />}
+          {activeSection === "top-hooks" && <HookIntelligenceView data={spyData} onGoToCreativeBriefs={() => goView("creative-briefs")} />}
           {activeSection === "visual-intelligence" && <VisualIntelligenceView data={spyData} />}
           {activeSection === "swipe-file" && <SwipeFileView onGoToCreativeBriefs={() => goView("creative-briefs")} />}
           {activeSection === "creative-briefs" && <CreativeBriefsView />}

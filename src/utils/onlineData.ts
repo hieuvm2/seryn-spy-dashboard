@@ -26,6 +26,7 @@ import type {
   CrawlRun,
   MarketIntelligenceItem,
   CompetitorDiscoveryCandidate,
+  HookCluster,
   WeeklySummary,
   ActionPlanItem,
   SwipeSuggestion,
@@ -84,6 +85,7 @@ export async function fetchOnlineSpyData(apiUrl?: string): Promise<SpyDashboardD
     // ---- Exa Market Research & Competitor Discovery (gộp 2 tab; thiếu -> []) ----
     marketIntelligence: asRows<MarketIntelligenceItem>(d.marketIntelligence),
     competitorDiscovery: asRows<CompetitorDiscoveryCandidate>(d.competitorDiscovery),
+    hookIntelligence: asRows<HookCluster>(d.hookIntelligence),
     // ---- Weekly Intelligence (team report) ----
     weeklySummary: asRows<WeeklySummary>(d.weeklySummary),
     actionPlan: asRows<ActionPlanItem>(d.actionPlan),

@@ -41,7 +41,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { id: "brands", label: "Đối thủ", icon: FileSpreadsheet },
       { id: "scaled-content", label: "Nội dung nhân rộng", icon: Flame },
-      { id: "top-hooks", label: "Top Hooks", icon: Zap },
+      { id: "top-hooks", label: "Hook Intelligence", icon: Zap },
       { id: "visual-intelligence", label: "Visual Intelligence", icon: ImageIcon },
       { id: "ad-format-funnel", label: "Format & Funnel", icon: LayoutGrid },
       { id: "weekly-changes", label: "Thay đổi tuần", icon: Layers },

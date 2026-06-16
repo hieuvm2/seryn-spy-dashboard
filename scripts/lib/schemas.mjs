@@ -23,6 +23,7 @@ export const RUN_TYPE = {
   exaMarket: "exa_skin_rejuvenation_market",
   exaDiscovery: "exa_skin_rejuvenation_competitor_discovery",
   claudeReview: "claude_manual_review",
+  hookIntel: "hook_intelligence",
 };
 
 /** intelligence_type trong tab `Market Intelligence`. */
@@ -35,9 +36,10 @@ export const INTELLIGENCE_TYPE = {
 };
 
 export const TAB = {
-  // 2 tab MỚI duy nhất
+  // 2 tab MỚI (Exa) + 1 tab Hook Intelligence (hook pattern clustering)
   marketIntelligence: "Market Intelligence",
   discovery: "Competitor Discovery",
+  hookIntelligence: "Hook Intelligence",
   // tab existing được mở rộng / ghi chung
   competitors: "Competitors",
   crawlRuns: "Crawl Runs",
@@ -97,13 +99,33 @@ export const HEADERS = {
     "status", "error_summary", "cost_guard_status",
   ],
 
-  /* ---- Tab existing: SERYN Content Recommendations (SUPERSET — weekly + opportunity) ---- */
+  /* ---- Tab MỚI: Hook Intelligence (cụm hook pattern trẻ hóa da) ---- */
+  hookIntelligence: [
+    "hook_cluster_id", "week_date", "service_category", "cluster_name", "hook_pattern",
+    "hook_category", "hook_subcategory", "hook_formula", "hook_angle",
+    "pain_point", "desired_outcome", "offer_linked", "proof_type",
+    "ads_count", "brands_using", "example_ads", "example_hooks", "avg_active_days",
+    "top_offer_linked", "top_proof_type", "top_ad_format", "top_inferred_objective",
+    "scale_signal", "confidence_score", "risk_score", "hook_strength_score",
+    "insight", "recommended_seryn_action", "needs_claude_hook_review", "created_at",
+  ],
+
+  /* ---- Tab existing: SERYN Content Recommendations (SUPERSET — weekly + opportunity + hook content) ---- */
   contentRecs: [
     "week_date", "source", "service_category", "recommendation_type",
     "market_signal", "competitor_evidence", "seryn_content_niche", "insight",
     "suggested_content_format", "suggested_hook", "suggested_content_angle", "suggested_offer_angle",
     "content_style", "main_message", "proof_to_use", "cta", "kpi",
     "priority", "confidence_score", "source_urls",
+    // ---- hook-based ad content generator ----
+    "recommendation_id", "source_hook_cluster_id", "source_brands", "hook_pattern",
+    "competitor_signal", "recommended_seryn_action", "content_angle", "target_audience",
+    "pain_point", "desired_outcome", "proof_needed", "offer_suggestion",
+    "risk_note", "claim_risk_level", "claim_safe_version", "avoid_phrases",
+    "ad_copy_short", "ad_copy_medium", "ad_copy_long",
+    "headline_options", "primary_text_options", "cta_options",
+    "visual_direction", "video_opening_3s", "messenger_script_angle", "landing_page_angle",
+    "needs_claude_hook_review",
   ],
 
   /* ---- tab Competitors (giữ nguyên — backward compatible) ---- */

@@ -20,7 +20,8 @@
     "market:status": "node scripts/market-research-status.mjs",
     "competitors:discover": "node scripts/competitor-discovery-on-demand.mjs",
     "competitors:import": "node scripts/import-discovered-competitors.mjs",
-    "competitors:status": "node scripts/competitor-discovery-status.mjs"
+    "competitors:status": "node scripts/competitor-discovery-status.mjs",
+    "hooks:analyze": "node scripts/hook-intelligence-analysis.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",
