@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Check, X, Copy, AlertTriangle, ExternalLink, Search, Info } from "lucide-react";
-import type { SpyDashboardData, CompetitorDiscoveryCandidate, CompetitorDiscoveryRun } from "../../types";
+import type { SpyDashboardData, CompetitorDiscoveryCandidate, CrawlRun } from "../../types";
 import {
   applyOverrides, approveCandidate, rejectCandidate, markDuplicate, setPageId,
   computeReadyForSpy, isNumericPageId, discoveryWriteConfigured,
@@ -21,9 +21,12 @@ const STATUS_COLOR: Record<string, string> = {
 
 const STATUSES = ["all", "new", "needs_review", "needs_page_id", "approved", "rejected", "duplicate", "imported_to_competitors"];
 
+const DISCOVERY_RUN_TYPE = "exa_skin_rejuvenation_competitor_discovery";
+const SC = "skin_rejuvenation";
+
 export default function CompetitorDiscoveryView({ data }: { data: SpyDashboardData }) {
-  const runs = data.competitorDiscoveryRuns ?? [];
-  const raw = data.competitorDiscovery ?? [];
+  const runs = (data.crawlRuns ?? []).filter((r) => r.run_type === DISCOVERY_RUN_TYPE);
+  const raw = (data.competitorDiscovery ?? []).filter((c) => !c.service_category || c.service_category === SC);
   const [items, setItems] = useState<CompetitorDiscoveryCandidate[]>([]);
   const [status, setStatus] = useState("all");
   const [q, setQ] = useState("");
@@ -100,7 +103,7 @@ export default function CompetitorDiscoveryView({ data }: { data: SpyDashboardDa
         <Stat label="Trùng lặp" value={counts.duplicate} />
         <Stat label="Đã import" value={counts.imported} />
       </div>
-      {latestRun && <p className="text-xs text-slate-500">Run gần nhất: <b>{latestRun.discovery_run_id}</b> ({latestRun.status}) @ {latestRun.finished_at || latestRun.started_at}</p>}
+      {latestRun && <p className="text-xs text-slate-500">Run gần nhất: <b>{latestRun.run_id || latestRun.crawl_run_id}</b> ({latestRun.status}) @ {latestRun.finished_at || latestRun.started_at}</p>}
 
       {/* C. Filters */}
       <div className="flex flex-wrap items-center gap-2">
@@ -222,7 +225,7 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
 
 type Counts = { found: number; needs_review: number; needs_page_id: number; approved: number; duplicate: number; imported: number; ready: number };
 type HealthItem = { level: "warn" | "info"; text: string };
-function buildHealth(run: CompetitorDiscoveryRun | undefined, c: Counts): HealthItem[] {
+function buildHealth(run: CrawlRun | undefined, c: Counts): HealthItem[] {
   const out: HealthItem[] = [];
   if (run && String(run.status) === "failed") out.push({ level: "warn", text: "Run gần nhất THẤT BẠI — kiểm tra log GitHub Actions (EXA_API_KEY / queries lỗi)." });
   else if (run && String(run.status) === "partial") out.push({ level: "warn", text: `Run gần nhất chạy một phần (partial): ${run.error_summary || "một số query Exa lỗi"}.` });

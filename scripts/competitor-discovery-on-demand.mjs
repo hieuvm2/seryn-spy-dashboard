@@ -1,18 +1,20 @@
 /* ============================================================
    SERYN Spy — Exa COMPETITOR DISCOVERY (manual / on-demand)
    ------------------------------------------------------------
+   PHẠM VI: chỉ đối thủ trẻ hóa da (service_category=skin_rejuvenation).
    Chạy:  npm run competitors:discover
 
-   Tìm brand/clinic/spa đối thủ mới -> website + fanpage candidate ->
-   score + dedupe -> ghi Competitor Discovery (+ Runs / Website
-   Intelligence / Fanpage Candidates). KHÔNG tự import vào Competitors
-   trừ khi AUTO_IMPORT_COMPETITORS=true (chỉ candidate page_id numeric,
-   not duplicate, confidence >= min).
+   GỘP TAB — chỉ ghi:
+     - Competitor Discovery  (run + website + fanpage + import status, 1 tab)
+     - Crawl Runs            (run_type=exa_skin_rejuvenation_competitor_discovery)
+
+   KHÔNG tự import vào Competitors (xem import-discovered-competitors.mjs).
+   KHÔNG bịa page_id. Vanity URL -> resolution_status=needs_page_id.
    ============================================================ */
 import "dotenv/config";
 import { getSheetsClient, readTab, appendTab } from "./lib/sheets.mjs";
 import { exaSearch } from "./lib/exaClient.mjs";
-import { detectServices, detectOffers, detectPrices, detectLocations, detectClaims } from "./lib/marketResearchUtils.mjs";
+import { detectServices, detectOffers, detectPrices } from "./lib/marketResearchUtils.mjs";
 import {
   normalizeBrandName, extractCandidateBrand, extractWebsiteUrl, extractSocialLinks,
   normalizeFacebookUrl, extractFacebookPageIdFromUrl, isNumericPageId,
@@ -20,7 +22,7 @@ import {
 } from "./lib/competitorDiscoveryUtils.mjs";
 import { extractDomain } from "./lib/exaClient.mjs";
 import { buildCompetitorQueries } from "./lib/queries.mjs";
-import { TAB, HEADERS } from "./lib/schemas.mjs";
+import { TAB, HEADERS, RUN_TYPE, SERVICE_CATEGORY } from "./lib/schemas.mjs";
 import {
   readRunConfig, manualGuard, resolveServiceCategories,
   currentMondayISO, nowISO, runId,
@@ -28,14 +30,14 @@ import {
 
 async function main() {
   const cfg = readRunConfig();
-  console.log("\nSERYN Competitor Discovery — manual/on-demand");
+  console.log("\nSERYN Competitor Discovery — manual/on-demand · service_category=skin_rejuvenation");
   const guard = manualGuard(cfg);
   if (!guard.ok) { console.log("[SKIP] " + guard.reason); process.exit(0); }
 
   const weekDate = currentMondayISO();
-  const discovery_run_id = runId("disc", weekDate);
+  const run_id = runId("disc", weekDate);
   const started_at = nowISO();
-  const services = resolveServiceCategories(cfg.serviceCategory);
+  const services = resolveServiceCategories();
   const costGuard = [];
   if (cfg.maxQueriesClamped) costGuard.push("max_queries_clamped_to_20");
   if (cfg.maxResultsClamped) costGuard.push("max_results_clamped_to_20");
@@ -49,12 +51,10 @@ async function main() {
   const prevDiscovery = await readTab(sheets, TAB.discovery);
 
   const queries = buildCompetitorQueries(services, cfg.geo, cfg.maxQueries);
-  console.log(`\n${queries.length} queries`);
+  console.log(`\n${queries.length} queries (đối thủ trẻ hóa da)`);
 
   // ---- gom candidate theo domain/brand ----
-  const byKey = new Map();   // key -> candidate aggregate
-  const websiteRows = [];
-  const fanpageRows = [];
+  const byKey = new Map();
   let failedQueries = 0;
   let sourcesCount = 0;
 
@@ -96,35 +96,6 @@ async function main() {
       agg.source_types.add(res.source_type);
       agg.evidenceBits.push(res.summary.slice(0, 120));
       byKey.set(key, agg);
-
-      // Website Intelligence row (chỉ website thật)
-      if (website && !isFbResult) {
-        websiteRows.push({
-          discovery_run_id, week_date: weekDate, brand_name: brand,
-          website_url: website, website_domain: extractDomain(website), title: res.title,
-          summary: res.summary, detected_services: detectServices(fullText),
-          detected_offers: detectOffers(fullText), detected_prices: detectPrices(fullText),
-          detected_claims: detectClaims(fullText), detected_locations: detectLocations(fullText),
-          detected_contact_info: (fullText.match(/0\d{8,10}/g) || []).slice(0, 3).join("|"),
-          detected_social_links: [...social.facebook, ...social.instagram, ...social.tiktok].slice(0, 6).join("|"),
-          facebook_links: social.facebook.join("|"), instagram_links: social.instagram.join("|"),
-          tiktok_links: social.tiktok.join("|"),
-          credibility_score: 0.6, relevance_score: detectServices(fullText) ? 0.7 : 0.4,
-          content_hash: res.content_hash, first_seen_date: weekDate, last_seen_date: weekDate,
-        });
-      }
-      // Fanpage candidate row
-      if (fbUrl) {
-        fanpageRows.push({
-          discovery_run_id, week_date: weekDate, brand_name: brand,
-          facebook_url: fbUrl, facebook_page_id: fbPageId, facebook_page_name: isFbResult ? res.title.slice(0, 80) : "",
-          source_url: res.url, source_type: res.source_type,
-          evidence: res.summary.slice(0, 150),
-          confidence_score: isNumericPageId(fbPageId) ? 0.9 : 0.5,
-          resolution_status: isNumericPageId(fbPageId) ? "resolved_page_id" : "needs_page_id",
-          notes: "",
-        });
-      }
     }
   }
 
@@ -145,37 +116,36 @@ async function main() {
 
   candidates = dedupeCompetitorCandidates(candidates, existingCompetitors, prevDiscovery);
 
-  // Lọc rác TRƯỚC khi ghi: candidate không có brand đáng tin VÀ không có
-  // fanpage VÀ (không có website kèm dịch vụ) -> bỏ (thường là bài blog/SEO).
+  // Lọc rác trước khi ghi (bài blog/SEO không phải brand thật).
   const before = candidates.length;
   candidates = candidates.filter((c) => {
     const bq = brandQualityScore(c.brand_name);
     const hasFanpage = !!c.facebook_url;
     const hasUsefulWebsite = !!c.website_url && !!c.detected_services;
-    if (c.duplicate_of) return true; // giữ để báo cáo duplicate
+    if (c.duplicate_of) return true;
     return bq >= 0.3 || hasFanpage || hasUsefulWebsite;
   });
   const droppedJunk = before - candidates.length;
-  if (droppedJunk) console.log(`  [filter] bỏ ${droppedJunk} candidate rác (brand không đáng tin, không fanpage/website).`);
+  if (droppedJunk) console.log(`  [filter] bỏ ${droppedJunk} candidate rác.`);
 
   const discoveryRows = candidates.map((c) => {
-    const sc = scoreCompetitorCandidate(c, { geo: cfg.geo, serviceCategory: cfg.serviceCategory });
+    const sc = scoreCompetitorCandidate(c, { geo: cfg.geo, serviceCategory: SERVICE_CATEGORY });
     const overall = sc.overall_confidence_score;
     const bq = sc.brand_quality_score;
     const hasNumericPid = isNumericPageId(c.facebook_page_id);
     const hasUsefulWebsite = !!c.website_url && !!c.detected_services;
-    let status, reason;
-    if (c.duplicate_of) { status = "duplicate"; reason = `Trùng với "${c.duplicate_of}".`; }
-    else if (bq < 0.3 && !c.facebook_url && !hasUsefulWebsite) { status = "rejected"; reason = "Chất lượng thấp: brand giống tiêu đề bài viết/blog, không có fanpage/website rõ ràng."; }
-    else if (c.facebook_url && !hasNumericPid) { status = "needs_page_id"; reason = "Có facebook_url (vanity) nhưng chưa có numeric page_id."; }
-    else if (cfg.autoImport && hasNumericPid && overall >= cfg.autoImportMinConfidence) { status = "approved"; reason = "Auto-approved (high confidence + numeric page_id)."; }
-    else if (overall >= cfg.discoveryMinConfidence) { status = "needs_review"; reason = "Confidence trung bình — cần review."; }
-    else { status = "new"; reason = "Candidate mới, confidence thấp — chưa review."; }
+    let status, reason, resolution_status;
+    if (c.duplicate_of) { status = "duplicate"; reason = `Trùng với "${c.duplicate_of}".`; resolution_status = "duplicate"; }
+    else if (bq < 0.3 && !c.facebook_url && !hasUsefulWebsite) { status = "rejected"; reason = "Chất lượng thấp: brand giống tiêu đề blog, không có fanpage/website rõ ràng."; resolution_status = "manual_review"; }
+    else if (hasNumericPid) { resolution_status = "resolved_page_id"; status = (cfg.autoImport && overall >= cfg.autoImportMinConfidence) ? "approved" : (overall >= cfg.discoveryMinConfidence ? "needs_review" : "new"); reason = status === "approved" ? "Auto-approved (high confidence + numeric page_id)." : "Có numeric page_id — chờ review/duyệt."; }
+    else if (c.facebook_url) { status = "needs_page_id"; resolution_status = "needs_page_id"; reason = "Có facebook_url (vanity) nhưng chưa có numeric page_id."; }
+    else if (hasUsefulWebsite) { status = "needs_review"; resolution_status = "not_facebook"; reason = "Có website + dịch vụ trẻ hóa da nhưng chưa có fanpage."; }
+    else { status = "new"; resolution_status = "manual_review"; reason = "Candidate mới, confidence thấp — chưa review."; }
 
     const ready_for_spy = (status === "approved") && c.brand_name && hasNumericPid && overall >= 0.65;
     return {
       discovery_id: `cd-${c.normalized_brand_name.replace(/\s+/g, "-")}-${weekDate}`.slice(0, 60) || `cd-${Math.random().toString(36).slice(2, 8)}`,
-      discovery_run_id, week_date: weekDate, geo: cfg.geo, market: cfg.market, service_category: cfg.serviceCategory,
+      run_id, week_date: weekDate, run_type: RUN_TYPE.exaDiscovery, geo: cfg.geo, service_category: SERVICE_CATEGORY,
       brand_name: c.brand_name, normalized_brand_name: c.normalized_brand_name,
       business_type: guessBusinessType(c),
       website_url: c.website_url, website_domain: c.website_domain,
@@ -189,8 +159,9 @@ async function main() {
       service_match_score: sc.service_match_score, geo_match_score: sc.geo_match_score,
       source_credibility_score: sc.source_credibility_score,
       fanpage_confidence_score: sc.fanpage_confidence_score, website_confidence_score: sc.website_confidence_score,
-      overall_confidence_score: overall, duplicate_of: c.duplicate_of,
-      status, ready_for_spy: ready_for_spy ? "TRUE" : "FALSE", reason,
+      overall_confidence_score: overall, duplicate_of: c.duplicate_of, resolution_status,
+      status, ready_for_spy: ready_for_spy ? "TRUE" : "FALSE",
+      import_status: "not_imported", imported_at: "", reason,
       created_at: nowISO(), updated_at: nowISO(), reviewed_at: "", reviewed_by: "",
       notes: `brand_quality=${bq}`,
     };
@@ -204,31 +175,31 @@ async function main() {
     candidates_duplicates: count((r) => r.status === "duplicate"),
     candidates_needs_review: count((r) => r.status === "needs_review"),
     candidates_ready_for_spy: count((r) => r.ready_for_spy === "TRUE"),
-    candidates_imported: 0,
   };
   const rejectedCount = count((r) => r.status === "rejected");
+  const needsPageId = count((r) => r.status === "needs_page_id");
 
-  console.log(`\nGhi Google Sheets... (candidates=${discoveryRows.length})`);
+  console.log(`\nGhi Competitor Discovery... (candidates=${discoveryRows.length})`);
   await appendTab(sheets, titles, TAB.discovery, HEADERS.discovery, discoveryRows);
-  await appendTab(sheets, titles, TAB.websiteIntel, HEADERS.websiteIntel, websiteRows);
-  await appendTab(sheets, titles, TAB.fanpageCandidates, HEADERS.fanpageCandidates, fanpageRows);
 
   const runRow = {
-    discovery_run_id, started_at, finished_at: nowISO(), week_date: weekDate,
-    geo: cfg.geo, market: cfg.market, service_category: cfg.serviceCategory,
-    queries_count: queries.length, sources_count: sourcesCount,
-    ...stats,
+    crawl_run_id: run_id, run_id, run_type: RUN_TYPE.exaDiscovery, started_at, finished_at: nowISO(),
+    week_date: weekDate, provider: "exa", country: cfg.searchCountry, geo: cfg.geo, service_category: SERVICE_CATEGORY,
+    queries_count: queries.length, sources_count: sourcesCount, candidates_found: stats.candidates_found,
+    new_items_count: stats.candidates_new, changed_items_count: stats.candidates_needs_review,
+    reused_items_count: stats.candidates_duplicates, failed_items_count: failedQueries,
     status: failedQueries === queries.length && queries.length ? "failed" : (failedQueries ? "partial" : "ok"),
     error_summary: [
       failedQueries ? `${failedQueries}/${queries.length} queries failed` : "",
       droppedJunk ? `dropped ${droppedJunk} junk` : "",
       rejectedCount ? `${rejectedCount} low_quality` : "",
+      needsPageId ? `${needsPageId} needs_page_id` : "",
     ].filter(Boolean).join("; "),
     cost_guard_status: costGuard.join("|") || "ok",
   };
-  await appendTab(sheets, titles, TAB.discoveryRuns, HEADERS.discoveryRuns, [runRow]);
+  await appendTab(sheets, titles, TAB.crawlRuns, HEADERS.crawlRuns, [runRow]);
 
-  console.log(`\n[DONE] ${discovery_run_id} — found=${stats.candidates_found} needs_review=${stats.candidates_needs_review} ready=${stats.candidates_ready_for_spy} dup=${stats.candidates_duplicates} rejected=${rejectedCount} (dropped junk=${droppedJunk})`);
+  console.log(`\n[DONE] ${run_id} — found=${stats.candidates_found} needs_review=${stats.candidates_needs_review} ready=${stats.candidates_ready_for_spy} dup=${stats.candidates_duplicates} needs_page_id=${needsPageId} rejected=${rejectedCount}`);
   if (cfg.autoImport) console.log("AUTO_IMPORT_COMPETITORS=true -> chạy 'npm run competitors:import' để import approved candidate.");
 }
 

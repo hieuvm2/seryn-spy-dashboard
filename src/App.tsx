@@ -15,6 +15,7 @@ import CompetitorSetupView from "./components/views/CompetitorSetupView";
 import WeeklyIntelligenceView from "./components/views/WeeklyIntelligenceView";
 import MarketResearchView from "./components/views/MarketResearchView";
 import CompetitorDiscoveryView from "./components/views/CompetitorDiscoveryView";
+import AdFormatFunnelView from "./components/views/AdFormatFunnelView";
 import DataImportView from "./components/views/DataImportView";
 
 import { sampleSpyDashboardData } from "./sampleData";
@@ -44,6 +45,7 @@ const VALID_VIEWS: ViewId[] = [
   "competitor-setup",
   "market-research",
   "competitor-discovery",
+  "ad-format-funnel",
   "data-import",
 ];
 
@@ -192,6 +194,7 @@ export default function App() {
           {activeSection === "competitor-setup" && <CompetitorSetupView />}
           {activeSection === "market-research" && <MarketResearchView data={spyData} />}
           {activeSection === "competitor-discovery" && <CompetitorDiscoveryView data={spyData} />}
+          {activeSection === "ad-format-funnel" && <AdFormatFunnelView data={spyData} />}
           {activeSection === "data-import" && (
             <DataImportView
               data={spyData}

@@ -46,20 +46,9 @@ const SHEET_MAP = {
   adAnalysisCache: "Ad Analysis Cache",
   patternCache: "Pattern Cache",
   historicalWeeklySnapshots: "Historical Weekly Snapshots",
-  // ---- Exa Market Research (manual/on-demand) ----
-  marketResearchRuns: "Market Research Runs",
-  marketSources: "Market Sources",
-  trendSignals: "Trend Signals",
-  competitorMarketActivity: "Competitor Market Activity",
-  marketSizeEstimates: "Market Size Estimates",
-  serynOpportunityBriefs: "SERYN Opportunity Briefs",
-  marketResearchQueue: "Market Research Queue",
-  // ---- Exa Competitor Discovery (manual/on-demand) ----
-  competitorDiscoveryRuns: "Competitor Discovery Runs",
+  // ---- Exa (manual/on-demand, chỉ trẻ hóa da) — GỘP còn 2 tab ----
+  marketIntelligence: "Market Intelligence",
   competitorDiscovery: "Competitor Discovery",
-  competitorWebsiteIntelligence: "Competitor Website Intelligence",
-  competitorFanpageCandidates: "Competitor Fanpage Candidates",
-  competitorImportLog: "Competitor Import Log",
   // ---- Weekly Intelligence (team report) ----
   weeklySummary: "Weekly_Summary",
   actionPlan: "Action_Plan",
@@ -102,14 +91,15 @@ const RECORD_TABS = {
     tab: "Competitor Discovery",
     idField: "discovery_id",
     headers: [
-      "discovery_id", "discovery_run_id", "week_date", "geo", "market", "service_category",
+      "discovery_id", "run_id", "week_date", "run_type", "geo", "service_category",
       "brand_name", "normalized_brand_name", "business_type", "website_url", "website_domain",
       "facebook_url", "facebook_page_id", "facebook_page_name", "instagram_url", "tiktok_url",
       "phone", "address", "location", "detected_services", "detected_offers", "detected_prices",
       "source_urls", "source_titles", "source_types", "evidence_summary",
       "competitor_relevance_score", "service_match_score", "geo_match_score",
       "source_credibility_score", "fanpage_confidence_score", "website_confidence_score",
-      "overall_confidence_score", "duplicate_of", "status", "ready_for_spy", "reason",
+      "overall_confidence_score", "duplicate_of", "resolution_status",
+      "status", "ready_for_spy", "import_status", "imported_at", "reason",
       "created_at", "updated_at", "reviewed_at", "reviewed_by", "notes",
     ],
     required: ["discovery_id"],
@@ -239,20 +229,9 @@ function doGet(e) {
       visualPatternAnalysis: sheetToObjects_(SHEET_MAP.visualPatternAnalysis),
       weeklyChangeInsights: sheetToObjects_(SHEET_MAP.weeklyChangeInsights),
       crawlRuns: sheetToObjects_(SHEET_MAP.crawlRuns),
-      // ---- Exa Market Research (tab thiếu -> [] , không crash) ----
-      marketResearchRuns: sheetToObjects_(SHEET_MAP.marketResearchRuns),
-      marketSources: sheetToObjects_(SHEET_MAP.marketSources),
-      trendSignals: sheetToObjects_(SHEET_MAP.trendSignals),
-      competitorMarketActivity: sheetToObjects_(SHEET_MAP.competitorMarketActivity),
-      marketSizeEstimates: sheetToObjects_(SHEET_MAP.marketSizeEstimates),
-      serynOpportunityBriefs: sheetToObjects_(SHEET_MAP.serynOpportunityBriefs),
-      marketResearchQueue: sheetToObjects_(SHEET_MAP.marketResearchQueue),
-      // ---- Exa Competitor Discovery ----
-      competitorDiscoveryRuns: sheetToObjects_(SHEET_MAP.competitorDiscoveryRuns),
+      // ---- Exa (gộp 2 tab; tab thiếu -> [], không crash) ----
+      marketIntelligence: sheetToObjects_(SHEET_MAP.marketIntelligence),
       competitorDiscovery: sheetToObjects_(SHEET_MAP.competitorDiscovery),
-      competitorWebsiteIntelligence: sheetToObjects_(SHEET_MAP.competitorWebsiteIntelligence),
-      competitorFanpageCandidates: sheetToObjects_(SHEET_MAP.competitorFanpageCandidates),
-      competitorImportLog: sheetToObjects_(SHEET_MAP.competitorImportLog),
       // ---- Weekly Intelligence ----
       weeklySummary: sheetToObjects_(SHEET_MAP.weeklySummary),
       actionPlan: sheetToObjects_(SHEET_MAP.actionPlan),

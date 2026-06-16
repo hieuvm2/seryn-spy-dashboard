@@ -1,6 +1,9 @@
 import React, { useMemo } from "react";
 import { TrendingUp, Globe, Gauge, Lightbulb, FileSearch, AlertTriangle, Info } from "lucide-react";
-import type { SpyDashboardData, MarketSizeEstimate, MarketResearchRun } from "../../types";
+import type { SpyDashboardData, MarketIntelligenceItem, CrawlRun } from "../../types";
+
+const SC = "skin_rejuvenation";
+const MARKET_RUN_TYPE = "exa_skin_rejuvenation_market";
 
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const pct = (v: unknown) => `${Math.round(num(v) * 100)}%`;
@@ -46,19 +49,29 @@ function Band({ label, low, mid, high, currency }: { label: string; low: unknown
 }
 
 export default function MarketResearchView({ data }: { data: SpyDashboardData }) {
-  const runs = data.marketResearchRuns ?? [];
-  const sources = data.marketSources ?? [];
-  const trends = data.trendSignals ?? [];
-  const activity = data.competitorMarketActivity ?? [];
-  const sizes = data.marketSizeEstimates ?? [];
-  const briefs = data.serynOpportunityBriefs ?? [];
+  // Chỉ trẻ hóa da — đọc tab Market Intelligence (đã gộp source/trend/size/opportunity).
+  const mi = useMemo(
+    () => (data.marketIntelligence ?? []).filter((r) => !r.service_category || r.service_category === SC),
+    [data.marketIntelligence],
+  );
+  const byType = (t: string) => mi.filter((r) => r.intelligence_type === t);
+  const sources = byType("source");
+  const trends = byType("trend_signal");
+  const opportunities = byType("opportunity_brief");
+  const size: MarketIntelligenceItem | undefined = byType("market_size_estimate").slice(-1)[0];
 
+  const runs = useMemo(
+    () => (data.crawlRuns ?? []).filter((r) => r.run_type === MARKET_RUN_TYPE),
+    [data.crawlRuns],
+  );
   const latestRun = runs[runs.length - 1];
-  const size: MarketSizeEstimate | undefined = sizes[sizes.length - 1];
-  const topTrends = useMemo(() => [...trends].sort((a, b) => num(b.strength_score) - num(a.strength_score)).slice(0, 8), [trends]);
-  const topActivity = useMemo(() => [...activity].sort((a, b) => num(b.digital_share_of_voice_score) - num(a.digital_share_of_voice_score)).slice(0, 8), [activity]);
 
-  const hasData = runs.length || sources.length || trends.length;
+  const topTrends = useMemo(
+    () => [...trends].sort((a, b) => num(b.trend_strength_score) - num(a.trend_strength_score)).slice(0, 8),
+    [trends],
+  );
+
+  const hasData = mi.length > 0;
 
   if (!hasData) {
     return (
@@ -66,8 +79,8 @@ export default function MarketResearchView({ data }: { data: SpyDashboardData })
         <Header />
         <div className="bg-white border border-dashed border-slate-300 rounded-2xl p-10 text-center">
           <FileSearch className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-          <p className="text-sm font-bold text-slate-700">Chưa chạy Market Research lần nào.</p>
-          <p className="text-xs text-slate-500 mt-1">Vào GitHub → Actions chạy workflow <code className="font-mono text-cyan-700">Market Research Manual</code> để tạo dữ liệu.</p>
+          <p className="text-sm font-bold text-slate-700">Chưa chạy nghiên cứu thị trường trẻ hóa da lần nào.</p>
+          <p className="text-xs text-slate-500 mt-1">Chạy workflow Exa thủ công <code className="font-mono text-cyan-700">npm run market:run</code> (manual/on-demand) để tạo dữ liệu.</p>
         </div>
       </div>
     );
@@ -81,18 +94,18 @@ export default function MarketResearchView({ data }: { data: SpyDashboardData })
 
       {health.length > 0 && <HealthBanner items={health} />}
 
-      {/* A. Market Overview */}
-      <Section icon={Globe} title="A. Tổng quan thị trường" desc={latestRun ? `${latestRun.market} · ${latestRun.geo} · ${latestRun.service_category} — run ${latestRun.status} @ ${latestRun.finished_at || latestRun.started_at}` : undefined}>
+      {/* A. Skin Rejuvenation Market Overview */}
+      <Section icon={Globe} title="A. Tổng quan thị trường trẻ hóa da" desc={latestRun ? `${latestRun.service_category || SC} · ${latestRun.geo || "Vietnam"} — run ${latestRun.status} @ ${latestRun.finished_at || latestRun.started_at}` : undefined}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="Nguồn" value={String(sources.length)} />
           <Stat label="Tín hiệu xu hướng" value={String(trends.length)} />
-          <Stat label="Cơ hội (briefs)" value={String(briefs.length)} />
+          <Stat label="Cơ hội (briefs)" value={String(opportunities.length)} />
           <Stat label="Độ tin cậy quy mô" value={size ? pct(size.confidence_score) : "—"} />
         </div>
       </Section>
 
       {/* B. Trend Radar */}
-      <Section icon={TrendingUp} title="B. Radar xu hướng">
+      <Section icon={TrendingUp} title="B. Radar xu hướng trẻ hóa da">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="text-slate-400 font-mono uppercase tracking-wider">
@@ -105,10 +118,10 @@ export default function MarketResearchView({ data }: { data: SpyDashboardData })
               {topTrends.map((t, i) => (
                 <tr key={i} className="border-b border-slate-50">
                   <td className="py-2 pr-3 font-bold text-slate-800">{t.topic}</td>
-                  <td className="pr-3"><span className={`px-2 py-0.5 rounded-full border text-[11px] font-bold ${DIR_COLOR[String(t.direction)] || DIR_COLOR.stable}`}>{String(t.direction || "stable")}</span></td>
-                  <td className="pr-3 text-slate-600">{pct(t.strength_score)}</td>
+                  <td className="pr-3"><span className={`px-2 py-0.5 rounded-full border text-[11px] font-bold ${DIR_COLOR[String(t.trend_direction)] || DIR_COLOR.stable}`}>{String(t.trend_direction || "stable")}</span></td>
+                  <td className="pr-3 text-slate-600">{pct(t.trend_strength_score)}</td>
                   <td className="pr-3 text-slate-600">{pct(t.confidence_score)}</td>
-                  <td className="text-slate-500 max-w-xs truncate">{t.evidence || t.trend_signal}</td>
+                  <td className="text-slate-500 max-w-xs truncate">{t.evidence || t.summary}</td>
                 </tr>
               ))}
               {!topTrends.length && <tr><td colSpan={5} className="py-3 text-slate-400">Chưa có tín hiệu xu hướng.</td></tr>}
@@ -117,21 +130,21 @@ export default function MarketResearchView({ data }: { data: SpyDashboardData })
         </div>
       </Section>
 
-      {/* C. Market Size Estimates */}
-      <Section icon={Gauge} title="C. Ước lượng quy mô thị trường">
+      {/* C. Market Size Estimate */}
+      <Section icon={Gauge} title="C. Ước lượng quy mô thị trường trẻ hóa da">
         <div className="mb-3 flex items-center gap-2 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
           <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-          Ước lượng định hướng (directional), KHÔNG phải số liệu thị trường đã kiểm toán.
+          Directional estimate, not audited market-size data.
         </div>
         {size ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <Band label="TAM" low={size.tam_low} mid={size.tam_mid} high={size.tam_high} currency={String(size.currency)} />
-              <Band label="SAM" low={size.sam_low} mid={size.sam_mid} high={size.sam_high} currency={String(size.currency)} />
-              <Band label="SOM" low={size.som_low} mid={size.som_mid} high={size.som_high} currency={String(size.currency)} />
+              <Band label="TAM" low={size.market_size_tam_low} mid={size.market_size_tam_mid} high={size.market_size_tam_high} currency="USD" />
+              <Band label="SAM" low={size.market_size_sam_low} mid={size.market_size_sam_mid} high={size.market_size_sam_high} currency="USD" />
+              <Band label="SOM" low={size.market_size_som_low} mid={size.market_size_som_mid} high={size.market_size_som_high} currency="USD" />
             </div>
             <dl className="mt-3 grid md:grid-cols-2 gap-x-6 gap-y-1 text-xs">
-              <div><dt className="inline font-bold text-slate-600">Phương pháp: </dt><dd className="inline text-slate-500">{size.method}</dd></div>
+              <div><dt className="inline font-bold text-slate-600">Phương pháp: </dt><dd className="inline text-slate-500">{size.market_size_method}</dd></div>
               <div><dt className="inline font-bold text-slate-600">Độ tin cậy: </dt><dd className="inline text-slate-500">{pct(size.confidence_score)}</dd></div>
               <div className="md:col-span-2"><dt className="inline font-bold text-slate-600">Giả định: </dt><dd className="inline text-slate-500">{size.assumptions}</dd></div>
               <div className="md:col-span-2"><dt className="inline font-bold text-slate-600">Dữ liệu thiếu: </dt><dd className="inline text-slate-500">{size.missing_data}</dd></div>
@@ -140,40 +153,13 @@ export default function MarketResearchView({ data }: { data: SpyDashboardData })
         ) : <p className="text-xs text-slate-400">Chưa có ước lượng quy mô.</p>}
       </Section>
 
-      {/* D. Competitor Digital Share of Voice */}
-      <Section icon={Globe} title="D. Độ phủ digital của đối thủ (Share of Voice)" desc="Không phải market share — chỉ là tín hiệu hiện diện digital (ads + lượt nhắc trên web).">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="text-slate-400 font-mono uppercase tracking-wider">
-              <tr className="text-left border-b border-slate-100">
-                <th className="py-2 pr-3">Đối thủ</th><th className="pr-3">Ads đang chạy</th><th className="pr-3">Lượt nhắc web</th>
-                <th className="pr-3">Ưu đãi</th><th className="pr-3">Ưu đãi nổi bật</th><th>SoV</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topActivity.map((a, i) => (
-                <tr key={i} className="border-b border-slate-50">
-                  <td className="py-2 pr-3 font-bold text-slate-800">{a.brand}</td>
-                  <td className="pr-3 text-slate-600">{String(a.active_ads_count ?? "—")}</td>
-                  <td className="pr-3 text-slate-600">{String(a.web_mentions_count ?? "—")}</td>
-                  <td className="pr-3 text-slate-600">{String(a.offer_count ?? "—")}</td>
-                  <td className="pr-3 text-slate-500 max-w-[10rem] truncate">{a.top_offer}</td>
-                  <td className="text-slate-600 font-bold">{pct(a.digital_share_of_voice_score)}</td>
-                </tr>
-              ))}
-              {!topActivity.length && <tr><td colSpan={6} className="py-3 text-slate-400">Chưa có dữ liệu hoạt động đối thủ.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </Section>
-
-      {/* E. Source Explorer */}
-      <Section icon={FileSearch} title="E. Khám phá nguồn">
+      {/* D. Source Explorer */}
+      <Section icon={FileSearch} title="D. Khám phá nguồn">
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {sources.slice(0, 40).map((s, i) => (
             <div key={i} className="border border-slate-100 rounded-lg p-3 hover:bg-slate-50">
               <div className="flex items-start justify-between gap-3">
-                <a href={String(s.source_url)} target="_blank" rel="noreferrer" className="text-xs font-bold text-cyan-700 hover:underline truncate">{s.title || s.source_url}</a>
+                <a href={String(s.source_url)} target="_blank" rel="noreferrer" className="text-xs font-bold text-cyan-700 hover:underline truncate">{s.source_title || s.source_url}</a>
                 <span className="text-[10px] font-mono uppercase text-slate-400 shrink-0">{s.source_type}</span>
               </div>
               <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">{s.summary}</p>
@@ -189,31 +175,31 @@ export default function MarketResearchView({ data }: { data: SpyDashboardData })
         </div>
       </Section>
 
-      {/* F. SERYN Opportunity Briefs */}
-      <Section icon={Lightbulb} title="F. Cơ hội cho SERYN">
+      {/* E. SERYN Opportunity Briefs */}
+      <Section icon={Lightbulb} title="E. Cơ hội cho SERYN">
         <div className="grid md:grid-cols-2 gap-3">
-          {briefs.slice(0, 8).map((b, i) => (
+          {opportunities.slice(0, 8).map((b, i) => (
             <div key={i} className="border border-slate-200 rounded-lg p-3">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-cyan-600 font-bold">{b.opportunity_type}</span>
+                <span className="text-[10px] font-mono uppercase text-cyan-600 font-bold">{b.topic || "opportunity"}</span>
                 <span className="text-[10px] font-bold text-slate-500">{b.priority}</span>
               </div>
-              <p className="text-xs font-bold text-slate-800 mt-1">{b.insight}</p>
+              <p className="text-xs font-bold text-slate-800 mt-1">{b.summary}</p>
               <p className="text-[11px] text-slate-500 mt-1"><b>Hành động:</b> {b.recommended_seryn_action} · <b>Hook:</b> {b.suggested_hook}</p>
               <p className="text-[11px] text-slate-500 mt-0.5">{b.suggested_content_angle}</p>
             </div>
           ))}
-          {!briefs.length && <p className="text-xs text-slate-400">Chưa có cơ hội nào.</p>}
+          {!opportunities.length && <p className="text-xs text-slate-400">Chưa có cơ hội nào.</p>}
         </div>
       </Section>
 
-      {/* G. Assumptions & Confidence */}
-      <Section icon={Info} title="G. Giả định & độ tin cậy">
+      {/* F. Assumptions & Confidence */}
+      <Section icon={Info} title="F. Giả định & độ tin cậy">
         <ul className="text-xs text-slate-600 space-y-1 list-disc pl-5">
+          <li><b>Phạm vi:</b> chỉ trẻ hóa da (service_category=skin_rejuvenation).</li>
           <li><b>Nguồn thật:</b> {sources.length} nguồn web từ Exa (đã chấm relevance/credibility).</li>
-          <li><b>Suy luận:</b> hướng xu hướng, Share of Voice, quy mô thị trường — đều là directional, dựa trên rule.</li>
-          <li><b>Quy mô thị trường:</b> {size ? `method=${size.method}, độ tin cậy=${pct(size.confidence_score)}, thiếu=${size.missing_data}` : "chưa có"}.</li>
-          <li>Độ tin cậy thấp khi thiếu <code>detected_market_numbers</code> / <code>detected_prices</code>. Không trình bày như số liệu đã kiểm toán.</li>
+          <li><b>Suy luận:</b> hướng xu hướng & quy mô thị trường đều là directional, dựa trên rule.</li>
+          <li><b>Quy mô thị trường:</b> {size ? `method=${size.market_size_method}, độ tin cậy=${pct(size.confidence_score)}, thiếu=${size.missing_data}` : "chưa có"}.</li>
         </ul>
       </Section>
     </div>
@@ -223,8 +209,8 @@ export default function MarketResearchView({ data }: { data: SpyDashboardData })
 function Header() {
   return (
     <div>
-      <h2 className="text-xl font-extrabold text-slate-900">Nghiên cứu thị trường</h2>
-      <p className="text-sm text-slate-500">Nghiên cứu thị trường &amp; xu hướng bằng Exa — chạy thủ công (manual/on-demand). Dashboard chỉ đọc Google Sheets.</p>
+      <h2 className="text-xl font-extrabold text-slate-900">Nghiên cứu thị trường (trẻ hóa da)</h2>
+      <p className="text-sm text-slate-500">Exa market research — chỉ skin rejuvenation, chạy thủ công (manual/on-demand). Dashboard chỉ đọc Google Sheets.</p>
     </div>
   );
 }
@@ -238,9 +224,9 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 type HealthItem = { level: "warn" | "info"; text: string };
-function buildHealth(run: MarketResearchRun | undefined, size: MarketSizeEstimate | undefined, sourceCount: number): HealthItem[] {
+function buildHealth(run: CrawlRun | undefined, size: MarketIntelligenceItem | undefined, sourceCount: number): HealthItem[] {
   const out: HealthItem[] = [];
-  if (run && String(run.status) === "failed") out.push({ level: "warn", text: "Run gần nhất THẤT BẠI — kiểm tra log GitHub Actions (EXA_API_KEY / queries lỗi)." });
+  if (run && String(run.status) === "failed") out.push({ level: "warn", text: "Run gần nhất THẤT BẠI — kiểm tra log (EXA_API_KEY / queries lỗi)." });
   else if (run && String(run.status) === "partial") out.push({ level: "warn", text: `Run gần nhất chạy một phần (partial): ${run.error_summary || "một số query Exa lỗi"}.` });
   if (run && String(run.cost_guard_status || "").includes("deep_search")) out.push({ level: "info", text: "Deep search đang bật — chi phí Exa có thể cao hơn." });
   if (size && num(size.confidence_score) < 0.4) out.push({ level: "info", text: `Độ tin cậy quy mô thị trường thấp (${pct(size.confidence_score)}) — thiếu ${size.missing_data || "dữ liệu định lượng"}. Chỉ dùng định hướng.` });

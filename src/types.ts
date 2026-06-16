@@ -17,6 +17,7 @@ export type ViewId =
   | "competitor-setup"
   | "market-research"
   | "competitor-discovery"
+  | "ad-format-funnel"
   | "data-import";
 
 /** Nguồn dữ liệu đang hiển thị. */
@@ -44,6 +45,28 @@ export type BrandWeeklySnapshot = {
   content_strategy_summary?: string;
   weekly_change_summary?: string;
   seryn_opportunity?: string;
+  /* ---- skin rejuvenation format/funnel summary (gộp từ Ad Format Funnel) ---- */
+  skin_rejuvenation_ads_count?: number | string;
+  skin_rejuvenation_image_ads?: number | string;
+  skin_rejuvenation_video_ads?: number | string;
+  skin_rejuvenation_carousel_ads?: number | string;
+  skin_rejuvenation_image_rate?: number | string;
+  skin_rejuvenation_video_rate?: number | string;
+  skin_rejuvenation_carousel_rate?: number | string;
+  skin_rejuvenation_messenger_ads?: number | string;
+  skin_rejuvenation_landing_page_conversion_ads?: number | string;
+  skin_rejuvenation_lead_form_ads?: number | string;
+  skin_rejuvenation_phone_call_ads?: number | string;
+  skin_rejuvenation_unknown_objective_ads?: number | string;
+  skin_rejuvenation_messenger_rate?: number | string;
+  skin_rejuvenation_landing_page_conversion_rate?: number | string;
+  skin_rejuvenation_lead_form_rate?: number | string;
+  skin_rejuvenation_phone_call_rate?: number | string;
+  skin_rejuvenation_unknown_objective_rate?: number | string;
+  skin_rejuvenation_top_format?: string;
+  skin_rejuvenation_top_inferred_objective?: string;
+  skin_rejuvenation_format_objective_pattern?: string;
+  skin_rejuvenation_confidence_score?: number | string;
 };
 
 export type AdLevelAnalysis = {
@@ -83,6 +106,21 @@ export type AdLevelAnalysis = {
   reused_from_cache?: string | boolean;
   analysis_version?: string;
   last_analyzed_at?: string;
+  /* ---- ad format & funnel (skin rejuvenation) ---- */
+  ad_format?: "image" | "video" | "carousel" | "collection" | "text_only" | "unknown" | string;
+  ad_format_confidence?: number | string;
+  has_video?: string | boolean;
+  has_image?: string | boolean;
+  has_carousel?: string | boolean;
+  media_asset_quality?: string;
+  inferred_objective?:
+    | "messenger" | "landing_page_conversion" | "lead_form" | "phone_call"
+    | "website_traffic" | "engagement" | "branding" | "unknown" | string;
+  objective_confidence?: number | string;
+  objective_evidence?: string;
+  destination_type?: string;
+  destination_url?: string;
+  service_category?: string;
 };
 
 export type ScaledContentAnalysis = {
@@ -128,18 +166,25 @@ export type WeeklyStrategyChange = {
 
 export type SerynContentRecommendation = {
   week_date: string;
+  source?: string;            // weekly_spy | exa_skin_rejuvenation_market
+  service_category?: string;
   recommendation_type?: string;
   market_signal?: string;
   competitor_evidence?: string;
   seryn_content_niche?: string;
+  insight?: string;
   suggested_content_format?: string;
   suggested_hook?: string;
+  suggested_content_angle?: string;
+  suggested_offer_angle?: string;
   content_style?: string;
   main_message?: string;
   proof_to_use?: string;
   cta?: string;
   kpi?: string;
   priority?: "High" | "Medium" | "Low" | string;
+  confidence_score?: number | string;
+  source_urls?: string;
   recommended_action?: string;
 };
 
@@ -155,19 +200,11 @@ export type SpyDashboardData = {
   visualPatternAnalysis?: VisualPattern[];
   weeklyChangeInsights?: WeeklyChangeInsight[];
   crawlRuns?: CrawlRun[];
-  /* ---- Exa Market Research & Competitor Discovery (manual/on-demand) ---- */
-  marketResearchRuns?: MarketResearchRun[];
-  marketSources?: MarketSource[];
-  trendSignals?: TrendSignal[];
-  competitorMarketActivity?: CompetitorMarketActivity[];
-  marketSizeEstimates?: MarketSizeEstimate[];
-  serynOpportunityBriefs?: OpportunityBrief[];
-  marketResearchQueue?: MarketResearchQueueItem[];
-  competitorDiscoveryRuns?: CompetitorDiscoveryRun[];
+  /* ---- Exa Market Research & Competitor Discovery (manual/on-demand, chỉ trẻ hóa da) ----
+     GỘP TAB: tất cả market research vào `marketIntelligence`; discovery vào
+     `competitorDiscovery`. Run log gộp vào `crawlRuns` (run_type). */
+  marketIntelligence?: MarketIntelligenceItem[];
   competitorDiscovery?: CompetitorDiscoveryCandidate[];
-  competitorWebsiteIntelligence?: CompetitorWebsiteIntelligence[];
-  competitorFanpageCandidates?: CompetitorFanpageCandidate[];
-  competitorImportLog?: CompetitorImportLogItem[];
   /* ---- Weekly Intelligence (team report) ---- */
   weeklySummary?: WeeklySummary[];
   actionPlan?: ActionPlanItem[];
@@ -346,14 +383,18 @@ export type VisualAnalysis = {
   review_note?: string;
 };
 
-/** Một lần crawl (provenance / data quality). Tab "Crawl Runs". */
+/** Một lần chạy (weekly spy / Exa / import). Tab "Crawl Runs" (header SUPERSET). */
 export type CrawlRun = {
   crawl_run_id: string;
+  run_id?: string;
+  run_type?: string;  // weekly_spy | exa_skin_rejuvenation_market | exa_skin_rejuvenation_competitor_discovery | claude_manual_review
   started_at?: string;
   finished_at?: string;
   week_date?: string;
   provider?: string;
   country?: string;
+  geo?: string;
+  service_category?: string;
   total_brands?: number | string;
   total_pages?: number | string;
   success_pages?: number | string;
@@ -364,8 +405,16 @@ export type CrawlRun = {
   reused_ads_count?: number | string;
   analyzed_ads_count?: number | string;
   carried_forward_count?: number | string;
+  queries_count?: number | string;
+  sources_count?: number | string;
+  candidates_found?: number | string;
+  new_items_count?: number | string;
+  changed_items_count?: number | string;
+  reused_items_count?: number | string;
+  failed_items_count?: number | string;
   status?: string;
   error_summary?: string;
+  cost_guard_status?: string;
 };
 
 /** Tổng hợp visual theo brand/tuần. */
@@ -464,74 +513,38 @@ export type Competitor = {
 
 /* ============================================================
    EXA MARKET RESEARCH & COMPETITOR DISCOVERY (manual/on-demand)
+   Chỉ trẻ hóa da. Gộp 2 tab: Market Intelligence + Competitor Discovery.
    Mọi field là string (Sheets trả string) — type lỏng, an toàn khi thiếu.
    ============================================================ */
 type Str = string | undefined;
 type NumStr = number | string | undefined;
 
-export type MarketResearchRun = {
-  research_run_id: string; started_at?: Str; finished_at?: Str; week_date?: Str;
-  market?: Str; geo?: Str; service_category?: Str; search_type?: Str;
-  max_queries?: NumStr; max_results?: NumStr; deep_search?: Str; status?: Str;
-  sources_count?: NumStr; trend_signals_count?: NumStr; opportunity_briefs_count?: NumStr;
-  market_size_confidence?: NumStr; cost_guard_status?: Str; error_summary?: Str;
+export type IntelligenceType =
+  | "source" | "trend_signal" | "market_size_estimate" | "opportunity_brief" | "research_queue";
+
+/** 1 dòng tab "Market Intelligence" — gộp source/trend/market size/opportunity/queue. */
+export type MarketIntelligenceItem = {
+  intelligence_id?: Str; run_id?: Str; week_date?: Str; run_type?: Str; geo?: Str;
+  service_category?: Str; topic?: Str; intelligence_type?: IntelligenceType | Str;
+  source_url?: Str; source_domain?: Str; source_title?: Str; source_type?: Str;
+  summary?: Str; evidence?: Str;
+  detected_services?: Str; detected_offers?: Str; detected_prices?: Str; detected_claims?: Str;
+  detected_customer_problems?: Str; detected_trend_keywords?: Str; detected_locations?: Str;
+  detected_target_audience?: Str; detected_growth_claims?: Str; detected_market_numbers?: Str;
+  trend_direction?: Str; trend_strength_score?: NumStr;
+  market_size_tam_low?: NumStr; market_size_tam_mid?: NumStr; market_size_tam_high?: NumStr;
+  market_size_sam_low?: NumStr; market_size_sam_mid?: NumStr; market_size_sam_high?: NumStr;
+  market_size_som_low?: NumStr; market_size_som_mid?: NumStr; market_size_som_high?: NumStr;
+  market_size_method?: Str; assumptions?: Str; missing_data?: Str;
+  recommended_seryn_action?: Str; suggested_content_angle?: Str; suggested_offer_angle?: Str; suggested_hook?: Str;
+  priority?: Str; relevance_score?: NumStr; credibility_score?: NumStr; confidence_score?: NumStr;
+  content_hash?: Str; reused_from_cache?: Str; changed_since_last_check?: Str;
+  status?: Str; created_at?: Str; updated_at?: Str;
 };
 
-export type MarketSource = {
-  research_run_id?: Str; week_date?: Str; geo?: Str; market?: Str; service_category?: Str;
-  source_url?: Str; source_domain?: Str; title?: Str; source_type?: Str; published_date?: Str;
-  summary?: Str; highlights?: Str; key_facts?: Str; detected_services?: Str; detected_offers?: Str;
-  detected_prices?: Str; detected_claims?: Str; detected_customer_problems?: Str;
-  detected_trend_keywords?: Str; detected_locations?: Str; detected_target_audience?: Str;
-  detected_growth_claims?: Str; detected_market_numbers?: Str; relevance_score?: NumStr;
-  credibility_score?: NumStr; content_hash?: Str; reused_from_cache?: Str;
-  changed_since_last_check?: Str; first_seen_date?: Str; last_seen_date?: Str;
-};
-
-export type TrendSignal = {
-  week_date?: Str; geo?: Str; topic?: Str; service_category?: Str; trend_signal?: Str;
-  signal_type?: Str; source?: Str; evidence?: Str; direction?: Str; strength_score?: NumStr;
-  confidence_score?: NumStr; first_seen_date?: Str;
-};
-
-export type CompetitorMarketActivity = {
-  week_date?: Str; brand?: Str; geo?: Str; service_category?: Str; active_ads_count?: NumStr;
-  new_ads_count?: NumStr; landing_pages_count?: Str; offer_count?: NumStr; top_offer?: Str;
-  top_service?: Str; top_hook?: Str; web_mentions_count?: NumStr; detected_landing_pages?: Str;
-  digital_share_of_voice_score?: NumStr; aggressiveness_score?: NumStr; confidence_score?: NumStr;
-};
-
-export type MarketSizeEstimate = {
-  week_date?: Str; geo?: Str; market?: Str; service_category?: Str;
-  tam_low?: NumStr; tam_mid?: NumStr; tam_high?: NumStr;
-  sam_low?: NumStr; sam_mid?: NumStr; sam_high?: NumStr;
-  som_low?: NumStr; som_mid?: NumStr; som_high?: NumStr;
-  currency?: Str; method?: Str; assumptions?: Str; evidence_sources?: Str;
-  confidence_score?: NumStr; missing_data?: Str; analyst_notes?: Str;
-};
-
-export type OpportunityBrief = {
-  week_date?: Str; geo?: Str; service_category?: Str; opportunity_type?: Str; insight?: Str;
-  recommended_seryn_action?: Str; suggested_content_angle?: Str; suggested_offer_angle?: Str;
-  suggested_hook?: Str; priority?: Str; confidence_score?: NumStr; source_urls?: Str;
-};
-
-export type MarketResearchQueueItem = {
-  queue_id?: Str; research_run_id?: Str; week_date?: Str; geo?: Str; service_category?: Str;
-  topic?: Str; source_urls?: Str; reason_for_review?: Str; priority?: Str; status?: Str;
-  created_at?: Str; reviewed_at?: Str; reviewed_by?: Str;
-};
-
-export type CompetitorDiscoveryRun = {
-  discovery_run_id: string; started_at?: Str; finished_at?: Str; week_date?: Str; geo?: Str;
-  market?: Str; service_category?: Str; queries_count?: NumStr; sources_count?: NumStr;
-  candidates_found?: NumStr; candidates_new?: NumStr; candidates_duplicates?: NumStr;
-  candidates_needs_review?: NumStr; candidates_ready_for_spy?: NumStr; candidates_imported?: NumStr;
-  status?: Str; error_summary?: Str; cost_guard_status?: Str;
-};
-
+/** 1 dòng tab "Competitor Discovery" — gộp run + website + fanpage + import status. */
 export type CompetitorDiscoveryCandidate = {
-  discovery_id: string; discovery_run_id?: Str; week_date?: Str; geo?: Str; market?: Str;
+  discovery_id: string; run_id?: Str; week_date?: Str; run_type?: Str; geo?: Str;
   service_category?: Str; brand_name?: Str; normalized_brand_name?: Str; business_type?: Str;
   website_url?: Str; website_domain?: Str; facebook_url?: Str; facebook_page_id?: Str;
   facebook_page_name?: Str; instagram_url?: Str; tiktok_url?: Str; phone?: Str; address?: Str;
@@ -539,27 +552,9 @@ export type CompetitorDiscoveryCandidate = {
   source_urls?: Str; source_titles?: Str; source_types?: Str; evidence_summary?: Str;
   competitor_relevance_score?: NumStr; service_match_score?: NumStr; geo_match_score?: NumStr;
   source_credibility_score?: NumStr; fanpage_confidence_score?: NumStr; website_confidence_score?: NumStr;
-  overall_confidence_score?: NumStr; duplicate_of?: Str; status?: Str; ready_for_spy?: Str;
+  overall_confidence_score?: NumStr; duplicate_of?: Str; resolution_status?: Str;
+  status?: Str; ready_for_spy?: Str; import_status?: Str; imported_at?: Str;
   reason?: Str; created_at?: Str; updated_at?: Str; reviewed_at?: Str; reviewed_by?: Str; notes?: Str;
-};
-
-export type CompetitorWebsiteIntelligence = {
-  discovery_run_id?: Str; week_date?: Str; brand_name?: Str; website_url?: Str; website_domain?: Str;
-  title?: Str; summary?: Str; detected_services?: Str; detected_offers?: Str; detected_prices?: Str;
-  detected_claims?: Str; detected_locations?: Str; detected_contact_info?: Str; detected_social_links?: Str;
-  facebook_links?: Str; instagram_links?: Str; tiktok_links?: Str; credibility_score?: NumStr;
-  relevance_score?: NumStr; content_hash?: Str; first_seen_date?: Str; last_seen_date?: Str;
-};
-
-export type CompetitorFanpageCandidate = {
-  discovery_run_id?: Str; week_date?: Str; brand_name?: Str; facebook_url?: Str; facebook_page_id?: Str;
-  facebook_page_name?: Str; source_url?: Str; source_type?: Str; evidence?: Str;
-  confidence_score?: NumStr; resolution_status?: Str; notes?: Str;
-};
-
-export type CompetitorImportLogItem = {
-  import_id?: Str; imported_at?: Str; discovery_id?: Str; brand_name?: Str; website_url?: Str;
-  facebook_url?: Str; facebook_page_id?: Str; target_tab?: Str; action?: Str; status?: Str; error_message?: Str;
 };
 
 /* ============================================================

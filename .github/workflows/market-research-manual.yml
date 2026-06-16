@@ -1,22 +1,15 @@
 name: Market Research Manual
 
 # Exa Market Research — CHỈ chạy thủ công. KHÔNG có schedule.
+# PHẠM VI CỐ ĐỊNH: chỉ trẻ hóa da (service_category=skin_rejuvenation).
 # Không gắn vào weekly spy cron. Nếu thiếu EXA_API_KEY -> script skip exit 0.
 on:
   workflow_dispatch:
     inputs:
-      market:
-        description: "Market to research"
-        required: true
-        default: "clinic aesthetic beauty"
       geo:
-        description: "Geo / location"
+        description: "Geo / location (mặc định Vietnam)"
         required: true
         default: "Vietnam"
-      service_category:
-        description: "Service category: all, melasma_treatment, acne_treatment, skin_rejuvenation, laser_treatment, filler_botox, facial_spa, skin_booster, body_slimming, wellness_beauty"
-        required: false
-        default: "all"
       max_queries:
         description: "Max Exa queries for this run"
         required: false
@@ -52,8 +45,7 @@ jobs:
 
       MARKET_RESEARCH_RUN_MODE: manual
       MARKET_RESEARCH_GEO: ${{ github.event.inputs.geo }}
-      MARKET_RESEARCH_DEFAULT_MARKET: ${{ github.event.inputs.market }}
-      MARKET_RESEARCH_SERVICE_CATEGORY: ${{ github.event.inputs.service_category }}
+      # market + service_category cố định ở skin_rejuvenation trong runConfig.mjs.
       MARKET_SIZE_ESTIMATION_MODE: directional
 
     steps:

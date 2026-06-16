@@ -21,6 +21,7 @@ import "dotenv/config";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import { google } from "googleapis";
+import { HEADERS as SHARED_HEADERS, RUN_TYPE, SERVICE_CATEGORY } from "./lib/schemas.mjs";
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
@@ -139,6 +140,22 @@ async function writeTab(sheets, titles, name, headers, rows) {
   console.log(`  [OK] ${name}: ghi ${rows.length} dòng dữ liệu`);
 }
 
+/** Reconcile header: tab cũ có header khác (đổi thứ tự/thêm cột) -> migrate
+ *  dữ liệu cũ theo tên cột rồi ghi lại, tránh lệch cột khi append schema mới. */
+async function reconcileHeader(sheets, name, headers) {
+  let res;
+  try { res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${name}'` }); }
+  catch { return; }
+  const values = res.data.values || [];
+  if (!values.length) return;
+  const cur = values[0].map((h) => String(h || "").trim());
+  if (cur.length === headers.length && headers.every((h, i) => cur[i] === h)) return;
+  const idx = {}; cur.forEach((h, i) => { idx[h] = i; });
+  const migrated = values.slice(1).map((row) => headers.map((h) => (h in idx ? (row[idx[h]] ?? "") : "")));
+  await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${name}'!A1`, valueInputOption: "RAW", requestBody: { values: [headers, ...migrated] } });
+  console.log(`  [migrate] ${name}: header ${cur.length}→${headers.length} cột, giữ ${migrated.length} dòng.`);
+}
+
 /** Append rows (giữ lịch sử) — tạo tab + header nếu chưa có; không clear. */
 async function appendTab(sheets, titles, name, headers, rows) {
   const toRow = (r) => headers.map((h) => { const v = r[h]; return v === undefined || v === null ? "" : String(v); });
@@ -146,6 +163,8 @@ async function appendTab(sheets, titles, name, headers, rows) {
     await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: [{ addSheet: { properties: { title: name } } }] } });
     titles.push(name);
     await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${name}'!A1`, valueInputOption: "RAW", requestBody: { values: [headers] } });
+  } else {
+    await reconcileHeader(sheets, name, headers);
   }
   if (!rows.length) { console.log(`  [OK] ${name}: +0 dòng`); return; }
   await sheets.spreadsheets.values.append({ spreadsheetId: SHEET_ID, range: `'${name}'!A1`, valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: rows.map(toRow) } });
@@ -285,6 +304,83 @@ const FUNNEL_BY_HOOK = {
   doctor_authority: "consideration", education_led: "awareness", premium_positioning: "consideration",
   consultation_led: "conversion", problem_led: "awareness", curiosity: "awareness", fear_based: "awareness",
 };
+
+/* ============================================================
+   3b) AD FORMAT & FUNNEL inference (chỉ suy luận từ public data)
+   ------------------------------------------------------------
+   KHÔNG khẳng định campaign objective chính thức; chỉ inferred_objective
+   kèm objective_confidence + evidence. Thiếu dữ liệu -> unknown.
+   ============================================================ */
+const round2 = (n) => Math.round(Math.min(1, Math.max(0, n)) * 100) / 100;
+const pct = (n) => `${Math.round((Number(n) || 0) * 100)}%`;
+
+/** Service category cho ad — gắn skin_rejuvenation nếu thuộc nhóm trẻ hóa. */
+const SKIN_REJU_SERVICES = new Set([
+  "facial_rejuvenation", "anti_aging_consultation", "collagen_stimulation",
+  "lifting_firming", "skin_analysis",
+]);
+function inferServiceCategory(ad) {
+  if (SKIN_REJU_SERVICES.has(String(ad.service_or_product || ""))) return SERVICE_CATEGORY;
+  const t = lc([ad.headline, ad.primary_text, ad.hook_text].join(" "));
+  if (/trẻ hóa|căng bóng|tái tạo da|hifu|thermage|ultherapy|\brf\b|skin booster|collagen|nâng cơ|exosome|mesotherapy/i.test(t)) return SERVICE_CATEGORY;
+  return "other";
+}
+
+/** ad_format enum: image | video | carousel | collection | text_only | unknown. */
+function inferAdFormat(raw) {
+  const media = lc(raw.media_type || raw.creative_type);
+  const carouselN = Array.isArray(raw.carousel_image_urls) ? raw.carousel_image_urls.length : 0;
+  const imgs = Array.isArray(raw.image_urls) ? raw.image_urls.length : (raw.image_urls ? 1 : 0);
+  const hasVideo = !!raw.video_preview_url || /video|reel/.test(media);
+  const hasCarousel = carouselN > 1 || imgs > 1 || /carousel|dco/.test(media);
+  const hasImage = imgs > 0 || !!raw.thumbnail_url || !!raw.media_url || /image|img|photo/.test(media);
+
+  let ad_format = "unknown", conf = 0.4;
+  if (/collection/.test(media)) { ad_format = "collection"; conf = 0.7; }
+  else if (hasCarousel) { ad_format = "carousel"; conf = 0.8; }
+  else if (hasVideo) { ad_format = "video"; conf = /video|reel/.test(media) ? 0.9 : 0.6; }
+  else if (hasImage) { ad_format = "image"; conf = media ? 0.8 : 0.6; }
+  else if (raw.primary_text || raw.headline) { ad_format = "text_only"; conf = 0.5; }
+
+  const hasAsset = !!(raw.media_url || raw.video_preview_url || imgs || raw.thumbnail_url);
+  return {
+    ad_format, ad_format_confidence: round2(conf),
+    has_video: hasVideo ? "TRUE" : "FALSE",
+    has_image: hasImage ? "TRUE" : "FALSE",
+    has_carousel: hasCarousel ? "TRUE" : "FALSE",
+    media_asset_quality: hasAsset ? (hasVideo || imgs > 1 ? "rich" : "ok") : "missing",
+  };
+}
+
+/** inferred_objective enum: messenger|landing_page_conversion|lead_form|phone_call|website_traffic|engagement|branding|unknown. */
+function inferObjective(raw) {
+  const link = lc(raw.link_url || raw.landing_url);
+  const ctaText = lc(raw.cta);
+  const evidence = [];
+  let inferred_objective = "unknown", conf = 0.3;
+  if (/m\.me|messenger|facebook\.com\/messages|fb-messenger/.test(link) || /nhắn tin|message|inbox|chat/.test(ctaText)) {
+    inferred_objective = "messenger"; conf = 0.7; evidence.push("messenger_link_or_cta");
+  } else if (/^tel:|zalo\.me|\/zalo|gọi ngay/.test(link) || /gọi|call now|hotline/.test(ctaText)) {
+    inferred_objective = "phone_call"; conf = 0.6; evidence.push("phone_link_or_cta");
+  } else if (/lead|\/form|dang-ky|signup|register|đăng-ký/.test(link) || /đăng ký|sign up|nhận tư vấn|nhận ưu đãi/.test(ctaText)) {
+    inferred_objective = "lead_form"; conf = 0.55; evidence.push("lead_form_signal");
+  } else if (/^https?:\/\//.test(link)) {
+    if (/book|dat-lich|đặt-lịch|booking|order|mua|checkout|landing/.test(link + " " + ctaText)) { inferred_objective = "landing_page_conversion"; conf = 0.6; evidence.push("conversion_landing_link"); }
+    else { inferred_objective = "website_traffic"; conf = 0.5; evidence.push("external_link"); }
+  } else if (/tìm hiểu|learn more|xem thêm/.test(ctaText)) {
+    inferred_objective = "website_traffic"; conf = 0.4; evidence.push("learn_more_cta");
+  }
+  let destination_type = "unknown";
+  if (inferred_objective === "messenger") destination_type = "messenger";
+  else if (inferred_objective === "phone_call") destination_type = "phone";
+  else if (inferred_objective === "lead_form") destination_type = "lead_form";
+  else if (link) destination_type = "website";
+  return {
+    inferred_objective, objective_confidence: round2(conf),
+    objective_evidence: evidence.join("|") || "insufficient_public_data",
+    destination_type, destination_url: raw.link_url || raw.landing_url || "",
+  };
+}
 
 /* ============================================================
    3) SCALE detection
@@ -545,7 +641,9 @@ function analyzeAd(raw, brand, weekDate, prevAdIds, opts = {}) {
   const adId = raw.ad_id || `${brand.brand_name}-${raw.start_date}`;
   const ta = opts.reuse || computeTextAnalysis(raw);
   const { content_hash, visual_hash } = opts.hashes || hashAd(raw);
-  return {
+  const fmt = inferAdFormat(raw);
+  const obj = inferObjective(raw);
+  const base = {
     week_date: weekDate,
     brand_name: brand.brand_name,
     page_id: raw.page_id || "",
@@ -590,6 +688,20 @@ function analyzeAd(raw, brand, weekDate, prevAdIds, opts = {}) {
     _reused: !!opts.reuse,
     _scaleLabel: sc.label,
   };
+  // ---- ad format & funnel (section 4) ----
+  base.ad_format = fmt.ad_format;
+  base.ad_format_confidence = fmt.ad_format_confidence;
+  base.has_video = fmt.has_video;
+  base.has_image = fmt.has_image;
+  base.has_carousel = fmt.has_carousel;
+  base.media_asset_quality = fmt.media_asset_quality;
+  base.inferred_objective = obj.inferred_objective;
+  base.objective_confidence = obj.objective_confidence;
+  base.objective_evidence = obj.objective_evidence;
+  base.destination_type = obj.destination_type;
+  base.destination_url = obj.destination_url;
+  base.service_category = inferServiceCategory({ ...base, ...ta });
+  return base;
 }
 
 function applyScale(ads) {
@@ -611,18 +723,20 @@ function applyScale(ads) {
    AGGREGATE — Snapshot / Scaled / Recommendations
    ============================================================ */
 const HEADERS = {
-  ad: "week_date,brand_name,page_id,page_name,ad_id,ad_snapshot_url,status,start_date,days_active,media_type,platforms,headline,primary_text,hook_text,hook_type,service_or_product,price_detected,offer_detected,content_format,content_angle,proof_point,cta,funnel_stage,is_new_this_week,was_seen_previous_week,is_likely_scaled,scale_level,scale_reason,notes,content_hash,visual_hash,analysis_status,reused_from_cache,analysis_version,last_analyzed_at".split(","),
-  snapshot: "week_date,brand_name,page_urls,page_ids,total_active_ads,total_ads_collected,num_pages_running,services_running,prices_detected,offers_detected,main_content_formats,main_hooks,main_angles,main_proof_points,main_ctas,scaled_content_count,new_ads_count,stopped_ads_count,content_strategy_summary,weekly_change_summary,seryn_opportunity".split(","),
+  ad: "week_date,brand_name,page_id,page_name,ad_id,ad_snapshot_url,status,start_date,days_active,media_type,platforms,headline,primary_text,hook_text,hook_type,service_or_product,price_detected,offer_detected,content_format,content_angle,proof_point,cta,funnel_stage,is_new_this_week,was_seen_previous_week,is_likely_scaled,scale_level,scale_reason,notes,content_hash,visual_hash,analysis_status,reused_from_cache,analysis_version,last_analyzed_at,ad_format,ad_format_confidence,has_video,has_image,has_carousel,media_asset_quality,inferred_objective,objective_confidence,objective_evidence,destination_type,destination_url,service_category".split(","),
+  snapshot: "week_date,brand_name,page_urls,page_ids,total_active_ads,total_ads_collected,num_pages_running,services_running,prices_detected,offers_detected,main_content_formats,main_hooks,main_angles,main_proof_points,main_ctas,scaled_content_count,new_ads_count,stopped_ads_count,content_strategy_summary,weekly_change_summary,seryn_opportunity,skin_rejuvenation_ads_count,skin_rejuvenation_image_ads,skin_rejuvenation_video_ads,skin_rejuvenation_carousel_ads,skin_rejuvenation_image_rate,skin_rejuvenation_video_rate,skin_rejuvenation_carousel_rate,skin_rejuvenation_messenger_ads,skin_rejuvenation_landing_page_conversion_ads,skin_rejuvenation_lead_form_ads,skin_rejuvenation_phone_call_ads,skin_rejuvenation_unknown_objective_ads,skin_rejuvenation_messenger_rate,skin_rejuvenation_landing_page_conversion_rate,skin_rejuvenation_lead_form_rate,skin_rejuvenation_phone_call_rate,skin_rejuvenation_unknown_objective_rate,skin_rejuvenation_top_format,skin_rejuvenation_top_inferred_objective,skin_rejuvenation_format_objective_pattern,skin_rejuvenation_confidence_score".split(","),
   scaled: "week_date,brand_name,content_cluster_id,representative_ad_id,representative_hook,service_or_product,price_detected,offer_detected,content_format,content_angle,proof_point,number_of_similar_ads,longest_days_active,average_days_active,scale_level,why_it_is_scaling,competitor_strategy_interpretation,seryn_should_copy_adapt_counter_avoid,seryn_reframe".split(","),
   change: "week_date,brand_name,active_ads_change,new_ads_count,stopped_ads_count,new_services_detected,removed_services,new_offers_detected,removed_offers,new_content_angles,removed_content_angles,scaled_content_new,scaled_content_still_running,strategic_change_type,change_summary,seryn_implication".split(","),
-  rec: "week_date,recommendation_type,market_signal,competitor_evidence,seryn_content_niche,suggested_content_format,suggested_hook,content_style,main_message,proof_to_use,cta,kpi,priority".split(","),
+  // SERYN Content Recommendations — header SUPERSET dùng chung (weekly + opportunity Exa).
+  rec: SHARED_HEADERS.contentRecs,
   visual: "ad_id,brand,page_id,creative_type,media_url,thumbnail_url,snapshot_url,image_urls,video_preview_url,carousel_image_urls,has_media_asset,text_overlay_raw,text_overlay_summary,offer_from_visual,claim_from_visual,risk_terms_from_visual,visual_format,visual_angle,human_presence,doctor_presence,before_after_presence,text_overlay_presence,offer_visual_presence,clinical_score,beauty_luxury_score,ugc_score,trust_signal_score,offer_visibility_score,scroll_stop_score,confidence_score,confidence_reason,visual_risk_level,risk_reasons,claim_risk_score,before_after_risk,medical_claim_risk,promotion_claim_risk,visual_insight_summary,seryn_action,creative_signature,cluster_size,content_hash,visual_hash,analysis_status,reused_from_cache,analysis_version,last_analyzed_at,last_seen_date".split(","),
   brandVisual: "brand,week_date,total_creatives,before_after_rate,doctor_rate,ugc_rate,offer_banner_rate,high_risk_rate,avg_clinical_score,avg_luxury_score,top_visual_formats,dominant_visual_angle,notes".split(","),
   visualPattern: "id,week_date,brand,visual_format,visual_angle,hook_type,offer_type,ad_count,is_signal,representative_ad_id,summary,recommended_seryn_response".split(","),
   changeInsight: "id,brand,week_start,previous_week_start,change_type,severity,confidence_score,summary,evidence,affected_ads,previous_value,current_value,recommended_action".split(","),
   cache: "ad_id,brand,page_id,content_hash,visual_hash,analysis_version,analysis_provider,analysis_status,reused_from_cache,text_analysis_json,visual_analysis_json,first_seen_date,last_seen_date,last_analyzed_at".split(","),
   rawArchive: "crawl_run_id,week_date,brand,page_id,ad_id,content_hash,visual_hash,status,source_provider,source_country,first_seen_date,last_seen_date,raw_json".split(","),
-  crawlRuns: "crawl_run_id,started_at,finished_at,week_date,provider,country,total_brands,total_pages,success_pages,failed_pages,total_ads_fetched,new_ads_count,changed_ads_count,reused_ads_count,analyzed_ads_count,carried_forward_count,status,error_summary".split(","),
+  // Crawl Runs — header SUPERSET dùng chung (weekly + exa market/discovery + import).
+  crawlRuns: SHARED_HEADERS.crawlRuns,
   pageCrawlLogs: "crawl_run_id,week_date,brand,page_id,status,ads_fetched,error_message,started_at,finished_at".split(","),
   historical: "week_date,brand,active_ads_count,new_ads_count,stopped_ads_count,changed_ads_count,reused_ads_count,top_service,top_hook,top_offer,top_visual_format,crawl_status,snapshot_json".split(","),
   patternCache: "pattern_id,pattern_hash,brand,service_type,hook_type,offer_type,visual_format,visual_angle,first_seen_date,last_seen_date,ads_count,active_days_avg,example_ads,scale_signal".split(","),
@@ -659,6 +773,48 @@ function buildSnapshot(brand, ads, scaledClusters, weekDate) {
     content_strategy_summary: `${active.length} ad active; format chính: ${topCounts(ads.map((a) => a.content_format)) || "unknown"}.`,
     weekly_change_summary: "",
     seryn_opportunity: "",
+    ...skinRejuvenationSummary(ads),
+  };
+}
+
+/** Tổng hợp format/funnel cho ad trẻ hóa da (gộp vào Brand Weekly Snapshot,
+ *  KHÔNG tạo tab Ad Format Funnel Summary riêng). */
+function skinRejuvenationSummary(ads) {
+  const skin = ads.filter((a) => a.service_category === SERVICE_CATEGORY);
+  const n = skin.length;
+  const fmt = (f) => skin.filter((a) => a.ad_format === f).length;
+  const obj = (o) => skin.filter((a) => a.inferred_objective === o).length;
+  const rate = (x) => (n ? Math.round((x / n) * 100) / 100 : 0);
+  const img = fmt("image"), vid = fmt("video"), car = fmt("carousel");
+  const msg = obj("messenger"), lpc = obj("landing_page_conversion"), lead = obj("lead_form"), phone = obj("phone_call"), unk = obj("unknown");
+
+  const topOfCounts = (pairs) => pairs.filter(([, c]) => c > 0).sort((a, b) => b[1] - a[1]).map(([k]) => k)[0] || "unknown";
+  const topFormat = topOfCounts([["image", img], ["video", vid], ["carousel", car]]);
+  const topObjective = topOfCounts([["messenger", msg], ["landing_page_conversion", lpc], ["lead_form", lead], ["phone_call", phone]]);
+  const avg = (key) => (n ? Math.round((skin.reduce((s, a) => s + (Number(a[key]) || 0), 0) / n) * 100) / 100 : 0);
+
+  return {
+    skin_rejuvenation_ads_count: n,
+    skin_rejuvenation_image_ads: img,
+    skin_rejuvenation_video_ads: vid,
+    skin_rejuvenation_carousel_ads: car,
+    skin_rejuvenation_image_rate: rate(img),
+    skin_rejuvenation_video_rate: rate(vid),
+    skin_rejuvenation_carousel_rate: rate(car),
+    skin_rejuvenation_messenger_ads: msg,
+    skin_rejuvenation_landing_page_conversion_ads: lpc,
+    skin_rejuvenation_lead_form_ads: lead,
+    skin_rejuvenation_phone_call_ads: phone,
+    skin_rejuvenation_unknown_objective_ads: unk,
+    skin_rejuvenation_messenger_rate: rate(msg),
+    skin_rejuvenation_landing_page_conversion_rate: rate(lpc),
+    skin_rejuvenation_lead_form_rate: rate(lead),
+    skin_rejuvenation_phone_call_rate: rate(phone),
+    skin_rejuvenation_unknown_objective_rate: rate(unk),
+    skin_rejuvenation_top_format: n ? topFormat : "unknown",
+    skin_rejuvenation_top_inferred_objective: n ? topObjective : "unknown",
+    skin_rejuvenation_format_objective_pattern: n ? `${topFormat}->${topObjective}` : "unknown",
+    skin_rejuvenation_confidence_score: round2((avg("ad_format_confidence") + avg("objective_confidence")) / 2),
   };
 }
 
@@ -811,6 +967,8 @@ function buildRecommendations(allAds, allScaled, weekDate) {
 function assertRec(r) {
   if (!PREFERRED_CTAS.includes(r.cta)) r.cta = PREFERRED_CTAS[0];
   assertSafe([r.suggested_hook, r.main_message, r.seryn_content_niche].join(" "));
+  if (!r.source) r.source = RUN_TYPE.weeklySpy;
+  if (r.service_category === undefined) r.service_category = "";
   return r;
 }
 
@@ -1121,6 +1279,37 @@ function generateWeeklyChangeInsights(currentAds, previousAds, currentVisual, pr
       if (cs && ps && cs !== ps) push(brand, "service_focus_shifted", "medium", cur.filter((a) => a.service_or_product === cs).length, `${brand} dịch chuyển dịch vụ trọng tâm.`, `Top service "${ps}" → "${cs}".`, { previous_value: ps, current_value: cs });
     }
 
+    // ---- Skin rejuvenation format/funnel mix shifts (section 6) ----
+    if (prevSnap) {
+      const cN = Number(snap.skin_rejuvenation_ads_count || 0);
+      const cv = (k) => Number(snap[k] || 0), pv = (k) => Number(prevSnap[k] || 0);
+      const up = (k) => cv(k) - pv(k);
+      if (cN >= 3) {
+        if (up("skin_rejuvenation_video_rate") >= 0.15)
+          push(brand, "video_usage_increased", "medium", cv("skin_rejuvenation_video_ads"), `${brand} tăng dùng video cho trẻ hóa da.`, `Video rate ${pct(pv("skin_rejuvenation_video_rate"))} → ${pct(cv("skin_rejuvenation_video_rate"))}.`, { previous_value: pct(pv("skin_rejuvenation_video_rate")), current_value: pct(cv("skin_rejuvenation_video_rate")) });
+        if (up("skin_rejuvenation_image_rate") >= 0.15)
+          push(brand, "image_usage_increased", "low", cv("skin_rejuvenation_image_ads"), `${brand} tăng dùng ảnh tĩnh cho trẻ hóa da.`, `Image rate ${pct(pv("skin_rejuvenation_image_rate"))} → ${pct(cv("skin_rejuvenation_image_rate"))}.`, { previous_value: pct(pv("skin_rejuvenation_image_rate")), current_value: pct(cv("skin_rejuvenation_image_rate")) });
+        if (up("skin_rejuvenation_messenger_rate") >= 0.15)
+          push(brand, "messenger_usage_increased", "medium", cv("skin_rejuvenation_messenger_ads"), `${brand} đẩy mạnh Messenger cho trẻ hóa da.`, `Messenger rate ${pct(pv("skin_rejuvenation_messenger_rate"))} → ${pct(cv("skin_rejuvenation_messenger_rate"))}.`, { previous_value: pct(pv("skin_rejuvenation_messenger_rate")), current_value: pct(cv("skin_rejuvenation_messenger_rate")) });
+        if (up("skin_rejuvenation_landing_page_conversion_rate") >= 0.15)
+          push(brand, "landing_page_usage_increased", "medium", cv("skin_rejuvenation_landing_page_conversion_ads"), `${brand} chuyển sang landing page/conversion cho trẻ hóa da.`, `Landing page rate ${pct(pv("skin_rejuvenation_landing_page_conversion_rate"))} → ${pct(cv("skin_rejuvenation_landing_page_conversion_rate"))}.`, { previous_value: pct(pv("skin_rejuvenation_landing_page_conversion_rate")), current_value: pct(cv("skin_rejuvenation_landing_page_conversion_rate")) });
+
+        const cf = snap.skin_rejuvenation_top_format, pf = prevSnap.skin_rejuvenation_top_format;
+        if (cf && pf && cf !== "unknown" && pf !== "unknown" && cf !== pf)
+          push(brand, "format_mix_changed", "medium", cN, `${brand} đổi format chủ đạo cho trẻ hóa da.`, `Top format "${pf}" → "${cf}".`, { previous_value: pf, current_value: cf });
+        const co = snap.skin_rejuvenation_top_inferred_objective, po = prevSnap.skin_rejuvenation_top_inferred_objective;
+        if (co && po && co !== "unknown" && po !== "unknown" && co !== po)
+          push(brand, "objective_mix_changed", "medium", cN, `${brand} đổi mục tiêu funnel chủ đạo cho trẻ hóa da.`, `Top objective "${po}" → "${co}".`, { previous_value: po, current_value: co });
+      }
+      // Offer shift trong nhóm trẻ hóa da
+      const skinCur = cur.filter((a) => a.service_category === SERVICE_CATEGORY);
+      const skinPrev = prev.filter((a) => a.service_category === SERVICE_CATEGORY);
+      if (skinCur.length >= 2 && skinPrev.length >= 2) {
+        const so = topOf(skinCur, "offer_detected"), spo = topOf(skinPrev, "offer_detected");
+        if (so && spo && so !== spo) push(brand, "skin_rejuvenation_offer_shift", "medium", skinCur.length, `${brand} đổi ưu đãi chủ đạo cho trẻ hóa da.`, `Top offer "${spo}" → "${so}".`, { previous_value: spo, current_value: so });
+      }
+    }
+
     // New campaign theme / same concept variants (từ ad mới tuần này)
     const newAds = cur.filter((a) => String(a.is_new_this_week) === "true");
     if (newAds.length >= 3) {
@@ -1342,7 +1531,8 @@ async function main() {
 
   const finishedAt = nowISO();
   const crawlRunRow = {
-    crawl_run_id: runId, started_at: startedAt, finished_at: finishedAt, week_date: weekDate, provider: PROVIDER, country: SC_COUNTRY,
+    crawl_run_id: runId, run_id: runId, run_type: RUN_TYPE.weeklySpy, started_at: startedAt, finished_at: finishedAt,
+    week_date: weekDate, provider: PROVIDER, country: SC_COUNTRY, geo: "Vietnam", service_category: SERVICE_CATEGORY,
     total_brands: competitors.length, total_pages: totalPages, success_pages: successPages, failed_pages: failedPages,
     total_ads_fetched: allAds.length, new_ads_count: newCount, changed_ads_count: changedCount, reused_ads_count: reusedCount,
     analyzed_ads_count: newCount + changedCount, carried_forward_count: carriedCount,
@@ -1354,7 +1544,11 @@ async function main() {
   await writeTab(sheets, titles, "Ad Level Analysis", HEADERS.ad, allAds);
   await writeTab(sheets, titles, "Scaled Content Analysis", HEADERS.scaled, allScaled);
   await writeTab(sheets, titles, "Weekly Strategy Change", HEADERS.change, changes);
-  await writeTab(sheets, titles, "SERYN Content Recommendations", HEADERS.rec, recs);
+  // SERYN Content Recommendations: GIỮ LẠI row do Exa market research sync vào
+  // (source != weekly_spy) — chỉ ghi đè phần weekly, tránh xoá opportunity Exa.
+  const prevRecs = await readTabObjects(sheets, "SERYN Content Recommendations");
+  const preservedRecs = prevRecs.filter((r) => String(r.source || "").trim() && String(r.source).trim() !== RUN_TYPE.weeklySpy);
+  await writeTab(sheets, titles, "SERYN Content Recommendations", HEADERS.rec, [...recs, ...preservedRecs]);
   await writeTab(sheets, titles, "Visual Analysis", HEADERS.visual, visualRows);
   await writeTab(sheets, titles, "Brand Visual Summary", HEADERS.brandVisual, brandVisual);
   await writeTab(sheets, titles, "Visual Pattern Analysis", HEADERS.visualPattern, visualPatterns);

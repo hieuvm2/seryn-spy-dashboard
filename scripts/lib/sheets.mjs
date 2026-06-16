@@ -108,10 +108,35 @@ export async function writeTab(sheets, titles, name, headers, rows) {
   console.log(`  [OK] ${name}: ghi ${rows.length} dòng`);
 }
 
+/**
+ * Reconcile header: nếu tab đã tồn tại nhưng header KHÁC `headers` (đổi thứ tự
+ * / thêm cột), migrate dữ liệu cũ sang layout cột mới (giữ giá trị theo tên cột)
+ * rồi ghi lại header + data. Tránh lệch cột khi append với schema superset mới.
+ */
+async function reconcileHeader(sheets, name, headers) {
+  const SHEET_ID = getSheetId();
+  let res;
+  try { res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${name}'` }); }
+  catch { return; }
+  const values = res.data.values || [];
+  if (!values.length) return;
+  const cur = values[0].map((h) => String(h || "").trim());
+  const same = cur.length === headers.length && headers.every((h, i) => cur[i] === h);
+  if (same) return;
+  const idx = {}; cur.forEach((h, i) => { idx[h] = i; });
+  const migrated = values.slice(1).map((row) => headers.map((h) => (h in idx ? (row[idx[h]] ?? "") : "")));
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SHEET_ID, range: `'${name}'!A1`, valueInputOption: "RAW",
+    requestBody: { values: [headers, ...migrated] },
+  });
+  console.log(`  [migrate] ${name}: cập nhật header (${cur.length}→${headers.length} cột), giữ ${migrated.length} dòng.`);
+}
+
 /** Append (giữ lịch sử) — tạo tab + header nếu chưa có; không clear. */
 export async function appendTab(sheets, titles, name, headers, rows) {
   const SHEET_ID = getSheetId();
-  await ensureTab(sheets, titles, name, headers);
+  const created = await ensureTab(sheets, titles, name, headers);
+  if (!created) await reconcileHeader(sheets, name, headers);
   if (!rows.length) { console.log(`  [OK] ${name}: +0 dòng`); return; }
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID, range: `'${name}'!A1`, valueInputOption: "RAW",

@@ -2,31 +2,17 @@
    SERYN Spy — Exa run config + guards (server-side only)
    ------------------------------------------------------------
    Tập trung: đọc env, guard manual-only, clamp budget, hằng số chung.
+   PHẠM VI EXA CỐ ĐỊNH: chỉ trẻ hóa da (service_category=skin_rejuvenation).
+   KHÔNG research toàn ngành (all). KHÔNG service_category khác.
    ============================================================ */
+import { SERVICE_CATEGORY } from "./schemas.mjs";
 
-export const SERVICE_CATEGORIES = [
-  "melasma_treatment",
-  "acne_treatment",
-  "skin_rejuvenation",
-  "laser_treatment",
-  "filler_botox",
-  "facial_spa",
-  "skin_booster",
-  "body_slimming",
-  "wellness_beauty",
-];
+/** Phạm vi Exa duy nhất — trẻ hóa da. */
+export const SERVICE_CATEGORIES = [SERVICE_CATEGORY];
 
-/** Nhãn tìm kiếm (Vi/En) cho mỗi service category — dùng dựng query Exa. */
+/** Nhãn tìm kiếm (Vi/En) — chỉ trẻ hóa da (dùng cho detector/scoring). */
 export const SERVICE_LABELS = {
-  melasma_treatment: "điều trị nám",
-  acne_treatment: "điều trị mụn",
-  skin_rejuvenation: "trẻ hóa da",
-  laser_treatment: "laser thẩm mỹ",
-  filler_botox: "filler botox",
-  facial_spa: "chăm sóc da mặt",
-  skin_booster: "skin booster",
-  body_slimming: "giảm béo",
-  wellness_beauty: "thẩm mỹ wellness",
+  [SERVICE_CATEGORY]: "trẻ hóa da",
 };
 
 const num = (v, d) => {
@@ -53,8 +39,9 @@ export function readRunConfig() {
   const cfg = {
     runMode: (process.env.MARKET_RESEARCH_RUN_MODE || "manual").trim().toLowerCase(),
     geo: (process.env.MARKET_RESEARCH_GEO || "Vietnam").trim(),
-    market: (process.env.MARKET_RESEARCH_DEFAULT_MARKET || "clinic aesthetic beauty").trim(),
-    serviceCategory: (process.env.MARKET_RESEARCH_SERVICE_CATEGORY || "all").trim(),
+    // Market + service_category LUÔN cố định ở trẻ hóa da — không đọc từ env nữa.
+    market: "skin rejuvenation aesthetic clinic",
+    serviceCategory: SERVICE_CATEGORY,
     sizingMode: (process.env.MARKET_SIZE_ESTIMATION_MODE || "directional").trim(),
 
     searchType: (process.env.EXA_SEARCH_TYPE || "auto").trim(),
@@ -92,12 +79,9 @@ export function manualGuard(cfg) {
   return { ok: true, reason: "" };
 }
 
-/** Danh sách service category áp dụng cho run (all -> toàn bộ default). */
-export function resolveServiceCategories(serviceCategory) {
-  const sc = String(serviceCategory || "all").trim().toLowerCase();
-  if (sc === "all" || !sc) return [...SERVICE_CATEGORIES];
-  if (SERVICE_CATEGORIES.includes(sc)) return [sc];
-  return [sc]; // category lạ -> giữ nguyên (dùng như keyword)
+/** Phạm vi Exa cố định: luôn chỉ trẻ hóa da, bỏ qua mọi tham số khác. */
+export function resolveServiceCategories() {
+  return [SERVICE_CATEGORY];
 }
 
 export function nowISO() { return new Date().toISOString(); }

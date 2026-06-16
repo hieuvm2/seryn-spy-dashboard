@@ -1,19 +1,19 @@
 /* ============================================================
    SERYN Spy — Import Claude market research output -> Sheets
    ------------------------------------------------------------
-   Chạy:  npm run market:import
+   Chạy:  npm run market:import   (sau khi validate PASS)
 
-   Sau khi validate PASS:
-   - Upsert SERYN Opportunity Briefs theo (topic + service_category + geo + week_date)
-   - Update Market Research Queue status=reviewed cho topic tương ứng
-   - KHÔNG xóa dữ liệu cũ không liên quan.
+   Gộp tab — chỉ ghi:
+     - Market Intelligence (intelligence_type=opportunity_brief, upsert)
+     - SERYN Content Recommendations (sync opportunity)
+     - cập nhật research_queue (status=reviewed) ngay trong Market Intelligence
    ============================================================ */
 import "dotenv/config";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getSheetsClient, readTab, writeTab, upsertTab } from "./lib/sheets.mjs";
-import { TAB, HEADERS } from "./lib/schemas.mjs";
+import { TAB, HEADERS, RUN_TYPE, INTELLIGENCE_TYPE, SERVICE_CATEGORY } from "./lib/schemas.mjs";
 import { validateOutput } from "./validate-market-research-output.mjs";
 import { currentMondayISO, nowISO } from "./lib/runConfig.mjs";
 
@@ -37,35 +37,54 @@ async function main() {
   catch (e) { console.error("[X] " + (e?.message || e)); process.exit(1); }
   const { sheets, titles } = ctx;
 
-  const briefRows = items.map((it) => ({
-    week_date: weekDate, geo: it.geo, service_category: it.service_category,
-    opportunity_type: "claude_deep_analysis",
-    insight: it.insight,
-    recommended_seryn_action: it.recommended_seryn_action,
-    suggested_content_angle: str(it.suggested_content_angle),
-    suggested_offer_angle: str(it.suggested_offer_angle),
-    suggested_hook: str(it.suggested_hook),
-    priority: Number(it.confidence_score) >= 0.6 ? "High" : "Medium",
+  // ---- Market Intelligence opportunity rows (upsert) ----
+  const miRows = items.map((it) => ({
+    intelligence_id: `op-claude-${slug(it.suggested_hook || it.topic)}-${weekDate}`.slice(0, 60),
+    run_id: `claude-${weekDate}`, week_date: weekDate, run_type: RUN_TYPE.claudeReview,
+    geo: str(it.geo), service_category: SERVICE_CATEGORY, topic: str(it.topic),
+    intelligence_type: INTELLIGENCE_TYPE.opportunity,
+    summary: str(it.insight), evidence: Array.isArray(it.source_urls) ? it.source_urls.join(" | ") : str(it.source_urls),
+    recommended_seryn_action: str(it.recommended_seryn_action),
+    suggested_content_angle: str(it.suggested_content_angle), suggested_offer_angle: str(it.suggested_offer_angle),
+    suggested_hook: str(it.suggested_hook), priority: Number(it.confidence_score) >= 0.6 ? "High" : "Medium",
+    confidence_score: it.confidence_score, source_url: Array.isArray(it.source_urls) ? it.source_urls[0] : str(it.source_urls),
+    status: "reviewed", created_at: nowISO(), updated_at: nowISO(),
+  }));
+  await upsertTab(sheets, titles, TAB.marketIntelligence, HEADERS.marketIntelligence, miRows,
+    (r) => `${r.intelligence_type}|${str(r.suggested_hook).toLowerCase()}|${str(r.service_category)}|${str(r.week_date)}`);
+
+  // ---- Sync -> SERYN Content Recommendations ----
+  const recRows = items.map((it) => ({
+    week_date: weekDate, source: RUN_TYPE.exaMarket, service_category: SERVICE_CATEGORY,
+    recommendation_type: "exa_skin_rejuvenation_opportunity",
+    market_signal: str(it.insight), competitor_evidence: "",
+    seryn_content_niche: "Trẻ hóa da từ nền tảng sinh học (calm, premium)",
+    insight: str(it.insight), suggested_content_format: "doctor_explainer",
+    suggested_hook: str(it.suggested_hook), suggested_content_angle: str(it.suggested_content_angle),
+    suggested_offer_angle: str(it.suggested_offer_angle), content_style: "scientific_calm_premium",
+    main_message: str(it.insight), proof_to_use: "", cta: "Đặt lịch đánh giá nền tảng sinh học",
+    kpi: "qualified_booking", priority: Number(it.confidence_score) >= 0.6 ? "High" : "Medium",
     confidence_score: it.confidence_score,
     source_urls: Array.isArray(it.source_urls) ? it.source_urls.join("|") : str(it.source_urls),
   }));
+  await upsertTab(sheets, titles, TAB.contentRecs, HEADERS.contentRecs, recRows,
+    (r) => `${RUN_TYPE.exaMarket}|${String(r.suggested_hook).toLowerCase()}|${r.week_date}`);
 
-  await upsertTab(sheets, titles, TAB.opportunityBriefs, HEADERS.opportunityBriefs, briefRows,
-    (r) => `${str(r.suggested_hook)}|${str(r.service_category)}|${str(r.geo)}|${str(r.week_date)}`.toLowerCase());
-
-  // update queue status -> reviewed cho topic khớp
-  const topics = new Set(items.map((it) => `${str(it.topic).toLowerCase()}|${str(it.service_category).toLowerCase()}`));
-  const queue = await readTab(sheets, TAB.researchQueue);
+  // ---- Update research_queue rows (status=reviewed) trong Market Intelligence ----
+  const topics = new Set(items.map((it) => str(it.topic).toLowerCase()));
+  const mi = await readTab(sheets, TAB.marketIntelligence);
   let touched = 0;
-  for (const q of queue) {
-    const k = `${str(q.topic).toLowerCase()}|${str(q.service_category).toLowerCase()}`;
-    if (topics.has(k) && str(q.status).toLowerCase() !== "reviewed") {
-      q.status = "reviewed"; q.reviewed_at = nowISO(); q.reviewed_by = "claude"; touched++;
+  for (const q of mi) {
+    if (q.intelligence_type !== INTELLIGENCE_TYPE.queue) continue;
+    if (topics.has(str(q.topic).toLowerCase()) && str(q.status).toLowerCase() !== "reviewed") {
+      q.status = "reviewed"; q.updated_at = nowISO(); touched++;
     }
   }
-  if (touched) await writeTab(sheets, titles, TAB.researchQueue, HEADERS.researchQueue, queue);
+  if (touched) await writeTab(sheets, titles, TAB.marketIntelligence, HEADERS.marketIntelligence, mi);
 
-  console.log(`[DONE] briefs upserted=${briefRows.length}, queue reviewed=${touched}`);
+  console.log(`[DONE] opportunity upserted=${miRows.length}, recs synced=${recRows.length}, queue reviewed=${touched}`);
 }
+
+const slug = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 
 main().catch((e) => { console.error("\n[X] " + (e?.stack || e?.message || e)); process.exit(1); });
