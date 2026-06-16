@@ -3,7 +3,7 @@
    suy luận hành động SERYN và viết lại theo giọng SERYN.
    ============================================================ */
 import type { SpyDashboardData, TopHookItem } from "../types";
-import { normalizeNumber, isMissing } from "./spyData";
+import { normalizeNumber, isMissing, viLabel } from "./spyData";
 
 /* ---- từ khóa phân loại hook ---- */
 const FORBIDDEN = [
@@ -40,31 +40,68 @@ export function inferSerynAction(hook: TopHookItem): string {
   return "monitor";
 }
 
-/** Viết lại hook theo giọng SERYN (an toàn brand). */
+/** Tên dịch vụ tiếng Việt, gọn để ghép câu (không slash, không "chưa rõ"). */
+function serviceNoun(svc?: string): string {
+  const vi = viLabel(svc);
+  if (!vi || vi === "chưa rõ") return "chăm sóc da";
+  return vi.toLowerCase().replace(/\s*\/\s*/g, " ");
+}
+/** Hash ổn định để chọn biến thể câu theo từng hook (cùng hook -> cùng câu). */
+function pick(list: string[], seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return list[h % list.length];
+}
+
+/**
+ * Viết lại hook theo giọng SERYN — tiếng Việt thuần, sẵn sàng làm content,
+ * nhiều biến thể để không bị trùng lặp giữa các hook (an toàn brand).
+ */
 export function generateSerynRewrite(hook: TopHookItem): string {
   const text = lc(hook.hook_text);
   const ht = lc(hook.hook_type);
-  const svc = String(hook.service_or_product || "").trim();
-  const svcVi = svc ? svc.replace(/_/g, " ") : "vấn đề da";
+  const svc = serviceNoun(hook.service_or_product);
+  const seed = `${hook.brand_name || ""}|${hook.hook_text || ""}`;
 
-  // Offer / giá sốc -> reframe sang hiểu nguyên nhân, không đua giá
+  // Offer / giá sốc -> không đua giá, bắt đầu từ hiểu nguyên nhân
   if (looksOffer(text, ht)) {
-    return `Đừng bắt đầu điều trị ${svcVi} bằng giá — hãy bắt đầu bằng việc hiểu đúng nguyên nhân và chỉ định phù hợp với bạn.`;
+    return pick([
+      `Đừng để một con số khuyến mãi quyết định lựa chọn ${svc} của bạn — hãy bắt đầu từ việc hiểu đúng nguyên nhân và chỉ định phù hợp.`,
+      `Giá rẻ không trả lời được câu hỏi quan trọng nhất: làn da bạn thực sự cần gì? Hãy bắt đầu bằng một buổi đánh giá ${svc}.`,
+      `Ưu đãi rồi sẽ hết, nhưng làn da thì ở lại lâu dài — SERYN bắt đầu từ phân tích cá nhân hóa thay vì cuộc đua giá.`,
+      `Thay vì chọn ${svc} theo khuyến mãi, hãy chọn theo điều thực sự phù hợp với cơ địa của bạn.`,
+    ], seed);
   }
   // Fear-based -> counter tôn trọng
   if (ht.includes("fear") || has(text, FEAR_WORDS)) {
-    return `Một làn da đẹp hơn không cần bắt đầu bằng việc chê chính mình — bắt đầu bằng hiểu cơ thể đang thay đổi như thế nào.`;
+    return pick([
+      `Một làn da đẹp hơn không cần bắt đầu bằng việc chê chính mình — mà bằng hiểu cơ thể đang thay đổi thế nào.`,
+      `Lão hóa là điều tự nhiên, không phải điều đáng sợ — SERYN giúp bạn hiểu và đồng hành cùng nó một cách khoa học.`,
+      `Bạn không cần lo lắng về gương mặt mình — chỉ cần hiểu đúng làn da đang ở giai đoạn nào để chăm sóc phù hợp.`,
+    ], seed);
   }
-  // Transformation quá mạnh / phóng đại -> counter bền vững
+  // Transformation phóng đại -> counter bền vững
   if (ht.includes("transformation") || has(text, TRANSFORM_WORDS) || has(text, FORBIDDEN)) {
-    return `Trẻ hóa bền vững bắt đầu từ việc hiểu cơ thể đang thay đổi như thế nào, không phải từ một thay đổi tức thời.`;
+    return pick([
+      `Trẻ hóa bền vững bắt đầu từ việc hiểu cơ thể đang thay đổi thế nào, không phải từ một kết quả tức thời.`,
+      `Thay đổi đẹp nhất là thay đổi tự nhiên và giữ được lâu — SERYN ưu tiên kết quả bền vững hơn hiệu ứng nhanh.`,
+      `Không phải đổi khác chỉ sau một buổi, mà là một lộ trình ${svc} phù hợp để đẹp dài lâu.`,
+    ], seed);
   }
-  // Doctor / education -> adapt theo bác sĩ giải thích nền tảng sinh học
+  // Doctor / education -> adapt, bác sĩ giải thích nền tảng sinh học
   if (ht.includes("doctor") || ht.includes("education") || ht.includes("insight") || has(text, DOCTOR_WORDS)) {
-    return `Bác sĩ giải thích vì sao ${svcVi} cần được đánh giá từ nền tảng sinh học trước khi chọn liệu trình — cá nhân hóa, không làm quá.`;
+    return pick([
+      `Bác sĩ SERYN giải thích vì sao ${svc} nên được đánh giá từ nền tảng sinh học trước khi chọn liệu trình.`,
+      `Cùng một phương pháp, kết quả mỗi người mỗi khác — vì ${svc} phụ thuộc vào cơ địa riêng của bạn.`,
+      `Hiểu đúng trước khi điều trị: ${svc} hiệu quả nhất khi được cá nhân hóa theo chính làn da bạn.`,
+    ], seed);
   }
   // Mặc định
-  return `Có những thay đổi của làn da không bắt đầu từ bề mặt — SERYN bắt đầu từ phân tích cá nhân hóa và nền tảng sinh học.`;
+  return pick([
+    `Có những thay đổi của làn da không bắt đầu từ bề mặt — SERYN bắt đầu từ phân tích cá nhân hóa và nền tảng sinh học.`,
+    `Làn da khỏe đẹp bắt đầu từ việc hiểu chính mình — SERYN đồng hành bằng đánh giá khoa học, điềm tĩnh.`,
+    `Mỗi làn da là một câu chuyện riêng — SERYN lắng nghe bằng phân tích cá nhân hóa trước khi đề xuất lộ trình.`,
+  ], seed);
 }
 
 /** Gom & xếp hạng Top Hooks từ adLevelAnalysis (ưu tiên) + scaledContentAnalysis. */
