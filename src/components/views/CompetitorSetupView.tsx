@@ -65,7 +65,7 @@ export default function CompetitorSetupView() {
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex flex-col gap-1.5 border-l-2 border-cyan-500 pl-4">
-          <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">COMPETITOR SETUP</span>
+          <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">CẤU HÌNH ĐỐI THỦ</span>
           <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Quản lý danh sách đối thủ</h2>
           <p className="text-sm text-slate-600 font-medium">Thêm/sửa/bật-tắt đối thủ ngay trong dashboard — pipeline hằng tuần đọc tab <code className="bg-slate-100 px-1 rounded">Competitors</code>.</p>
         </div>

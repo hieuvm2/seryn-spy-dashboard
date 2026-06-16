@@ -26,6 +26,23 @@ export const CHANGE_TYPE_LABELS: Record<string, string> = {
   new_page_detected: "Phát hiện page mới",
   page_inactive: "Page ngừng chạy",
   same_concept_new_variants: "Cùng concept, nhiều biến thể",
+  // ---- format/funnel (trẻ hóa da) ----
+  format_mix_changed: "Đổi cơ cấu định dạng",
+  objective_mix_changed: "Đổi cơ cấu mục tiêu",
+  video_usage_increased: "Tăng dùng video",
+  image_usage_increased: "Tăng dùng ảnh",
+  messenger_usage_increased: "Tăng đẩy Messenger",
+  landing_page_usage_increased: "Tăng đẩy landing page",
+  skin_rejuvenation_offer_shift: "Đổi ưu đãi trẻ hóa da",
+  skin_rejuvenation_trend_detected: "Phát hiện xu hướng trẻ hóa da",
+  skin_rejuvenation_competitor_discovered: "Phát hiện đối thủ trẻ hóa da",
+  // ---- hook intelligence ----
+  hook_pattern_scaled: "Hook pattern nhân rộng",
+  hook_pattern_declined: "Hook pattern giảm",
+  new_hook_pattern_detected: "Phát hiện hook pattern mới",
+  risky_hook_detected: "Hook rủi ro câu chữ",
+  seryn_content_opportunity: "Cơ hội nội dung SERYN",
+  competitor_hook_shift: "Đối thủ đổi hook",
 };
 
 export const SEVERITY_TONE: Record<string, string> = {
@@ -36,11 +53,12 @@ export const SEVERITY_TONE: Record<string, string> = {
 
 /** Wording an toàn theo loại — tránh kết luận tuyệt đối. */
 export function signalLabel(t: string): string {
-  if (t === "brand_scaled_up" || t === "brand_scaled_down") return "Scaling signal";
-  if (t === "same_concept_new_variants" || t === "new_variant") return "Persistence signal";
-  if (t === "new_ad") return "Likely new test";
-  if (t === "new_campaign_theme") return "Likely campaign shift";
-  return "Needs review";
+  if (t === "brand_scaled_up" || t === "brand_scaled_down" || t.includes("usage_increased")) return "Tín hiệu nhân rộng";
+  if (t === "same_concept_new_variants" || t === "new_variant" || t === "hook_pattern_scaled") return "Tín hiệu bền vững";
+  if (t === "new_ad") return "Có thể là test mới";
+  if (t === "new_campaign_theme" || t.includes("mix_changed")) return "Có thể đổi hướng";
+  if (t === "risky_hook_detected") return "Cần kiểm soát câu chữ";
+  return "Cần review";
 }
 
 export function normalizeChangeInsightRow(r: Record<string, unknown>): WeeklyChangeInsight {

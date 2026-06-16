@@ -718,7 +718,7 @@ function applyScale(ads) {
     a.is_likely_scaled = likely ? "true" : "false";
     const bits = [`${a.days_active}d`, a._scaleLabel];
     if (repeats) bits.push(`cluster x${sizes[clusterKey(a)]}`);
-    a.scale_reason = likely ? `likely scaled based on duration and repetition (${bits.join(", ")})` : `${bits.join(", ")}`;
+    a.scale_reason = likely ? `Có thể đang nhân rộng dựa trên thời lượng + lặp lại (${bits.join(", ")})` : `${bits.join(", ")}`;
     delete a._scaleLabel;
   }
   return ads;
@@ -852,7 +852,7 @@ function buildScaled(brand, ads, weekDate) {
       longest_days_active: maxDays,
       average_days_active: avg,
       scale_level: level,
-      why_it_is_scaling: `likely scaled based on duration and repetition (${maxDays}d, ${group.length} biến thể)`,
+      why_it_is_scaling: `Có thể đang nhân rộng dựa trên thời lượng + lặp lại (${maxDays} ngày, ${group.length} biến thể)`,
       competitor_strategy_interpretation: interpret(rep),
       seryn_should_copy_adapt_counter_avoid: action,
       seryn_reframe: serynReframe(rep, action),
@@ -889,8 +889,18 @@ function assertSafe(text) {
   for (const b of BANNED) if (t.includes(b)) throw new Error(`SERYN guideline vi phạm (cụm cấm: "${b}") trong: ${text}`);
   return text;
 }
+/** Nhãn dịch vụ tiếng Việt cho câu reframe (tránh lẫn enum tiếng Anh). */
+const SERVICE_VI = {
+  skin_analysis: "phân tích da", facial_rejuvenation: "trẻ hóa da", melasma_treatment: "điều trị nám",
+  pigmentation_treatment: "điều trị sắc tố", acne_treatment: "điều trị mụn", laser_treatment: "điều trị laser",
+  collagen_stimulation: "kích thích collagen", lifting_firming: "nâng cơ săn chắc da", filler_botox: "filler/botox",
+  facial_contouring: "tạo đường nét gương mặt", body_slimming: "giảm béo", hair_removal: "triệt lông",
+  surgery: "phẫu thuật thẩm mỹ", dental_aesthetics: "thẩm mỹ răng", anti_aging_consultation: "chống lão hóa",
+  hormone_biology_assessment: "đánh giá nền tảng sinh học", nutrition_lifestyle: "dinh dưỡng & lối sống",
+};
 function serynReframe(ad, action) {
-  const svc = String(ad.service_or_product || "dịch vụ").replace(/_/g, " ");
+  const key = String(ad.service_or_product || "");
+  const svc = SERVICE_VI[key] || "dịch vụ chăm sóc da";
   const base = {
     counter: `Đừng bắt đầu ${svc} bằng giá — hãy bắt đầu bằng việc hiểu đúng nền tảng sinh học & chỉ định cá nhân hóa.`,
     avoid: `Không hù dọa tuổi tác; SERYN giải thích cơ chế ${svc} một cách điềm tĩnh, dựa trên dữ liệu.`,

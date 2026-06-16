@@ -4,6 +4,10 @@ import { TrendingUp, TrendingDown, Sparkles, AlertTriangle, Activity } from "luc
 import type { SpyDashboardData, WeeklyChangeInsight } from "../../types";
 import { getWeeklyChangeInsights, CHANGE_TYPE_LABELS, SEVERITY_TONE, signalLabel } from "../../utils/weeklyChanges";
 import { incrementalSummary } from "../../utils/incremental";
+import { viLabel } from "../../utils/spyData";
+
+/** Dịch value chip nếu là 1 token enum (vd facial_rejuvenation); giữ nguyên nếu là câu/giá trị tự do. */
+const viVal = (v?: string) => { const s = String(v || ""); return s && /^[a-z][a-z0-9_]+$/.test(s) ? viLabel(s) : s; };
 
 const ACTION_TONE: Record<string, string> = {
   copy: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -143,7 +147,7 @@ export default function WeeklyChangesView({ data }: { data: SpyDashboardData }) 
             {x.evidence && <p className="text-xs text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 leading-relaxed"><b>Bằng chứng:</b> {x.evidence}</p>}
 
             {(x.previous_value || x.current_value) && (
-              <p className="text-xs text-slate-600"><b>Thay đổi:</b> <span className="text-slate-400">{x.previous_value || "—"}</span> → <span className="text-slate-800 font-semibold">{x.current_value || "—"}</span></p>
+              <p className="text-xs text-slate-600"><b>Thay đổi:</b> <span className="text-slate-400">{viVal(x.previous_value) || "—"}</span> → <span className="text-slate-800 font-semibold">{viVal(x.current_value) || "—"}</span></p>
             )}
             {x.affected_ads && <p className="text-[11px] text-slate-400 font-mono break-words">Ads: {x.affected_ads}</p>}
 

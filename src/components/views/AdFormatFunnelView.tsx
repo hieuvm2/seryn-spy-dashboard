@@ -1,6 +1,8 @@
 import React, { useMemo } from "react";
 import { LayoutGrid, Filter, BarChart3, GitCompare, Lightbulb, Info } from "lucide-react";
 import type { SpyDashboardData, AdLevelAnalysis, BrandWeeklySnapshot, WeeklyChangeInsight } from "../../types";
+import { viLabel } from "../../utils/spyData";
+import { CHANGE_TYPE_LABELS } from "../../utils/weeklyChanges";
 
 const SC = "skin_rejuvenation";
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
@@ -78,7 +80,7 @@ export default function AdFormatFunnelView({ data }: { data: SpyDashboardData })
   const pattern = useMemo(() => {
     const m = new Map<string, number>();
     for (const a of ads) {
-      const k = `${a.ad_format || "unknown"} → ${a.inferred_objective || "unknown"}`;
+      const k = `${viLabel(a.ad_format || "unknown")} → ${viLabel(a.inferred_objective || "unknown")}`;
       m.set(k, (m.get(k) || 0) + 1);
     }
     return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
@@ -94,42 +96,42 @@ export default function AdFormatFunnelView({ data }: { data: SpyDashboardData })
 
       <div className="flex items-center gap-2 text-[11px] font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 rounded-lg px-3 py-2">
         <Info className="w-3.5 h-3.5 shrink-0" />
-        Tất cả số liệu lọc theo service_category = skin_rejuvenation. inferred_objective là suy luận từ public data (không phải campaign objective chính thức).
+        Tất cả số liệu lọc theo nhóm trẻ hóa da. Mục tiêu là suy luận từ dữ liệu công khai (không phải mục tiêu chiến dịch chính thức).
       </div>
 
       {/* A. Format Mix */}
-      <Section icon={LayoutGrid} title="A. Skin Rejuvenation Format Mix" desc={`${n} ad trẻ hóa da`}>
+      <Section icon={LayoutGrid} title="A. Cơ cấu định dạng (trẻ hóa da)" desc={`${n} ad trẻ hóa da`}>
         <div className="space-y-2">
-          <Bar label="Image" value={fmt("image")} total={n} color="bg-cyan-500" />
+          <Bar label="Ảnh" value={fmt("image")} total={n} color="bg-cyan-500" />
           <Bar label="Video" value={fmt("video")} total={n} color="bg-emerald-500" />
           <Bar label="Carousel" value={fmt("carousel")} total={n} color="bg-violet-500" />
           <Bar label="Collection" value={fmt("collection")} total={n} color="bg-amber-500" />
-          <Bar label="Text only" value={fmt("text_only")} total={n} color="bg-slate-400" />
-          <Bar label="Unknown" value={fmt("unknown")} total={n} color="bg-slate-300" />
+          <Bar label="Chỉ chữ" value={fmt("text_only")} total={n} color="bg-slate-400" />
+          <Bar label="Chưa rõ" value={fmt("unknown")} total={n} color="bg-slate-300" />
         </div>
       </Section>
 
       {/* B. Funnel Mix */}
-      <Section icon={Filter} title="B. Skin Rejuvenation Funnel Mix (inferred objective)" desc={`${n} ad trẻ hóa da`}>
+      <Section icon={Filter} title="B. Cơ cấu phễu (mục tiêu suy luận)" desc={`${n} ad trẻ hóa da`}>
         <div className="space-y-2">
           <Bar label="Messenger" value={obj("messenger")} total={n} color="bg-blue-500" />
-          <Bar label="Landing/Conv." value={obj("landing_page_conversion")} total={n} color="bg-emerald-500" />
-          <Bar label="Lead form" value={obj("lead_form")} total={n} color="bg-teal-500" />
-          <Bar label="Phone call" value={obj("phone_call")} total={n} color="bg-amber-500" />
-          <Bar label="Website traffic" value={obj("website_traffic")} total={n} color="bg-cyan-400" />
-          <Bar label="Unknown" value={obj("unknown")} total={n} color="bg-slate-300" />
+          <Bar label="Trang đích/Chuyển đổi" value={obj("landing_page_conversion")} total={n} color="bg-emerald-500" />
+          <Bar label="Form thu lead" value={obj("lead_form")} total={n} color="bg-teal-500" />
+          <Bar label="Gọi điện" value={obj("phone_call")} total={n} color="bg-amber-500" />
+          <Bar label="Traffic web" value={obj("website_traffic")} total={n} color="bg-cyan-400" />
+          <Bar label="Chưa rõ" value={obj("unknown")} total={n} color="bg-slate-300" />
         </div>
       </Section>
 
       {/* C. Brand Comparison */}
-      <Section icon={GitCompare} title="C. Brand Comparison (trẻ hóa da)">
+      <Section icon={GitCompare} title="C. So sánh theo thương hiệu (trẻ hóa da)">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="text-slate-400 font-mono uppercase tracking-wider">
               <tr className="text-left border-b border-slate-100">
-                <th className="py-2 pr-3">Brand</th><th className="pr-3">Ads</th><th className="pr-3">Image</th>
+                <th className="py-2 pr-3">Thương hiệu</th><th className="pr-3">Ad</th><th className="pr-3">Ảnh</th>
                 <th className="pr-3">Video</th><th className="pr-3">Carousel</th><th className="pr-3">Messenger</th>
-                <th className="pr-3">Landing</th><th className="pr-3">Top format</th><th>Top objective</th>
+                <th className="pr-3">Trang đích</th><th className="pr-3">Định dạng chính</th><th>Mục tiêu chính</th>
               </tr>
             </thead>
             <tbody>
@@ -142,8 +144,8 @@ export default function AdFormatFunnelView({ data }: { data: SpyDashboardData })
                   <td className="pr-3 text-slate-600">{pct(s.skin_rejuvenation_carousel_rate)}</td>
                   <td className="pr-3 text-slate-600">{pct(s.skin_rejuvenation_messenger_rate)}</td>
                   <td className="pr-3 text-slate-600">{pct(s.skin_rejuvenation_landing_page_conversion_rate)}</td>
-                  <td className="pr-3 text-slate-500">{s.skin_rejuvenation_top_format || "—"}</td>
-                  <td className="text-slate-500">{s.skin_rejuvenation_top_inferred_objective || "—"}</td>
+                  <td className="pr-3 text-slate-500">{s.skin_rejuvenation_top_format ? viLabel(String(s.skin_rejuvenation_top_format)) : "—"}</td>
+                  <td className="text-slate-500">{s.skin_rejuvenation_top_inferred_objective ? viLabel(String(s.skin_rejuvenation_top_inferred_objective)) : "—"}</td>
                 </tr>
               ))}
               {!brandRows.length && <tr><td colSpan={9} className="py-3 text-slate-400">Chưa có snapshot trẻ hóa da.</td></tr>}
@@ -153,7 +155,7 @@ export default function AdFormatFunnelView({ data }: { data: SpyDashboardData })
       </Section>
 
       {/* D. Format x Objective Pattern */}
-      <Section icon={BarChart3} title="D. Format × Objective Pattern">
+      <Section icon={BarChart3} title="D. Mẫu Định dạng × Mục tiêu">
         <div className="grid md:grid-cols-2 gap-2">
           {pattern.map(([k, c], i) => (
             <div key={i} className="flex items-center justify-between border border-slate-100 rounded-lg px-3 py-2 text-xs">
@@ -170,7 +172,7 @@ export default function AdFormatFunnelView({ data }: { data: SpyDashboardData })
               {insights.slice(0, 8).map((it, i) => (
                 <div key={i} className="text-xs border border-slate-100 rounded-lg px-3 py-2">
                   <span className="font-bold text-slate-700">{it.brand}</span>
-                  <span className="ml-2 px-1.5 py-0.5 rounded bg-slate-100 text-[10px] font-mono">{it.change_type}</span>
+                  <span className="ml-2 px-1.5 py-0.5 rounded bg-slate-100 text-[10px]">{CHANGE_TYPE_LABELS[String(it.change_type)] || it.change_type}</span>
                   <span className="ml-2 text-slate-500">{it.summary}</span>
                 </div>
               ))}
@@ -180,7 +182,7 @@ export default function AdFormatFunnelView({ data }: { data: SpyDashboardData })
       </Section>
 
       {/* E. Recommendations for SERYN */}
-      <Section icon={Lightbulb} title="E. Recommendations for SERYN">
+      <Section icon={Lightbulb} title="E. Gợi ý cho SERYN">
         <ul className="text-xs text-slate-600 space-y-1.5 list-disc pl-5">
           <li>Đối thủ trẻ hóa da đang chạy <b>{fmt("video") >= fmt("image") ? "video" : "ảnh"}</b> nhiều hơn (video {fmt("video")} vs image {fmt("image")}).</li>
           <li>Funnel chủ đạo: <b>{obj("messenger") >= obj("landing_page_conversion") ? "Messenger" : "Landing page/Conversion"}</b> (messenger {obj("messenger")} vs landing {obj("landing_page_conversion")}).</li>
@@ -201,8 +203,8 @@ function pickTop(rows: BrandWeeklySnapshot[], key: keyof BrandWeeklySnapshot): B
 function Header() {
   return (
     <div>
-      <h2 className="text-xl font-extrabold text-slate-900">Ad Format & Funnel (trẻ hóa da)</h2>
-      <p className="text-sm text-slate-500">Phân tích format ảnh/video/carousel & funnel Messenger/landing cho ad trẻ hóa da. Đọc từ Ad Level Analysis + Brand Weekly Snapshot + Weekly Change Insights.</p>
+      <h2 className="text-xl font-extrabold text-slate-900">Định dạng & Phễu quảng cáo (trẻ hóa da)</h2>
+      <p className="text-sm text-slate-500">Phân tích định dạng ảnh/video/carousel & phễu Messenger/trang đích cho quảng cáo trẻ hóa da. Tổng hợp từ Ad Level Analysis + Brand Weekly Snapshot + Weekly Change Insights.</p>
     </div>
   );
 }

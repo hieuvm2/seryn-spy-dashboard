@@ -160,7 +160,7 @@ export default function TopHooksView({ data }: { data: SpyDashboardData }) {
                 <h4 className="font-extrabold text-slate-800 flex items-center gap-2"><Zap className="w-4 h-4 text-cyan-500" />{h.brand_name}</h4>
                 <div className="flex items-center gap-1.5">
                   {sl > 0 && <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${SCALE_TONE[m.tone]}`}>C{sl} · {m.label}</span>}
-                  {safe && <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center gap-1"><ShieldCheck className="w-3 h-3" />Safe</span>}
+                  {safe && <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center gap-1"><ShieldCheck className="w-3 h-3" />An toàn</span>}
                 </div>
               </div>
 

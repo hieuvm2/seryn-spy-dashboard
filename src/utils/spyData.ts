@@ -429,6 +429,25 @@ const VI_LABELS: Record<string, string> = {
   counter_positioning: "Phản định vị",
   avoid_due_to_risk: "Tránh (rủi ro)",
   test_now: "Test ngay",
+  // ---- content_angle (weekly-spy) còn thiếu ----
+  fear_aging: "Khơi sợ lão hóa",
+  premium: "Cao cấp",
+  consultation: "Tư vấn",
+  // ---- funnel_stage ----
+  awareness: "Nhận biết",
+  consideration: "Cân nhắc",
+  conversion: "Chuyển đổi",
+  retargeting: "Tiếp thị lại",
+  // ---- visual_format / visual_angle ----
+  ugc_selfie: "UGC / tự quay",
+  clinic_room: "Không gian phòng khám",
+  product_packshot: "Sản phẩm / thiết bị",
+  testimonial_screenshot: "Ảnh chụp review",
+  offer_banner: "Banner ưu đãi",
+  luxury_beauty: "Làm đẹp cao cấp",
+  educational: "Giáo dục",
+  promotion: "Khuyến mãi",
+  luxury: "Sang trọng",
   unknown: "Chưa rõ",
 };
 

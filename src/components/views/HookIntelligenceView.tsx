@@ -312,11 +312,11 @@ function PsychologyTab({ c }: { c: EnhancedHookCard }) {
 function RewriteTab({ c, onCopy }: { c: EnhancedHookCard; onCopy: (t?: string, m?: string) => void }) {
   const r = c.rewrites;
   const groups: { label: string; items: string[] }[] = [
-    { label: "Direct Response", items: r.directResponse },
-    { label: "Premium Clinic Tone", items: r.premiumClinicTone },
-    { label: "Safe Compliance Tone", items: r.safeComplianceTone },
+    { label: "Phản hồi trực tiếp", items: r.directResponse },
+    { label: "Tông cao cấp", items: r.premiumClinicTone },
+    { label: "Tông an toàn câu chữ", items: r.safeComplianceTone },
     { label: "Mở video 3 giây", items: r.videoOpening3s },
-    { label: "Meta Ads Caption", items: r.metaAdsCaption },
+    { label: "Caption Meta Ads", items: r.metaAdsCaption },
   ];
   return (
     <div className="space-y-3">
@@ -373,7 +373,7 @@ function BriefTab({ c, onCopy }: { c: EnhancedHookCard; onCopy: (t?: string, m?:
         </ol>
       </div>
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-        <p className="text-[10px] uppercase font-bold text-amber-600 tracking-wider mb-0.5">Compliance</p>
+        <p className="text-[10px] uppercase font-bold text-amber-600 tracking-wider mb-0.5">Tuân thủ câu chữ</p>
         <p className="text-amber-800">{b.complianceWarning}</p>
       </div>
       <KV k="Recommended action" v={b.recommendedAction} />

@@ -10,8 +10,9 @@ import {
   saveVisualReview,
 } from "../../utils/visualAnalysis";
 import { statusLabel, statusTone } from "../../utils/incremental";
+import { viLabel } from "../../utils/spyData";
 
-const fmt = (s: string) => String(s || "").replace(/_/g, " ");
+const fmt = (s: string) => viLabel(String(s || ""));
 const pct = (n: number | string) => `${Math.round(Number(n) * 100)}%`;
 
 const RISK_TONE: Record<string, string> = {
@@ -74,11 +75,11 @@ export default function VisualIntelligenceView({ data }: { data: SpyDashboardDat
   const total = items.length || 1;
   const rate = (pred: (x: VisualAnalysis) => boolean) => Math.round((items.filter(pred).length / total) * 100);
   const kpi = [
-    { label: "Before/After", value: rate((x) => x.before_after_presence), Icon: Repeat, tone: "text-indigo-600" },
-    { label: "Doctor/Expert", value: rate((x) => x.doctor_presence), Icon: Stethoscope, tone: "text-cyan-600" },
-    { label: "UGC style", value: rate((x) => x.visual_format === "ugc_selfie" || x.ugc_score >= 50), Icon: ImageIcon, tone: "text-emerald-600" },
-    { label: "Offer banner", value: rate((x) => x.visual_format === "offer_banner" || x.offer_visual_presence), Icon: Sparkles, tone: "text-amber-600" },
-    { label: "High risk", value: rate((x) => x.visual_risk_level === "high"), Icon: ShieldAlert, tone: "text-rose-600" },
+    { label: "Trước/Sau", value: rate((x) => x.before_after_presence), Icon: Repeat, tone: "text-indigo-600" },
+    { label: "Bác sĩ/Chuyên gia", value: rate((x) => x.doctor_presence), Icon: Stethoscope, tone: "text-cyan-600" },
+    { label: "Kiểu UGC", value: rate((x) => x.visual_format === "ugc_selfie" || x.ugc_score >= 50), Icon: ImageIcon, tone: "text-emerald-600" },
+    { label: "Banner ưu đãi", value: rate((x) => x.visual_format === "offer_banner" || x.offer_visual_presence), Icon: Sparkles, tone: "text-amber-600" },
+    { label: "Rủi ro cao", value: rate((x) => x.visual_risk_level === "high"), Icon: ShieldAlert, tone: "text-rose-600" },
   ];
   const topFormats = useMemo(() => {
     const c: Record<string, number> = {};
@@ -97,7 +98,7 @@ export default function VisualIntelligenceView({ data }: { data: SpyDashboardDat
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div className="flex flex-col gap-1.5 border-l-2 border-cyan-500 pl-4">
-        <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">VISUAL INTELLIGENCE</span>
+        <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">PHÂN TÍCH HÌNH ẢNH</span>
         <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Phân tích creative (ảnh/video) của đối thủ</h2>
         <p className="text-sm text-slate-600 font-medium">
           Định dạng visual · before/after · bác sĩ · UGC · ưu đãi · điểm clinical/luxury/UGC · rủi ro compliance · pattern đang scale.
@@ -109,7 +110,7 @@ export default function VisualIntelligenceView({ data }: { data: SpyDashboardDat
       {noAsset && (
         <div className="flex items-start gap-2 rounded-xl px-4 py-3 text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200">
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-          <span>Limited analysis — no media asset available. Provider chưa trả thumbnail/media; điểm số dựa trên text + heuristic, độ tin cậy thấp hơn.</span>
+          <span>Phân tích hạn chế — chưa có ảnh/media. Nguồn chưa trả thumbnail/media; điểm số dựa trên text + suy luận, độ tin cậy thấp hơn.</span>
         </div>
       )}
 
@@ -126,7 +127,7 @@ export default function VisualIntelligenceView({ data }: { data: SpyDashboardDat
       {/* Top formats + Competitor Visual Matrix */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-          <h3 className="text-sm font-extrabold text-slate-800 mb-3">Top visual formats</h3>
+          <h3 className="text-sm font-extrabold text-slate-800 mb-3">Định dạng hình ảnh phổ biến</h3>
           <div className="space-y-2">
             {topFormats.map(([f, n]) => (
               <div key={f} className="flex items-center gap-3">
@@ -140,9 +141,9 @@ export default function VisualIntelligenceView({ data }: { data: SpyDashboardDat
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm overflow-x-auto">
-          <h3 className="text-sm font-extrabold text-slate-800 mb-3">Competitor Visual Matrix</h3>
+          <h3 className="text-sm font-extrabold text-slate-800 mb-3">Ma trận hình ảnh đối thủ</h3>
           <table className="w-full text-xs">
-            <thead><tr className="text-slate-400 font-bold uppercase text-[10px]"><th className="text-left py-1">Brand</th><th>Creatives</th><th>B/A</th><th>Doctor</th><th>UGC</th><th>Offer</th><th>Risk</th></tr></thead>
+            <thead><tr className="text-slate-400 font-bold uppercase text-[10px]"><th className="text-left py-1">Hãng</th><th>Creative</th><th>Trước/Sau</th><th>Bác sĩ</th><th>UGC</th><th>Ưu đãi</th><th>Rủi ro</th></tr></thead>
             <tbody>
               {summaries.slice(0, 14).map((s) => (
                 <tr key={s.brand} className="border-t border-slate-100">
@@ -163,10 +164,10 @@ export default function VisualIntelligenceView({ data }: { data: SpyDashboardDat
 
       {/* Visual Pattern table */}
       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-        <h3 className="text-sm font-extrabold text-slate-800 mb-3">Visual Pattern Analysis <span className="text-[11px] font-semibold text-slate-400">(≥3 ad cùng pattern = signal)</span></h3>
+        <h3 className="text-sm font-extrabold text-slate-800 mb-3">Phân tích mẫu hình ảnh <span className="text-[11px] font-semibold text-slate-400">(≥3 ad cùng mẫu = tín hiệu)</span></h3>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead><tr className="text-slate-400 font-bold uppercase text-[10px]"><th className="text-left py-1">Brand</th><th className="text-left">Format</th><th className="text-left">Angle</th><th>Ads</th><th>Signal</th><th>SERYN</th></tr></thead>
+            <thead><tr className="text-slate-400 font-bold uppercase text-[10px]"><th className="text-left py-1">Hãng</th><th className="text-left">Định dạng</th><th className="text-left">Góc</th><th>Ad</th><th>Tín hiệu</th><th>SERYN</th></tr></thead>
             <tbody>
               {patterns.slice(0, 20).map((p) => (
                 <tr key={p.id} className="border-t border-slate-100">
@@ -175,7 +176,7 @@ export default function VisualIntelligenceView({ data }: { data: SpyDashboardDat
                   <td className="text-left capitalize">{fmt(String(p.visual_angle))}</td>
                   <td className="text-center font-mono">{p.ad_count}</td>
                   <td className="text-center">{(p.is_signal === true || p.is_signal === "true" || p.is_signal === "TRUE") ? <span className="text-rose-600 font-bold">●</span> : <span className="text-slate-300">○</span>}</td>
-                  <td className="text-center"><span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${ACTION_TONE[String(p.recommended_seryn_response)] || ACTION_TONE.monitor}`}>{String(p.recommended_seryn_response).toUpperCase()}</span></td>
+                  <td className="text-center"><span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${ACTION_TONE[String(p.recommended_seryn_response)] || ACTION_TONE.monitor}`}>{viLabel(String(p.recommended_seryn_response))}</span></td>
                 </tr>
               ))}
               {!patterns.length && <tr><td colSpan={6} className="text-slate-400 py-2">Chưa có pattern.</td></tr>}
@@ -190,10 +191,10 @@ export default function VisualIntelligenceView({ data }: { data: SpyDashboardDat
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm ad, brand, insight…" className="pl-9 pr-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium w-56 focus:outline-none focus:ring-2 focus:ring-cyan-100" />
         </div>
-        <select value={brand} onChange={(e) => setBrand(e.target.value)} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700"><option value="all">Mọi brand</option>{brands.map((b) => <option key={b} value={b}>{b}</option>)}</select>
-        <select value={vformat} onChange={(e) => setVformat(e.target.value)} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700"><option value="all">Mọi format</option>{formats.map((f) => <option key={f} value={f}>{fmt(f)}</option>)}</select>
-        <select value={risk} onChange={(e) => setRisk(e.target.value)} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700"><option value="all">Mọi risk</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
-        <select value={action} onChange={(e) => setAction(e.target.value)} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700"><option value="all">Mọi action</option>{ACTIONS.map((a) => <option key={a} value={a}>{a}</option>)}</select>
+        <select value={brand} onChange={(e) => setBrand(e.target.value)} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700"><option value="all">Mọi hãng</option>{brands.map((b) => <option key={b} value={b}>{b}</option>)}</select>
+        <select value={vformat} onChange={(e) => setVformat(e.target.value)} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700"><option value="all">Mọi định dạng</option>{formats.map((f) => <option key={f} value={f}>{fmt(f)}</option>)}</select>
+        <select value={risk} onChange={(e) => setRisk(e.target.value)} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700"><option value="all">Mọi rủi ro</option><option value="high">Cao</option><option value="medium">Vừa</option><option value="low">Thấp</option></select>
+        <select value={action} onChange={(e) => setAction(e.target.value)} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700"><option value="all">Mọi hành động</option>{ACTIONS.map((a) => <option key={a} value={a}>{viLabel(a)}</option>)}</select>
         <button onClick={() => setGrouped((g) => !g)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${grouped ? "bg-cyan-600 text-white border-cyan-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`} title="Gom các creative giống nhau (1 đại diện/cụm)">
           {grouped ? "Đang gom creative" : "Hiện tất cả"}
         </button>
@@ -219,33 +220,33 @@ export default function VisualIntelligenceView({ data }: { data: SpyDashboardDat
                   <p className="text-[10px] text-slate-400 font-mono truncate">{x.ad_id} · {x.creative_type}{x.reviewed ? " · ✓vision" : ""}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${RISK_TONE[String(x.visual_risk_level)] || RISK_TONE.low}`}>{String(x.visual_risk_level).toUpperCase()} RISK</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${RISK_TONE[String(x.visual_risk_level)] || RISK_TONE.low}`}>Rủi ro {x.visual_risk_level === "high" ? "cao" : x.visual_risk_level === "medium" ? "vừa" : "thấp"}</span>
                   {x.analysis_status && <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${statusTone(x.analysis_status)}`}>{statusLabel(x.analysis_status)}</span>}
                 </div>
               </div>
               <div className="flex flex-wrap gap-1">
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200 capitalize">{fmt(String(x.visual_format))}</span>
-                {x.doctor_presence && <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-cyan-50 text-cyan-700 border-cyan-200">Doctor</span>}
-                {x.before_after_presence && <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-indigo-50 text-indigo-700 border-indigo-200">Before/After</span>}
-                {x.offer_visual_presence && <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">Offer</span>}
+                {x.doctor_presence && <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-cyan-50 text-cyan-700 border-cyan-200">Bác sĩ</span>}
+                {x.before_after_presence && <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-indigo-50 text-indigo-700 border-indigo-200">Trước/Sau</span>}
+                {x.offer_visual_presence && <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">Ưu đãi</span>}
                 {(x.visual_format === "ugc_selfie" || x.ugc_score >= 50) && <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">UGC</span>}
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <ScoreBar label="Clinical" value={x.clinical_score} tone="bg-cyan-500" />
-                <ScoreBar label="Luxury" value={x.beauty_luxury_score} tone="bg-amber-500" />
+                <ScoreBar label="Y khoa" value={x.clinical_score} tone="bg-cyan-500" />
+                <ScoreBar label="Sang trọng" value={x.beauty_luxury_score} tone="bg-amber-500" />
                 <ScoreBar label="UGC" value={x.ugc_score} tone="bg-emerald-500" />
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">{x.visual_insight_summary}</p>
               <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
-                <span className="text-[10px] text-slate-400 font-semibold">Action</span>
+                <span className="text-[10px] text-slate-400 font-semibold">Hành động</span>
                 <select
                   value={x.seryn_action}
                   onChange={(e) => onReview(x.ad_id, { seryn_action: e.target.value as SerynVisualAction })}
                   className={`text-[10px] font-bold px-2 py-1 rounded border ${ACTION_TONE[String(x.seryn_action)] || ACTION_TONE.monitor}`}
                 >
-                  {ACTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
+                  {ACTIONS.map((a) => <option key={a} value={a}>{viLabel(a)}</option>)}
                 </select>
-                {x.reviewed && <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> reviewed</span>}
+                {x.reviewed && <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> đã duyệt</span>}
                 <input
                   defaultValue={x.review_note || ""}
                   onBlur={(e) => { if (e.target.value !== (x.review_note || "")) onReview(x.ad_id, { review_note: e.target.value }); }}
