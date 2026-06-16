@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { Zap, Search, ClipboardCopy, CheckCircle2, ShieldAlert, Brain, Megaphone, FileText, LayoutList, Info } from "lucide-react";
 import type { SpyDashboardData, HookCluster } from "../../types";
-import { viLabel } from "../../utils/spyData";
+import { viLabel, isMeaningful } from "../../utils/spyData";
 import TopHooksView from "./TopHooksView";
 import {
   buildEnhancedHookCards, formatBriefForCopy, formatRewriteGroupForCopy, formatScriptOutlineForCopy,
@@ -15,8 +15,8 @@ const lc = (s?: string) => String(s || "").toLowerCase();
 
 /* ---------- display helpers (VN) ---------- */
 function viPattern(c: HookCluster): string {
-  const parts = [viLabel(c.hook_category), viLabel(c.hook_formula), viLabel(c.hook_subcategory)].filter((x) => x && x !== "Chưa rõ");
-  const base = parts.join(" · ") || String(c.hook_pattern || "");
+  const parts = [viLabel(c.hook_category), viLabel(c.hook_formula), viLabel(c.hook_subcategory)].filter((x) => x && x.toLowerCase() !== "chưa rõ");
+  const base = parts.join(" · ") || "Mẫu hook chưa phân loại";
   return c.offer_linked === "TRUE" || c.top_offer_linked === "TRUE" ? `${base} · có ưu đãi` : base;
 }
 
@@ -189,14 +189,14 @@ export default function HookIntelligenceView({ data }: { data: SpyDashboardData 
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5 mt-2">
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${STATUS_TONE[c.statusLabel]}`}>{STATUS_VI[c.statusLabel]}</span>
-                  <span className="text-[10px] text-slate-500">{c.cluster.pain_point} → {c.cluster.desired_outcome}</span>
+                  <span className="text-[10px] text-slate-500">{c.psychology.painPoint} → {c.psychology.desire}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-2 text-[11px] text-slate-500">
                   <span>{num(c.cluster.ads_count)} ad</span>
                   <span>{c.relatedBrands.length} hãng</span>
                   <span>{String(c.cluster.avg_active_days) === "unknown" ? "—" : `${c.cluster.avg_active_days}ng`}</span>
-                  <span>{viLabel(c.cluster.top_ad_format)}</span>
-                  <span>{viLabel(c.cluster.top_inferred_objective)}</span>
+                  {isMeaningful(c.cluster.top_ad_format) && <span>{viLabel(String(c.cluster.top_ad_format))}</span>}
+                  {isMeaningful(c.cluster.top_inferred_objective) && <span>{viLabel(String(c.cluster.top_inferred_objective))}</span>}
                   <span className={riskTextTone(c.riskLevel)}>rủi ro {c.riskLevel === "Low" ? "thấp" : c.riskLevel === "Medium" ? "vừa" : "cao"}</span>
                 </div>
               </button>
@@ -213,7 +213,7 @@ export default function HookIntelligenceView({ data }: { data: SpyDashboardData 
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-extrabold text-slate-900 truncate">{viPattern(selected.cluster)}</p>
-                    <p className="text-[11px] text-slate-500">{selected.cluster.pain_point} → {selected.cluster.desired_outcome}</p>
+                    <p className="text-[11px] text-slate-500">{selected.psychology.painPoint} → {selected.psychology.desire}</p>
                   </div>
                   <span className={`shrink-0 text-sm font-extrabold px-2.5 py-1 rounded-lg ${scoreTone(selected.hookScore)}`}>{selected.hookScore}</span>
                 </div>
@@ -442,7 +442,8 @@ function Select({ value, onChange, all, options }: { value: string; onChange: (v
   );
 }
 function KV({ k, v }: { k: string; v?: string }) {
-  return <div><span className="font-bold text-slate-600">{k}: </span><span className="text-slate-600">{v && v !== "Chưa rõ" ? v : "N/A"}</span></div>;
+  const ok = v && v.trim().toLowerCase() !== "chưa rõ" && v.trim().toLowerCase() !== "unknown";
+  return <div><span className="font-bold text-slate-600">{k}: </span><span className="text-slate-600">{ok ? v : "N/A"}</span></div>;
 }
 function Badge({ children, tone }: { children: React.ReactNode; tone?: string }) {
   return <span className={`text-[10px] font-bold px-2 py-0.5 rounded border bg-slate-50 border-slate-200 ${tone || "text-slate-600"}`}>{children}</span>;

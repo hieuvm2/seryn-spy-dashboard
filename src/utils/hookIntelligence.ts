@@ -210,9 +210,12 @@ export function buildHookPsychology(cluster: HookCluster): HookPsychology {
 
   const brands = parsePipeList(cluster.brands_using).length;
   const days = hasDays(cluster) ? `avg active ${cluster.avg_active_days} ngày` : "chưa rõ số ngày chạy";
+  const labelBits = [viLabel(cluster.hook_category), viLabel(cluster.hook_formula)]
+    .filter((x) => x && x.toLowerCase() !== "chưa rõ");
+  const usingTxt = labelBits.length ? `dùng ${labelBits.join("/")} ` : "";
   const whyItMayWork =
     `Pattern này đáng chú ý vì có ${num(cluster.ads_count)} ad từ ${brands} brand, ${days}, ` +
-    `dùng ${viLabel(cluster.hook_category)}/${viLabel(cluster.hook_formula)} để khơi "${emotionalTrigger}" ` +
+    `${usingTxt}để khơi "${emotionalTrigger}" ` +
     `ở giai đoạn ${awarenessStage}. Đây là competitor hook signal, không phải hook thắng chắc.`;
 
   const r = num(cluster.risk_score);
