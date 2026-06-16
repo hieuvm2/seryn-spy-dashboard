@@ -1,70 +1,51 @@
 import React, { useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { Zap, Search, ClipboardCopy, CheckCircle2, ShieldAlert, Layers, Megaphone, Filter, AlertTriangle, Info } from "lucide-react";
-import type { SpyDashboardData, HookCluster, SerynContentRecommendation } from "../../types";
+import { Zap, Search, ClipboardCopy, CheckCircle2, ShieldAlert, Brain, Megaphone, FileText, LayoutList, Info } from "lucide-react";
+import type { SpyDashboardData, HookCluster } from "../../types";
 import { viLabel } from "../../utils/spyData";
 import TopHooksView from "./TopHooksView";
+import {
+  buildEnhancedHookCards, formatBriefForCopy, formatRewriteGroupForCopy, formatScriptOutlineForCopy,
+  type EnhancedHookCard, type HookStatusLabel,
+} from "../../utils/hookIntelligence";
 
 const SC = "skin_rejuvenation";
-const HOOK_SOURCE = "hook_intelligence";
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const lc = (s?: string) => String(s || "").toLowerCase();
 
-/** Hook pattern hiển thị tiếng Việt từ category/formula/subcategory. */
+/* ---------- display helpers (VN) ---------- */
 function viPattern(c: HookCluster): string {
   const parts = [viLabel(c.hook_category), viLabel(c.hook_formula), viLabel(c.hook_subcategory)].filter((x) => x && x !== "Chưa rõ");
   const base = parts.join(" · ") || String(c.hook_pattern || "");
   return c.offer_linked === "TRUE" || c.top_offer_linked === "TRUE" ? `${base} · có ưu đãi` : base;
 }
-/** Tên cụm tiếng Việt (thay cluster_name có enum tiếng Anh). */
-function viClusterName(c: HookCluster): string {
-  const sub = viLabel(c.hook_subcategory);
-  return `Trẻ hóa da · ${viLabel(c.hook_category)}${sub && sub !== "Chưa rõ" ? ` · ${sub}` : ""}`;
-}
-/** Diễn giải "vì sao có tín hiệu" bằng tiếng Việt (thay insight có enum tiếng Anh). */
-function viWhy(c: HookCluster): string {
-  const brands = String(c.brands_using || "").split("|").filter(Boolean).length;
-  const days = c.avg_active_days && String(c.avg_active_days) !== "unknown"
-    ? ` · trung bình chạy ${c.avg_active_days} ngày`
-    : " · chưa rõ số ngày chạy (độ tin cậy thấp)";
-  const riskNote = num(c.risk_score) >= 60 ? " · rủi ro câu chữ cao → nên tránh" : num(c.risk_score) >= 30 ? " · có rủi ro câu chữ → dùng bản an toàn" : "";
-  const sig = (SIGNAL_VI as Record<string, string>)[String(c.scale_signal)] || String(c.scale_signal);
-  return `${sig}: ${c.ads_count} quảng cáo của ${brands} thương hiệu dùng mẫu ${viLabel(c.hook_category)} / ${viLabel(c.hook_formula)} quanh "${c.pain_point}"${days}${riskNote}. Đây là tín hiệu hook đối thủ, không phải hook thắng chắc.`;
-}
 
-const SIGNAL_TONE: Record<string, string> = {
-  none: "bg-slate-100 text-slate-500 border-slate-200",
-  early_signal: "bg-slate-100 text-slate-600 border-slate-200",
-  repeated_signal: "bg-sky-50 text-sky-700 border-sky-200",
-  strong_persistence_signal: "bg-amber-50 text-amber-700 border-amber-200",
-  evergreen_persistence_signal: "bg-emerald-50 text-emerald-700 border-emerald-200",
+const STATUS_VI: Record<HookStatusLabel, string> = {
+  "Evergreen Pattern": "Evergreen",
+  "Strong Repeated Signal": "Lặp lại mạnh",
+  "Rising Pattern": "Đang nổi",
+  "Monitor": "Theo dõi",
+  "Low Confidence": "Tin cậy thấp",
+  "High Risk": "Rủi ro cao",
 };
-const SIGNAL_VI: Record<string, string> = {
-  none: "Chưa có tín hiệu",
-  early_signal: "Tín hiệu sớm",
-  repeated_signal: "Lặp lại",
-  strong_persistence_signal: "Bền vững (mạnh)",
-  evergreen_persistence_signal: "Evergreen",
-};
-const ACTION_TONE: Record<string, string> = {
-  copy_structure: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  adapt_angle: "bg-amber-50 text-amber-700 border-amber-200",
-  counter_positioning: "bg-rose-50 text-rose-700 border-rose-200",
-  avoid_due_to_risk: "bg-slate-200 text-slate-700 border-slate-300",
-  monitor: "bg-slate-100 text-slate-600 border-slate-200",
-  test_now: "bg-cyan-50 text-cyan-700 border-cyan-200",
+const STATUS_TONE: Record<HookStatusLabel, string> = {
+  "Evergreen Pattern": "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "Strong Repeated Signal": "bg-amber-50 text-amber-700 border-amber-200",
+  "Rising Pattern": "bg-sky-50 text-sky-700 border-sky-200",
+  "Monitor": "bg-slate-100 text-slate-600 border-slate-200",
+  "Low Confidence": "bg-slate-100 text-slate-500 border-slate-200",
+  "High Risk": "bg-rose-50 text-rose-700 border-rose-200",
 };
 const ACTION_VI: Record<string, string> = {
-  copy_structure: "Học cấu trúc",
-  adapt_angle: "Điều chỉnh góc",
-  counter_positioning: "Phản định vị",
-  avoid_due_to_risk: "Tránh (rủi ro)",
-  monitor: "Theo dõi",
-  test_now: "Test ngay",
+  copy_structure: "Học cấu trúc", adapt_angle: "Điều chỉnh góc", counter_positioning: "Phản định vị",
+  avoid_due_to_risk: "Tránh (rủi ro)", monitor: "Theo dõi", test_now: "Test ngay",
 };
-const RISK_TONE: Record<string, string> = {
-  low: "text-emerald-600", medium: "text-amber-600", high: "text-rose-600",
-};
+function scoreTone(s: number): string {
+  return s >= 70 ? "bg-emerald-600 text-white" : s >= 50 ? "bg-amber-500 text-white" : "bg-slate-400 text-white";
+}
+function riskTextTone(r: "Low" | "Medium" | "High"): string {
+  return r === "High" ? "text-rose-600" : r === "Medium" ? "text-amber-600" : "text-emerald-600";
+}
 
 async function copyText(t: string): Promise<boolean> {
   try { await navigator.clipboard.writeText(t); return true; }
@@ -74,32 +55,81 @@ async function copyText(t: string): Promise<boolean> {
   }
 }
 
+type TabKey = "overview" | "psychology" | "rewrite" | "brief" | "risk";
+const TABS: { key: TabKey; label: string; icon: any }[] = [
+  { key: "overview", label: "Tổng quan", icon: LayoutList },
+  { key: "psychology", label: "Tâm lý", icon: Brain },
+  { key: "rewrite", label: "SERYN viết lại", icon: Megaphone },
+  { key: "brief", label: "Creative Brief", icon: FileText },
+  { key: "risk", label: "Rủi ro & An toàn", icon: ShieldAlert },
+];
+
 export default function HookIntelligenceView({ data }: { data: SpyDashboardData }) {
   const clusters = useMemo<HookCluster[]>(
     () => (data.hookIntelligence ?? []).filter((c) => !c.service_category || c.service_category === SC),
     [data.hookIntelligence],
   );
-  const recsByCluster = useMemo(() => {
-    const m = new Map<string, SerynContentRecommendation>();
-    for (const r of data.serynContentRecommendations ?? []) {
-      if (String(r.source) === HOOK_SOURCE && r.source_hook_cluster_id) m.set(String(r.source_hook_cluster_id), r);
-    }
-    return m;
-  }, [data.serynContentRecommendations]);
+  const cards = useMemo<EnhancedHookCard[]>(
+    () => buildEnhancedHookCards(clusters, data.serynContentRecommendations ?? []),
+    [clusters, data.serynContentRecommendations],
+  );
 
   const [q, setQ] = useState("");
-  const [selected, setSelected] = useState<string | null>(null);
+  const [fCategory, setFCategory] = useState("all");
+  const [fStatus, setFStatus] = useState("all");
+  const [fFormat, setFFormat] = useState("all");
+  const [fObjective, setFObjective] = useState("all");
+  const [fRisk, setFRisk] = useState("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [tab, setTab] = useState<TabKey>("overview");
   const [note, setNote] = useState<string | null>(null);
-  const flash = (m: string) => { setNote(m); window.setTimeout(() => setNote(null), 2400); };
-  const doCopy = async (t?: string) => { const ok = await copyText(String(t || "")); flash(ok ? "Đã copy." : "Không copy được."); };
 
-  // Không có dữ liệu cluster -> empty state + fallback list hook cũ (vẫn dùng được).
+  const flash = (m: string) => { setNote(m); window.setTimeout(() => setNote(null), 2200); };
+  const doCopy = async (t?: string, msg = "Đã copy.") => { const ok = await copyText(String(t || "")); flash(ok ? msg : "Không copy được."); };
+
+  const opts = useMemo(() => {
+    const uniq = (fn: (c: HookCluster) => string | undefined) =>
+      [...new Set(cards.map((c) => fn(c.cluster)).filter((x): x is string => !!x && x !== "unknown"))];
+    return {
+      category: uniq((c) => c.hook_category),
+      format: uniq((c) => c.top_ad_format),
+      objective: uniq((c) => c.top_inferred_objective),
+    };
+  }, [cards]);
+
+  const filtered = useMemo(() => {
+    return cards.filter((c) => {
+      if (fCategory !== "all" && c.cluster.hook_category !== fCategory) return false;
+      if (fStatus !== "all" && c.statusLabel !== fStatus) return false;
+      if (fFormat !== "all" && c.cluster.top_ad_format !== fFormat) return false;
+      if (fObjective !== "all" && c.cluster.top_inferred_objective !== fObjective) return false;
+      if (fRisk !== "all" && c.riskLevel !== fRisk) return false;
+      if (q.trim()) {
+        const k = q.toLowerCase();
+        const blob = `${viPattern(c.cluster)} ${c.cluster.pain_point} ${c.cluster.desired_outcome} ${c.exampleHooks.join(" ")} ${c.relatedBrands.join(" ")}`.toLowerCase();
+        if (!blob.includes(k)) return false;
+      }
+      return true;
+    });
+  }, [cards, fCategory, fStatus, fFormat, fObjective, fRisk, q]);
+
+  const selected = filtered.find((c) => c.cluster.hook_cluster_id === selectedId) || filtered[0];
+
+  const summary = useMemo(() => ({
+    total: cards.length,
+    highConf: cards.filter((c) => c.confidenceLevel === "High").length,
+    rising: cards.filter((c) => c.statusLabel === "Rising Pattern" || c.statusLabel === "Strong Repeated Signal").length,
+    evergreen: cards.filter((c) => c.statusLabel === "Evergreen Pattern").length,
+    highRisk: cards.filter((c) => c.riskLevel === "High").length,
+  }), [cards]);
+
+  // Empty state -> fallback view cũ
   if (!clusters.length) {
     return (
       <div className="space-y-6">
         <Header />
         <div className="bg-white border border-dashed border-slate-300 rounded-2xl p-8 text-center">
-          <Layers className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+          <LayoutList className="w-8 h-8 text-slate-300 mx-auto mb-3" />
           <p className="text-sm font-bold text-slate-700">Chưa có cụm Hook Intelligence cho trẻ hóa da.</p>
           <p className="text-xs text-slate-500 mt-1">Chạy <code className="font-mono text-cyan-700">npm run hooks:analyze</code> để tạo cụm hook + content. Bên dưới là danh sách hook nhanh từ dữ liệu hiện có.</p>
         </div>
@@ -108,213 +138,319 @@ export default function HookIntelligenceView({ data }: { data: SpyDashboardData 
     );
   }
 
-  const filtered = clusters.filter((c) => {
-    if (!q.trim()) return true;
-    const k = q.toLowerCase();
-    return [c.hook_pattern, c.cluster_name, c.pain_point, c.desired_outcome, c.hook_category, c.example_hooks].some((v) => lc(v as string).includes(k));
-  });
-  const sel = clusters.find((c) => c.hook_cluster_id === selected) || filtered[0] || clusters[0];
-  const selRec = sel ? recsByCluster.get(String(sel.hook_cluster_id)) : undefined;
-
-  const byFormat = (f: string) => clusters.filter((c) => c.top_ad_format === f);
-  const byObj = (o: string) => clusters.filter((c) => c.top_inferred_objective === o);
-  const risky = clusters.filter((c) => num(c.risk_score) >= 30).sort((a, b) => num(b.risk_score) - num(a.risk_score));
-
   return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
       <Header />
-      {note && <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200"><CheckCircle2 className="w-4 h-4" /> {note}</div>}
+      {note && <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200 shadow-lg"><CheckCircle2 className="w-4 h-4" /> {note}</div>}
 
       <div className="flex items-center gap-2 text-[11px] font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 rounded-lg px-3 py-2">
         <Info className="w-3.5 h-3.5 shrink-0" />
-        Đây là <b>tín hiệu hook đối thủ</b> (lặp lại / bền vững), không phải “hook thắng chắc”. Mọi câu của SERYN đều được viết lại an toàn câu chữ, không sao chép nguyên văn đối thủ.
+        Đây là <b>tín hiệu hook đối thủ</b> (lặp lại / bền vững), không phải “hook thắng chắc”. <span className="font-normal text-cyan-700/80">Score là proxy từ dữ liệu public — không phải hiệu suất quảng cáo thật.</span>
       </div>
 
-      {/* A. Top Hook Patterns */}
-      <Section icon={Zap} title="A. Mẫu hook nổi bật (trẻ hóa da)">
-        <div className="relative max-w-md mb-3">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm hook pattern, pain, desire…" className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-300" />
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="text-slate-400 font-mono uppercase tracking-wider">
-              <tr className="text-left border-b border-slate-100">
-                <th className="py-2 pr-2">#</th><th className="pr-2">Mẫu hook</th><th className="pr-2">Nỗi đau → Mong muốn</th>
-                <th className="pr-2">Ad</th><th className="pr-2">Hãng</th><th className="pr-2">Tín hiệu</th>
-                <th className="pr-2">Rủi ro</th><th className="pr-2">Tin cậy</th><th>SERYN</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((c, i) => {
-                const active = sel && c.hook_cluster_id === sel.hook_cluster_id;
-                return (
-                  <tr key={c.hook_cluster_id} onClick={() => setSelected(String(c.hook_cluster_id))}
-                    className={`border-b border-slate-50 cursor-pointer ${active ? "bg-cyan-50/60" : "hover:bg-slate-50"}`}>
-                    <td className="py-2 pr-2 text-slate-400">{i + 1}</td>
-                    <td className="pr-2 font-bold text-slate-800">{viPattern(c)}</td>
-                    <td className="pr-2 text-slate-500">{c.pain_point} → {c.desired_outcome}</td>
-                    <td className="pr-2 text-slate-600">{String(c.ads_count ?? 0)}</td>
-                    <td className="pr-2 text-slate-600">{String(c.brands_using || "").split("|").filter(Boolean).length}</td>
-                    <td className="pr-2"><span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${SIGNAL_TONE[String(c.scale_signal)] || SIGNAL_TONE.none}`}>{SIGNAL_VI[String(c.scale_signal)] || c.scale_signal}</span></td>
-                    <td className={`pr-2 font-bold ${num(c.risk_score) >= 60 ? "text-rose-600" : num(c.risk_score) >= 30 ? "text-amber-600" : "text-slate-500"}`}>{num(c.risk_score)}</td>
-                    <td className="pr-2 text-slate-600">{Math.round(num(c.confidence_score) * 100)}%</td>
-                    <td><span className={`px-2 py-0.5 rounded border text-[10px] font-bold ${ACTION_TONE[String(c.recommended_seryn_action)] || ACTION_TONE.monitor}`}>{ACTION_VI[String(c.recommended_seryn_action)] || c.recommended_seryn_action}</span></td>
-                  </tr>
-                );
-              })}
-              {!filtered.length && <tr><td colSpan={9} className="py-3 text-slate-400">Không có cụm hook khớp.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </Section>
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <Stat label="Tổng pattern" value={summary.total} tone="text-slate-900" />
+        <Stat label="Tin cậy cao" value={summary.highConf} tone="text-emerald-600" />
+        <Stat label="Đang nổi / Lặp lại" value={summary.rising} tone="text-sky-600" />
+        <Stat label="Evergreen" value={summary.evergreen} tone="text-amber-600" />
+        <Stat label="Rủi ro cao" value={summary.highRisk} tone="text-rose-600" />
+      </div>
 
-      {sel && (
-        <>
-          {/* B. Cluster Detail */}
-          <Section icon={Layers} title="B. Chi tiết cụm hook" desc={viClusterName(sel)}>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2 text-xs">
-                <KV k="Mẫu hook" v={viPattern(sel)} />
-                <KV k="Nhóm · Công thức · Góc" v={`${viLabel(sel.hook_category)} · ${viLabel(sel.hook_formula)} · ${viLabel(sel.hook_angle)}`} />
-                <KV k="Nỗi đau" v={sel.pain_point} />
-                <KV k="Mong muốn" v={sel.desired_outcome} />
-                <KV k="Thương hiệu dùng" v={String(sel.brands_using || "").split("|").filter(Boolean).join(", ")} />
-                <KV k="Số ad · Ngày chạy TB" v={`${sel.ads_count} ad · ${sel.avg_active_days} ngày`} />
-                <KV k="Ưu đãi · Bằng chứng" v={`${sel.top_offer_linked === "TRUE" ? "có ưu đãi" : "không ưu đãi"} · ${viLabel(sel.top_proof_type)}`} />
-                <KV k="Định dạng · Mục tiêu" v={`${viLabel(sel.top_ad_format)} · ${viLabel(sel.top_inferred_objective)}`} />
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm pattern, pain, hook…"
+            className="pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg w-56 focus:outline-none focus:ring-1 focus:ring-cyan-400" />
+        </div>
+        <Select value={fCategory} onChange={setFCategory} all="Tất cả nhóm" options={opts.category.map((v) => ({ value: v, label: viLabel(v) }))} />
+        <Select value={fStatus} onChange={setFStatus} all="Mọi trạng thái" options={(Object.keys(STATUS_VI) as HookStatusLabel[]).map((v) => ({ value: v, label: STATUS_VI[v] }))} />
+        <Select value={fFormat} onChange={setFFormat} all="Mọi định dạng" options={opts.format.map((v) => ({ value: v, label: viLabel(v) }))} />
+        <Select value={fObjective} onChange={setFObjective} all="Mọi mục tiêu" options={opts.objective.map((v) => ({ value: v, label: viLabel(v) }))} />
+        <Select value={fRisk} onChange={setFRisk} all="Mọi mức rủi ro" options={[{ value: "Low", label: "Rủi ro thấp" }, { value: "Medium", label: "Rủi ro vừa" }, { value: "High", label: "Rủi ro cao" }]} />
+      </div>
+
+      {/* Master-detail */}
+      <div className="grid lg:grid-cols-2 gap-5 items-start">
+        {/* LEFT: list */}
+        <div className="space-y-2.5">
+          {filtered.map((c, i) => {
+            const active = selected && c.cluster.hook_cluster_id === selected.cluster.hook_cluster_id;
+            return (
+              <button key={c.cluster.hook_cluster_id} onClick={() => { setSelectedId(String(c.cluster.hook_cluster_id)); setTab("overview"); }}
+                className={`w-full text-left bg-white border rounded-2xl p-4 shadow-sm transition ${active ? "border-cyan-400 ring-1 ring-cyan-200" : "border-slate-200 hover:border-slate-300"}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[10px] font-mono text-slate-400 shrink-0">#{i + 1}</span>
+                    <p className="font-extrabold text-slate-800 text-sm truncate">{viPattern(c.cluster)}</p>
+                  </div>
+                  <span className={`shrink-0 text-xs font-extrabold px-2 py-0.5 rounded-lg ${scoreTone(c.hookScore)}`}>{c.hookScore}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${STATUS_TONE[c.statusLabel]}`}>{STATUS_VI[c.statusLabel]}</span>
+                  <span className="text-[10px] text-slate-500">{c.cluster.pain_point} → {c.cluster.desired_outcome}</span>
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-2 text-[11px] text-slate-500">
+                  <span>{num(c.cluster.ads_count)} ad</span>
+                  <span>{c.relatedBrands.length} hãng</span>
+                  <span>{String(c.cluster.avg_active_days) === "unknown" ? "—" : `${c.cluster.avg_active_days}ng`}</span>
+                  <span>{viLabel(c.cluster.top_ad_format)}</span>
+                  <span>{viLabel(c.cluster.top_inferred_objective)}</span>
+                  <span className={riskTextTone(c.riskLevel)}>rủi ro {c.riskLevel === "Low" ? "thấp" : c.riskLevel === "Medium" ? "vừa" : "cao"}</span>
+                </div>
+              </button>
+            );
+          })}
+          {!filtered.length && <p className="text-sm text-slate-400 font-semibold bg-white border border-slate-200 rounded-2xl p-6 text-center">Không có pattern nào khớp bộ lọc. Thử bỏ bớt filter.</p>}
+        </div>
+
+        {/* RIGHT: detail */}
+        <div className="lg:sticky lg:top-4">
+          {selected ? (
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-slate-100">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-extrabold text-slate-900 truncate">{viPattern(selected.cluster)}</p>
+                    <p className="text-[11px] text-slate-500">{selected.cluster.pain_point} → {selected.cluster.desired_outcome}</p>
+                  </div>
+                  <span className={`shrink-0 text-sm font-extrabold px-2.5 py-1 rounded-lg ${scoreTone(selected.hookScore)}`}>{selected.hookScore}</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${STATUS_TONE[selected.statusLabel]}`}>{STATUS_VI[selected.statusLabel]}</span>
+                  <Badge>Tin cậy: {selected.confidenceLevel}</Badge>
+                  <Badge tone={riskTextTone(selected.riskLevel)}>Rủi ro: {selected.riskLevel}</Badge>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-cyan-50 text-cyan-700 border-cyan-200">SERYN: {ACTION_VI[String(selected.cluster.recommended_seryn_action)] || selected.cluster.recommended_seryn_action}</span>
+                </div>
               </div>
-              <div className="space-y-3">
-                <div className="rounded-xl border border-slate-200 p-3">
-                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Hook đối thủ đang dùng (ví dụ — KHÔNG sao chép)</p>
-                  <p className="text-xs text-slate-600 italic">{sel.example_hooks}</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 p-3 bg-slate-50">
-                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Vì sao có tín hiệu này</p>
-                  <p className="text-xs text-slate-700">{viWhy(sel)}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${SIGNAL_TONE[String(sel.scale_signal)]}`}>{SIGNAL_VI[String(sel.scale_signal)]}</span>
-                  <span className={`px-2 py-0.5 rounded border text-[10px] font-bold ${ACTION_TONE[String(sel.recommended_seryn_action)]}`}>SERYN: {ACTION_VI[String(sel.recommended_seryn_action)]}</span>
-                  {String(sel.needs_claude_hook_review) === "TRUE" && <span className="px-2 py-0.5 rounded border text-[10px] font-bold bg-violet-50 text-violet-700 border-violet-200">cần Claude review</span>}
-                </div>
+
+              {/* tabs */}
+              <div className="flex border-b border-slate-100 overflow-x-auto">
+                {TABS.map((t) => (
+                  <button key={t.key} onClick={() => setTab(t.key)}
+                    className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-bold whitespace-nowrap border-b-2 transition ${tab === t.key ? "border-cyan-600 text-cyan-700" : "border-transparent text-slate-500 hover:text-slate-700"}`}>
+                    <t.icon className="w-3.5 h-3.5" /> {t.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="p-4">
+                {tab === "overview" && <OverviewTab c={selected} onCopy={doCopy} />}
+                {tab === "psychology" && <PsychologyTab c={selected} />}
+                {tab === "rewrite" && <RewriteTab c={selected} onCopy={doCopy} />}
+                {tab === "brief" && <BriefTab c={selected} onCopy={doCopy} />}
+                {tab === "risk" && <RiskTab c={selected} onCopy={doCopy} />}
               </div>
             </div>
-          </Section>
-
-          {/* C. Content Generator */}
-          <Section icon={Megaphone} title="C. Tạo nội dung quảng cáo (chạy ngay)" desc={selRec ? undefined : "Cụm này chưa được sinh nội dung (chỉ sinh cho cụm có tín hiệu lặp/bền + an toàn câu chữ)."}>
-            {selRec ? (
-              <div className="space-y-3">
-                <CopyBlock label="Nội dung ngắn" text={selRec.ad_copy_short} onCopy={doCopy} />
-                <CopyBlock label="Nội dung vừa" text={selRec.ad_copy_medium} onCopy={doCopy} />
-                <CopyBlock label="Nội dung dài" text={selRec.ad_copy_long} onCopy={doCopy} />
-                <div className="grid md:grid-cols-2 gap-3">
-                  <ListBlock label="Tiêu đề gợi ý" items={String(selRec.headline_options || "").split(" | ")} onCopy={doCopy} />
-                  <ListBlock label="Nút CTA gợi ý" items={String(selRec.cta_options || "").split(" | ")} onCopy={doCopy} />
-                </div>
-                <CopyBlock label="Mở video 3 giây đầu" text={String(selRec.video_opening_3s || "").split(" || ").join("\n")} onCopy={doCopy} />
-                <div className="grid md:grid-cols-2 gap-3">
-                  <CopyBlock label="Kịch bản Messenger" text={selRec.messenger_script_angle} onCopy={doCopy} />
-                  <CopyBlock label="Góc landing page" text={selRec.landing_page_angle} onCopy={doCopy} />
-                </div>
-                <CopyBlock label="Định hướng hình ảnh" text={selRec.visual_direction} onCopy={doCopy} />
-              </div>
-            ) : <p className="text-xs text-slate-400">Chọn một cụm có tín hiệu lặp/bền để xem nội dung.</p>}
-          </Section>
-        </>
-      )}
-
-      {/* D. Hook x Format / Funnel */}
-      <Section icon={Filter} title="D. Hook × Định dạng / Phễu">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-          <MiniList title="Đi với Video" items={byFormat("video")} />
-          <MiniList title="Đi với Image" items={byFormat("image")} />
-          <MiniList title="Kéo Messenger" items={byObj("messenger")} />
-          <MiniList title="Kéo Landing/Conversion" items={byObj("landing_page_conversion")} />
+          ) : <p className="text-sm text-slate-400">Chọn một pattern để xem chi tiết.</p>}
         </div>
-      </Section>
-
-      {/* E. Risk & Safe Claim */}
-      <Section icon={ShieldAlert} title="E. Rủi ro & Câu chữ an toàn">
-        {risky.length ? (
-          <div className="space-y-2">
-            {risky.slice(0, 8).map((c) => {
-              const rec = recsByCluster.get(String(c.hook_cluster_id));
-              return (
-                <div key={c.hook_cluster_id} className="rounded-xl border border-slate-200 p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-bold text-slate-800">{viPattern(c)}</p>
-                    <span className={`text-[11px] font-bold ${num(c.risk_score) >= 60 ? RISK_TONE.high : RISK_TONE.medium}`}>rủi ro {num(c.risk_score)}</span>
-                  </div>
-                  {!!rec?.avoid_phrases && <p className="text-[11px] text-rose-600 mt-1"><b>Tránh:</b> {rec.avoid_phrases}</p>}
-                  {!!rec?.claim_safe_version && <p className="text-[11px] text-emerald-700 mt-0.5"><b>Bản an toàn:</b> {rec.claim_safe_version}</p>}
-                  {!rec && <p className="text-[11px] text-slate-500 mt-1">Cụm có claim mạnh — SERYN nên tránh hoặc viết lại theo hướng “hỗ trợ cải thiện, kết quả tùy cơ địa”.</p>}
-                </div>
-              );
-            })}
-          </div>
-        ) : <p className="text-xs text-slate-400">Không có cụm hook rủi ro claim cao.</p>}
-        <div className="mt-3 text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
-          <p className="font-bold text-slate-600 mb-1 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Cụm từ nên tránh trong ngành thẩm mỹ</p>
-          <p>“trẻ hơn 10 tuổi”, “xóa sạch nếp nhăn”, “trị dứt điểm lão hóa”, “hiệu quả 100%” → đổi thành “hỗ trợ cải thiện dấu hiệu lão hóa”, “giúp da trông căng mịn hơn”, “kết quả tùy cơ địa và tình trạng da”.</p>
-        </div>
-      </Section>
+      </div>
     </motion.div>
   );
 }
 
+/* ============================================================ tabs ============================================================ */
+function OverviewTab({ c, onCopy }: { c: EnhancedHookCard; onCopy: (t?: string, m?: string) => void }) {
+  const cl = c.cluster;
+  return (
+    <div className="space-y-3 text-xs">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+        <KV k="Nhóm" v={viLabel(cl.hook_category)} />
+        <KV k="Công thức" v={viLabel(cl.hook_formula)} />
+        <KV k="Góc tiếp cận" v={viLabel(cl.hook_angle)} />
+        <KV k="Mục tiêu (suy luận)" v={viLabel(cl.top_inferred_objective)} />
+        <KV k="Số ad" v={String(num(cl.ads_count))} />
+        <KV k="Số hãng" v={String(c.relatedBrands.length)} />
+        <KV k="Ngày chạy TB" v={String(cl.avg_active_days) === "unknown" ? "Chưa rõ" : `${cl.avg_active_days} ngày`} />
+        <KV k="Định dạng chính" v={viLabel(cl.top_ad_format)} />
+        <KV k="Ưu đãi" v={cl.top_offer_linked === "TRUE" ? "Có" : "Không"} />
+        <KV k="Bằng chứng" v={viLabel(cl.top_proof_type)} />
+      </div>
+      <div className="rounded-xl border border-slate-200 p-3 bg-slate-50">
+        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Vì sao có tín hiệu này</p>
+        <p className="text-slate-700">{c.psychology.whyItMayWork}</p>
+      </div>
+      <div className="rounded-xl border border-slate-200 p-3">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Hook đối thủ (ví dụ — KHÔNG sao chép)</p>
+          <CopyBtn onClick={() => onCopy(c.exampleHooks.join("\n"), "Đã copy hook gốc.")} />
+        </div>
+        {c.relatedBrands.length > 0 && <p className="text-[11px] text-slate-500 mb-1">Hãng: {c.relatedBrands.join(", ")}</p>}
+        <ul className="space-y-0.5 text-slate-600 italic list-disc pl-4">
+          {c.exampleHooks.length ? c.exampleHooks.map((h, i) => <li key={i}>{h}</li>) : <li>N/A</li>}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function PsychologyTab({ c }: { c: EnhancedHookCard }) {
+  const p = c.psychology;
+  const risky = num(c.cluster.risk_score) >= 30;
+  return (
+    <div className="space-y-2 text-xs">
+      <KV k="Nỗi đau (pain)" v={p.painPoint} />
+      <KV k="Mong muốn (desire)" v={p.desire} />
+      <KV k="Niềm tin kích hoạt" v={p.beliefTrigger} />
+      <KV k="Gỡ phản đối" v={p.objectionRemoved} />
+      <KV k="Cảm xúc chủ đạo" v={p.emotionalTrigger} />
+      <KV k="Mức độ nhận thức" v={p.awarenessStage} />
+      <KV k="Ý định phễu" v={p.funnelIntent} />
+      <div className="rounded-xl border border-slate-200 p-3 bg-slate-50 mt-2">
+        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Vì sao có thể hiệu quả</p>
+        <p className="text-slate-700">{p.whyItMayWork}</p>
+      </div>
+      <div className={`rounded-xl border p-3 ${risky ? "bg-rose-50 border-rose-200" : "bg-slate-50 border-slate-200"}`}>
+        <p className={`text-[10px] uppercase font-bold tracking-wider mb-1 ${risky ? "text-rose-600" : "text-slate-400"}`}>Lưu ý rủi ro</p>
+        <p className={risky ? "text-rose-700 font-semibold" : "text-slate-700"}>{p.riskNote}</p>
+      </div>
+    </div>
+  );
+}
+
+function RewriteTab({ c, onCopy }: { c: EnhancedHookCard; onCopy: (t?: string, m?: string) => void }) {
+  const r = c.rewrites;
+  const groups: { label: string; items: string[] }[] = [
+    { label: "Direct Response", items: r.directResponse },
+    { label: "Premium Clinic Tone", items: r.premiumClinicTone },
+    { label: "Safe Compliance Tone", items: r.safeComplianceTone },
+    { label: "Mở video 3 giây", items: r.videoOpening3s },
+    { label: "Meta Ads Caption", items: r.metaAdsCaption },
+  ];
+  return (
+    <div className="space-y-3">
+      {!c.rec && <p className="text-[11px] text-slate-400 italic">Cụm này chưa có content sinh sẵn — đang dùng bản template SERYN (vẫn dùng được).</p>}
+      {groups.map((g) => (
+        <div key={g.label} className="rounded-xl border border-slate-200 p-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{g.label}</p>
+            <CopyBtn label="Copy nhóm" onClick={() => onCopy(formatRewriteGroupForCopy(g.items), `Đã copy nhóm: ${g.label}.`)} />
+          </div>
+          <ul className="space-y-1.5">
+            {g.items.map((s, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-slate-700">
+                <button onClick={() => onCopy(s, "Đã copy câu.")} className="shrink-0 mt-0.5 text-indigo-500 hover:text-indigo-600" title="Copy"><ClipboardCopy className="w-3.5 h-3.5" /></button>
+                <span className="leading-relaxed">{s}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BriefTab({ c, onCopy }: { c: EnhancedHookCard; onCopy: (t?: string, m?: string) => void }) {
+  const b = c.miniBrief;
+  const prioTone = b.testPriority === "High" ? "text-emerald-600" : b.testPriority === "Medium" ? "text-amber-600" : "text-slate-500";
+  return (
+    <div className="space-y-3 text-xs">
+      <div className="flex flex-wrap items-center gap-2">
+        <CopyBtn label="Copy brief" onClick={() => onCopy(formatBriefForCopy(b), "Đã copy brief.")} />
+        <CopyBtn label="Copy script" onClick={() => onCopy(formatScriptOutlineForCopy(b), "Đã copy script outline.")} />
+        <CopyBtn label="Copy core message" onClick={() => onCopy(b.coreMessage, "Đã copy core message.")} />
+        <CopyBtn label="Copy CTA" onClick={() => onCopy(b.cta, "Đã copy CTA.")} />
+        <span className={`ml-auto text-[11px] font-bold ${prioTone}`}>Ưu tiên test: {b.testPriority}</span>
+      </div>
+      <KV k="Objective" v={b.objective} />
+      <KV k="Angle" v={b.angle} />
+      <KV k="Target audience" v={b.targetAudience} />
+      <KV k="Core message" v={b.coreMessage} />
+      <KV k="Opening scene" v={b.openingScene} />
+      <KV k="Visual direction" v={b.visualDirection} />
+      <KV k="Proof element" v={b.proofElement} />
+      <KV k="Offer suggestion" v={b.offerSuggestion} />
+      <KV k="CTA" v={b.cta} />
+      <KV k="Content format" v={b.contentFormat} />
+      <div className="rounded-xl border border-slate-200 p-3">
+        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Script outline (4 scene)</p>
+        <ol className="space-y-0.5 text-slate-700 list-decimal pl-4">
+          <li>{b.scriptOutline.scene1}</li>
+          <li>{b.scriptOutline.scene2}</li>
+          <li>{b.scriptOutline.scene3}</li>
+          <li>{b.scriptOutline.scene4}</li>
+        </ol>
+      </div>
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+        <p className="text-[10px] uppercase font-bold text-amber-600 tracking-wider mb-0.5">Compliance</p>
+        <p className="text-amber-800">{b.complianceWarning}</p>
+      </div>
+      <KV k="Recommended action" v={b.recommendedAction} />
+    </div>
+  );
+}
+
+function RiskTab({ c, onCopy }: { c: EnhancedHookCard; onCopy: (t?: string, m?: string) => void }) {
+  const safe = c.rec?.claim_safe_version || c.rewrites.safeComplianceTone[0] || "";
+  const avoid = c.rec?.avoid_phrases || "";
+  const r = num(c.cluster.risk_score);
+  return (
+    <div className="space-y-3 text-xs">
+      <div className="flex items-center gap-2">
+        <span className={`text-sm font-extrabold ${riskTextTone(c.riskLevel)}`}>Risk {r}/100</span>
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${c.riskLevel === "High" ? "bg-rose-50 text-rose-700 border-rose-200" : c.riskLevel === "Medium" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>{c.riskLevel}</span>
+      </div>
+      <p className="text-slate-700">{c.psychology.riskNote}</p>
+      {!!avoid && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
+          <p className="text-[10px] uppercase font-bold text-rose-600 tracking-wider mb-0.5">Cụm từ nên tránh</p>
+          <p className="text-rose-700">{avoid}</p>
+        </div>
+      )}
+      {!!safe && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+          <div className="flex items-center justify-between mb-0.5">
+            <p className="text-[10px] uppercase font-bold text-emerald-600 tracking-wider">Bản an toàn (dùng được)</p>
+            <CopyBtn onClick={() => onCopy(safe, "Đã copy bản an toàn.")} />
+          </div>
+          <p className="text-emerald-800">{safe}</p>
+        </div>
+      )}
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-[11px] text-slate-500">
+        <p className="font-bold text-slate-600 mb-1">Tránh trong ngành thẩm mỹ</p>
+        <p>“trẻ hơn 10 tuổi”, “xóa sạch nếp nhăn”, “trị dứt điểm”, “hiệu quả 100%”, “cam kết kết quả”, “vĩnh viễn” → đổi thành “hỗ trợ cải thiện dấu hiệu lão hóa”, “giúp da trông săn chắc, căng mịn hơn”, “kết quả tùy cơ địa và tình trạng da”.</p>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================ small UI ============================================================ */
 function Header() {
   return (
     <div className="flex flex-col gap-1.5 border-l-2 border-cyan-500 pl-4">
-      <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">PHÂN TÍCH HOOK</span>
-      <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Phân tích Hook &amp; Tạo nội dung quảng cáo — Trẻ hóa da</h2>
-      <p className="text-sm text-slate-500">Gom mẫu hook của đối thủ → tín hiệu lặp/bền + rủi ro câu chữ → nội dung SERYN viết lại, dùng chạy quảng cáo ngay.</p>
+      <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">TOP HOOKS INTELLIGENCE</span>
+      <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Top Hooks Intelligence</h2>
+      <p className="text-sm text-slate-500">Xếp hạng hook đối thủ, giải mã tâm lý khách hàng và tạo content/brief SERYN có thể test ngay.</p>
     </div>
   );
 }
-function Section({ icon: Icon, title, desc, children }: { icon: any; title: string; desc?: string; children: React.ReactNode }) {
+function Stat({ label, value, tone }: { label: string; value: number; tone: string }) {
   return (
-    <section className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-      <div className="flex items-center gap-2.5 mb-1"><Icon className="w-4.5 h-4.5 text-cyan-600" /><h3 className="text-sm font-extrabold text-slate-900">{title}</h3></div>
-      {desc && <p className="text-xs text-slate-500 mb-3">{desc}</p>}
-      <div className={desc ? "" : "mt-3"}>{children}</div>
-    </section>
-  );
-}
-function KV({ k, v }: { k: string; v?: string | number }) {
-  return <div><span className="font-bold text-slate-600">{k}: </span><span className="text-slate-500">{String(v ?? "—")}</span></div>;
-}
-function CopyBlock({ label, text, onCopy }: { label: string; text?: string; onCopy: (t?: string) => void }) {
-  return (
-    <div className="rounded-xl border border-slate-200 p-3">
-      <div className="flex items-center justify-between mb-1">
-        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{label}</p>
-        <button onClick={() => onCopy(text)} className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-500"><ClipboardCopy className="w-3.5 h-3.5" /> Copy</button>
-      </div>
-      <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">{text || "—"}</p>
+    <div className="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm">
+      <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{label}</p>
+      <p className={`text-2xl font-extrabold ${tone}`}>{value}</p>
     </div>
   );
 }
-function ListBlock({ label, items, onCopy }: { label: string; items: string[]; onCopy: (t?: string) => void }) {
-  const clean = items.map((s) => s.trim()).filter(Boolean);
+function Select({ value, onChange, all, options }: { value: string; onChange: (v: string) => void; all: string; options: { value: string; label: string }[] }) {
   return (
-    <div className="rounded-xl border border-slate-200 p-3">
-      <div className="flex items-center justify-between mb-1">
-        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{label}</p>
-        <button onClick={() => onCopy(clean.join("\n"))} className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-500"><ClipboardCopy className="w-3.5 h-3.5" /> Copy</button>
-      </div>
-      <ul className="text-xs text-slate-700 space-y-0.5 list-disc pl-4">{clean.map((s, i) => <li key={i}>{s}</li>)}</ul>
-    </div>
+    <select value={value} onChange={(e) => onChange(e.target.value)} className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white max-w-[10rem]">
+      <option value="all">{all}</option>
+      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
   );
 }
-function MiniList({ title, items }: { title: string; items: HookCluster[] }) {
+function KV({ k, v }: { k: string; v?: string }) {
+  return <div><span className="font-bold text-slate-600">{k}: </span><span className="text-slate-600">{v && v !== "Chưa rõ" ? v : "N/A"}</span></div>;
+}
+function Badge({ children, tone }: { children: React.ReactNode; tone?: string }) {
+  return <span className={`text-[10px] font-bold px-2 py-0.5 rounded border bg-slate-50 border-slate-200 ${tone || "text-slate-600"}`}>{children}</span>;
+}
+function CopyBtn({ onClick, label }: { onClick: () => void; label?: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 p-3">
-      <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">{title}</p>
-      {items.length ? (
-        <ul className="space-y-1">{items.slice(0, 5).map((c) => <li key={c.hook_cluster_id} className="text-[11px] text-slate-700 truncate">• {viPattern(c)} <span className="text-slate-400">({String(c.ads_count)} ad)</span></li>)}</ul>
-      ) : <p className="text-[11px] text-slate-400">—</p>}
-    </div>
+    <button onClick={onClick} className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-500">
+      <ClipboardCopy className="w-3.5 h-3.5" /> {label || "Copy"}
+    </button>
   );
 }
