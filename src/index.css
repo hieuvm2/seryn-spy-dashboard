@@ -1,1 +1,16 @@
 @import "tailwindcss";
+
+/* ============================================================
+   Tăng cỡ chữ toàn dashboard cho dễ đọc.
+   - Tăng font gốc 16px -> 18px: mọi cỡ chữ/spacing theo `rem`
+     (text-xs/sm/base, padding, sidebar...) tự scale đồng đều ~+12.5%.
+   - Nâng riêng các nhãn px cố định cực nhỏ (badge/label) lên `rem`
+     để chúng cũng to hơn và scale theo font gốc.
+   ============================================================ */
+html {
+  font-size: 18px;
+}
+
+.text-\[10px\] { font-size: 0.7rem; line-height: 1.1rem; }
+.text-\[11px\] { font-size: 0.78rem; line-height: 1.15rem; }
+.text-\[13px\] { font-size: 0.86rem; line-height: 1.3rem; }
