@@ -279,6 +279,11 @@ const VI_LABELS: Record<string, string> = {
   // service_or_product
   skin_analysis: "Phân tích da",
   facial_rejuvenation: "Trẻ hóa da mặt",
+  // ---- Exa detected_services (khác bộ service_or_product) ----
+  skin_rejuvenation: "Trẻ hóa da",
+  skin_booster: "Skin booster",
+  facial_spa: "Chăm sóc da mặt",
+  wellness_beauty: "Thẩm mỹ wellness",
   melasma_treatment: "Trị nám",
   pigmentation_treatment: "Trị sắc tố",
   acne_treatment: "Trị mụn",
@@ -458,6 +463,44 @@ export function viLabel(value?: string): string {
   if (!raw) return "";
   if (isMissing(raw)) return "chưa rõ";
   return VI_LABELS[raw.toLowerCase()] || raw;
+}
+
+/** Có phải giá trị "rỗng nghĩa" (unknown / no_clear / chưa rõ) không -> để ẩn chip. */
+export function isMeaningful(value?: unknown): boolean {
+  const s = String(value ?? "").trim().toLowerCase();
+  return !!s && s !== "unknown" && s !== "chưa rõ" && s !== "no_clear_offer" && s !== "no_clear_proof" && s !== "none" && s !== "n/a";
+}
+
+/* Cụm tiếng Anh do script server sinh ra (dữ liệu cũ trên Sheet) -> dịch lúc hiển thị.
+   Áp cho free-text như why_it_is_scaling / seryn_reframe / scale_reason. */
+const FREE_TEXT_EN: Array<[RegExp, string]> = [
+  [/likely scaled based on duration and repetition/gi, "Có thể đang nhân rộng dựa trên thời lượng + lặp lại"],
+  [/\bcủa unknown\b/gi, ""],
+  [/\bunknown\b/gi, "dịch vụ chăm sóc da"],
+  [/\bfacial rejuvenation\b/gi, "trẻ hóa da"],
+  [/\bfacial contouring\b/gi, "tạo đường nét gương mặt"],
+  [/\bpigmentation treatment\b/gi, "điều trị sắc tố"],
+  [/\bmelasma treatment\b/gi, "điều trị nám"],
+  [/\bacne treatment\b/gi, "điều trị mụn"],
+  [/\blaser treatment\b/gi, "điều trị laser"],
+  [/\bcollagen stimulation\b/gi, "kích thích collagen"],
+  [/\blifting firming\b/gi, "nâng cơ săn chắc da"],
+  [/\bfiller botox\b/gi, "filler/botox"],
+  [/\bbody slimming\b/gi, "giảm béo"],
+  [/\bhair removal\b/gi, "triệt lông"],
+  [/\bdental aesthetics\b/gi, "thẩm mỹ răng"],
+  [/\banti aging consultation\b/gi, "chống lão hóa"],
+  [/\bhormone biology assessment\b/gi, "đánh giá nền tảng sinh học"],
+  [/\bnutrition lifestyle\b/gi, "dinh dưỡng & lối sống"],
+  [/\bskin analysis\b/gi, "phân tích da"],
+  [/\bskin rejuvenation\b/gi, "trẻ hóa da"],
+];
+/** Dịch các cụm tiếng Anh đã biết trong free-text (giữ phần còn lại nguyên văn). */
+export function humanizeText(value?: string): string {
+  let s = String(value ?? "");
+  if (!s) return s;
+  for (const [re, vi] of FREE_TEXT_EN) s = s.replace(re, vi);
+  return s.replace(/\s{2,}/g, " ").replace(/\s+,/g, ",").trim();
 }
 
 /** Detect which spy table a parsed CSV belongs to (by header signature). */

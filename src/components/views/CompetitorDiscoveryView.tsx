@@ -5,6 +5,7 @@ import {
   applyOverrides, approveCandidate, rejectCandidate, markDuplicate, setPageId,
   computeReadyForSpy, isNumericPageId, discoveryWriteConfigured,
 } from "../../utils/competitorDiscovery";
+import { viLabel, humanizeText } from "../../utils/spyData";
 
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const pct = (v: unknown) => `${Math.round(num(v) * 100)}%`;
@@ -20,6 +21,10 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 const STATUSES = ["all", "new", "needs_review", "needs_page_id", "approved", "rejected", "duplicate", "imported_to_competitors"];
+const STATUS_VI: Record<string, string> = {
+  all: "Tất cả", new: "Mới", needs_review: "Cần review", needs_page_id: "Thiếu page_id",
+  approved: "Đã duyệt", rejected: "Từ chối", duplicate: "Trùng lặp", imported_to_competitors: "Đã import",
+};
 
 const DISCOVERY_RUN_TYPE = "exa_skin_rejuvenation_competitor_discovery";
 const SC = "skin_rejuvenation";
@@ -113,7 +118,7 @@ export default function CompetitorDiscoveryView({ data }: { data: SpyDashboardDa
             className="pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg w-64 focus:outline-none focus:ring-1 focus:ring-cyan-400" />
         </div>
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="text-xs border border-slate-200 rounded-lg px-2 py-1.5">
-          {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+          {STATUSES.map((s) => <option key={s} value={s}>{STATUS_VI[s] || s}</option>)}
         </select>
         <label className="text-xs flex items-center gap-1.5 text-slate-600">
           <input type="checkbox" checked={readyOnly} onChange={(e) => setReadyOnly(e.target.checked)} /> ready_for_spy
@@ -162,7 +167,7 @@ const Row: React.FC<{ c: CompetitorDiscoveryCandidate; onAct: (fn: () => Promise
       <td className="py-2.5 px-3">
         <p className="font-bold text-slate-800">{c.brand_name}</p>
         {c.duplicate_of && <p className="text-[10px] text-slate-400">trùng với {c.duplicate_of}</p>}
-        <p className="text-[10px] text-slate-400 max-w-[14rem] truncate">{c.evidence_summary}</p>
+        <p className="text-[10px] text-slate-400 max-w-[14rem] truncate">{humanizeText(String(c.evidence_summary || ""))}</p>
       </td>
       <td className="px-2">
         <div className="flex flex-col gap-0.5">
@@ -186,11 +191,11 @@ const Row: React.FC<{ c: CompetitorDiscoveryCandidate; onAct: (fn: () => Promise
       </td>
       <td className="px-2 text-slate-500 max-w-[10rem]">
         <div className="flex flex-wrap gap-0.5">
-          {String(c.detected_services || "").split("|").filter(Boolean).slice(0, 3).map((s, i) => <span key={i} className="px-1 bg-slate-100 rounded text-[10px]">{s}</span>)}
+          {String(c.detected_services || "").split("|").filter(Boolean).slice(0, 3).map((s, i) => <span key={i} className="px-1 bg-slate-100 rounded text-[10px]">{viLabel(s)}</span>)}
         </div>
       </td>
       <td className="px-2 font-bold text-slate-700">{pct(c.overall_confidence_score)}</td>
-      <td className="px-2"><span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${STATUS_COLOR[st] || "bg-slate-100 text-slate-600"}`}>{c.status}</span></td>
+      <td className="px-2"><span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${STATUS_COLOR[st] || "bg-slate-100 text-slate-600"}`}>{STATUS_VI[st] || c.status}</span></td>
       <td className="px-2">{ready ? <span className="text-emerald-600 font-bold">✓</span> : <span className="text-slate-300">—</span>}</td>
       <td className="px-2">
         <div className="flex items-center justify-end gap-1">

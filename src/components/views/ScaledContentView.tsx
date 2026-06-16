@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { motion } from "motion/react";
 import { Search, Flame, Info, CheckCircle2 } from "lucide-react";
 import type { SpyDashboardData, ScaledContentAnalysis } from "../../types";
-import { normalizeNumber, orUnknown, scaleMeta, viLabel } from "../../utils/spyData";
+import { normalizeNumber, orUnknown, scaleMeta, viLabel, isMeaningful, humanizeText } from "../../utils/spyData";
 
 const TONE: Record<string, string> = {
   slate: "bg-slate-100 text-slate-600 border-slate-200",
@@ -77,18 +77,18 @@ export default function ScaledContentView({ data }: { data: SpyDashboardData }) 
               </div>
               <p className="text-sm text-slate-700 italic leading-relaxed">“{orUnknown(r.representative_hook)}”</p>
               <div className="flex flex-wrap gap-1.5">
-                <span className="bg-slate-50 border border-slate-200 text-slate-600 px-2 py-0.5 rounded text-[11px] font-semibold">{viLabel(r.content_format)}</span>
-                <span className="bg-slate-50 border border-slate-200 text-slate-600 px-2 py-0.5 rounded text-[11px] font-semibold">{viLabel(r.service_or_product)}</span>
-                <span className="bg-slate-50 border border-slate-200 text-slate-600 px-2 py-0.5 rounded text-[11px] font-semibold">{viLabel(r.content_angle)}</span>
-                {!!orUnknown(r.offer_detected) && r.offer_detected && <span className="bg-slate-50 border border-slate-200 text-slate-600 px-2 py-0.5 rounded text-[11px] font-semibold">{orUnknown(r.offer_detected)}</span>}
+                {[r.content_format, r.service_or_product, r.content_angle].filter(isMeaningful).map((v, i) => (
+                  <span key={i} className="bg-slate-50 border border-slate-200 text-slate-600 px-2 py-0.5 rounded text-[11px] font-semibold">{viLabel(String(v))}</span>
+                ))}
+                {isMeaningful(r.offer_detected) && <span className="bg-slate-50 border border-slate-200 text-slate-600 px-2 py-0.5 rounded text-[11px] font-semibold">{r.offer_detected}</span>}
               </div>
               <p className="text-xs text-slate-500 font-mono">
                 <b className="text-slate-700">{orUnknown(r.number_of_similar_ads)}</b> QC tương tự · dài nhất <b className="text-slate-700">{orUnknown(r.longest_days_active)} ngày</b> · TB {orUnknown(r.average_days_active)} ngày
               </p>
-              <p className="text-xs text-slate-600"><b>Vì sao nhân rộng:</b> {orUnknown(r.why_it_is_scaling)}</p>
+              <p className="text-xs text-slate-600"><b>Vì sao nhân rộng:</b> {humanizeText(orUnknown(r.why_it_is_scaling))}</p>
               <div className="flex items-start gap-2 pt-2 border-t border-slate-100">
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${CACA[caca] || CACA.monitor}`}>{viLabel(r.seryn_should_copy_adapt_counter_avoid)}</span>
-                <span className="text-xs text-slate-600 flex-1">{orUnknown(r.seryn_reframe)}</span>
+                <span className="text-xs text-slate-600 flex-1">{humanizeText(orUnknown(r.seryn_reframe))}</span>
               </div>
             </div>
           );
