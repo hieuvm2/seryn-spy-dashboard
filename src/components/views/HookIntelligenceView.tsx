@@ -10,6 +10,28 @@ const HOOK_SOURCE = "hook_intelligence";
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const lc = (s?: string) => String(s || "").toLowerCase();
 
+/** Hook pattern hiển thị tiếng Việt từ category/formula/subcategory. */
+function viPattern(c: HookCluster): string {
+  const parts = [viLabel(c.hook_category), viLabel(c.hook_formula), viLabel(c.hook_subcategory)].filter((x) => x && x !== "Chưa rõ");
+  const base = parts.join(" · ") || String(c.hook_pattern || "");
+  return c.offer_linked === "TRUE" || c.top_offer_linked === "TRUE" ? `${base} · có ưu đãi` : base;
+}
+/** Tên cụm tiếng Việt (thay cluster_name có enum tiếng Anh). */
+function viClusterName(c: HookCluster): string {
+  const sub = viLabel(c.hook_subcategory);
+  return `Trẻ hóa da · ${viLabel(c.hook_category)}${sub && sub !== "Chưa rõ" ? ` · ${sub}` : ""}`;
+}
+/** Diễn giải "vì sao có tín hiệu" bằng tiếng Việt (thay insight có enum tiếng Anh). */
+function viWhy(c: HookCluster): string {
+  const brands = String(c.brands_using || "").split("|").filter(Boolean).length;
+  const days = c.avg_active_days && String(c.avg_active_days) !== "unknown"
+    ? ` · trung bình chạy ${c.avg_active_days} ngày`
+    : " · chưa rõ số ngày chạy (độ tin cậy thấp)";
+  const riskNote = num(c.risk_score) >= 60 ? " · rủi ro câu chữ cao → nên tránh" : num(c.risk_score) >= 30 ? " · có rủi ro câu chữ → dùng bản an toàn" : "";
+  const sig = (SIGNAL_VI as Record<string, string>)[String(c.scale_signal)] || String(c.scale_signal);
+  return `${sig}: ${c.ads_count} quảng cáo của ${brands} thương hiệu dùng mẫu ${viLabel(c.hook_category)} / ${viLabel(c.hook_formula)} quanh "${c.pain_point}"${days}${riskNote}. Đây là tín hiệu hook đối thủ, không phải hook thắng chắc.`;
+}
+
 const SIGNAL_TONE: Record<string, string> = {
   none: "bg-slate-100 text-slate-500 border-slate-200",
   early_signal: "bg-slate-100 text-slate-600 border-slate-200",
@@ -105,11 +127,11 @@ export default function HookIntelligenceView({ data, onGoToCreativeBriefs }: { d
 
       <div className="flex items-center gap-2 text-[11px] font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 rounded-lg px-3 py-2">
         <Info className="w-3.5 h-3.5 shrink-0" />
-        Đây là <b>competitor hook signal</b> (tín hiệu lặp / bền), không phải “winning hook”. Mọi câu SERYN đều viết lại an toàn claim, không copy nguyên văn đối thủ.
+        Đây là <b>tín hiệu hook đối thủ</b> (lặp lại / bền vững), không phải “hook thắng chắc”. Mọi câu của SERYN đều được viết lại an toàn câu chữ, không sao chép nguyên văn đối thủ.
       </div>
 
       {/* A. Top Hook Patterns */}
-      <Section icon={Zap} title="A. Skin Rejuvenation — Top Hook Patterns">
+      <Section icon={Zap} title="A. Mẫu hook nổi bật (trẻ hóa da)">
         <div className="relative max-w-md mb-3">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm hook pattern, pain, desire…" className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-300" />
@@ -118,9 +140,9 @@ export default function HookIntelligenceView({ data, onGoToCreativeBriefs }: { d
           <table className="w-full text-xs">
             <thead className="text-slate-400 font-mono uppercase tracking-wider">
               <tr className="text-left border-b border-slate-100">
-                <th className="py-2 pr-2">#</th><th className="pr-2">Hook pattern</th><th className="pr-2">Pain → Desire</th>
-                <th className="pr-2">Ads</th><th className="pr-2">Brands</th><th className="pr-2">Signal</th>
-                <th className="pr-2">Risk</th><th className="pr-2">Conf</th><th>SERYN</th>
+                <th className="py-2 pr-2">#</th><th className="pr-2">Mẫu hook</th><th className="pr-2">Nỗi đau → Mong muốn</th>
+                <th className="pr-2">Ad</th><th className="pr-2">Hãng</th><th className="pr-2">Tín hiệu</th>
+                <th className="pr-2">Rủi ro</th><th className="pr-2">Tin cậy</th><th>SERYN</th>
               </tr>
             </thead>
             <tbody>
@@ -130,7 +152,7 @@ export default function HookIntelligenceView({ data, onGoToCreativeBriefs }: { d
                   <tr key={c.hook_cluster_id} onClick={() => setSelected(String(c.hook_cluster_id))}
                     className={`border-b border-slate-50 cursor-pointer ${active ? "bg-cyan-50/60" : "hover:bg-slate-50"}`}>
                     <td className="py-2 pr-2 text-slate-400">{i + 1}</td>
-                    <td className="pr-2 font-bold text-slate-800">{c.hook_pattern}</td>
+                    <td className="pr-2 font-bold text-slate-800">{viPattern(c)}</td>
                     <td className="pr-2 text-slate-500">{c.pain_point} → {c.desired_outcome}</td>
                     <td className="pr-2 text-slate-600">{String(c.ads_count ?? 0)}</td>
                     <td className="pr-2 text-slate-600">{String(c.brands_using || "").split("|").filter(Boolean).length}</td>
@@ -150,26 +172,26 @@ export default function HookIntelligenceView({ data, onGoToCreativeBriefs }: { d
       {sel && (
         <>
           {/* B. Cluster Detail */}
-          <Section icon={Layers} title="B. Hook Cluster Detail" desc={sel.cluster_name}>
+          <Section icon={Layers} title="B. Chi tiết cụm hook" desc={viClusterName(sel)}>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2 text-xs">
-                <KV k="Hook pattern" v={sel.hook_pattern} />
-                <KV k="Category / Formula / Angle" v={`${sel.hook_category} · ${sel.hook_formula} · ${sel.hook_angle}`} />
-                <KV k="Pain point" v={sel.pain_point} />
-                <KV k="Desired outcome" v={sel.desired_outcome} />
-                <KV k="Brands dùng" v={String(sel.brands_using || "").split("|").filter(Boolean).join(", ")} />
-                <KV k="Ads / Avg active days" v={`${sel.ads_count} ad · ${sel.avg_active_days} ngày`} />
-                <KV k="Offer / Proof" v={`${sel.top_offer_linked === "TRUE" ? "có offer" : "không offer"} · ${viLabel(sel.top_proof_type)}`} />
-                <KV k="Format / Objective" v={`${viLabel(sel.top_ad_format)} · ${viLabel(sel.top_inferred_objective)}`} />
+                <KV k="Mẫu hook" v={viPattern(sel)} />
+                <KV k="Nhóm · Công thức · Góc" v={`${viLabel(sel.hook_category)} · ${viLabel(sel.hook_formula)} · ${viLabel(sel.hook_angle)}`} />
+                <KV k="Nỗi đau" v={sel.pain_point} />
+                <KV k="Mong muốn" v={sel.desired_outcome} />
+                <KV k="Thương hiệu dùng" v={String(sel.brands_using || "").split("|").filter(Boolean).join(", ")} />
+                <KV k="Số ad · Ngày chạy TB" v={`${sel.ads_count} ad · ${sel.avg_active_days} ngày`} />
+                <KV k="Ưu đãi · Bằng chứng" v={`${sel.top_offer_linked === "TRUE" ? "có ưu đãi" : "không ưu đãi"} · ${viLabel(sel.top_proof_type)}`} />
+                <KV k="Định dạng · Mục tiêu" v={`${viLabel(sel.top_ad_format)} · ${viLabel(sel.top_inferred_objective)}`} />
               </div>
               <div className="space-y-3">
                 <div className="rounded-xl border border-slate-200 p-3">
-                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Competitor hook signal (ví dụ — KHÔNG copy)</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Hook đối thủ đang dùng (ví dụ — KHÔNG sao chép)</p>
                   <p className="text-xs text-slate-600 italic">{sel.example_hooks}</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 p-3 bg-slate-50">
                   <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Vì sao có tín hiệu này</p>
-                  <p className="text-xs text-slate-700">{sel.insight}</p>
+                  <p className="text-xs text-slate-700">{viWhy(sel)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${SIGNAL_TONE[String(sel.scale_signal)]}`}>{SIGNAL_VI[String(sel.scale_signal)]}</span>
@@ -181,30 +203,30 @@ export default function HookIntelligenceView({ data, onGoToCreativeBriefs }: { d
           </Section>
 
           {/* C. Content Generator */}
-          <Section icon={Megaphone} title="C. Content Generator (chạy ads ngay)" desc={selRec ? undefined : "Cluster này chưa được sinh content (chỉ sinh cho cụm có tín hiệu lặp/bền + an toàn claim)."}>
+          <Section icon={Megaphone} title="C. Tạo nội dung quảng cáo (chạy ngay)" desc={selRec ? undefined : "Cụm này chưa được sinh nội dung (chỉ sinh cho cụm có tín hiệu lặp/bền + an toàn câu chữ)."}>
             {selRec ? (
               <div className="space-y-3">
-                <CopyBlock label="Short copy" text={selRec.ad_copy_short} onCopy={doCopy} />
-                <CopyBlock label="Medium copy" text={selRec.ad_copy_medium} onCopy={doCopy} />
-                <CopyBlock label="Long copy" text={selRec.ad_copy_long} onCopy={doCopy} />
+                <CopyBlock label="Nội dung ngắn" text={selRec.ad_copy_short} onCopy={doCopy} />
+                <CopyBlock label="Nội dung vừa" text={selRec.ad_copy_medium} onCopy={doCopy} />
+                <CopyBlock label="Nội dung dài" text={selRec.ad_copy_long} onCopy={doCopy} />
                 <div className="grid md:grid-cols-2 gap-3">
-                  <ListBlock label="Headline options" items={String(selRec.headline_options || "").split(" | ")} onCopy={doCopy} />
-                  <ListBlock label="CTA options" items={String(selRec.cta_options || "").split(" | ")} onCopy={doCopy} />
+                  <ListBlock label="Tiêu đề gợi ý" items={String(selRec.headline_options || "").split(" | ")} onCopy={doCopy} />
+                  <ListBlock label="Nút CTA gợi ý" items={String(selRec.cta_options || "").split(" | ")} onCopy={doCopy} />
                 </div>
-                <CopyBlock label="Video opening 3s" text={String(selRec.video_opening_3s || "").split(" || ").join("\n")} onCopy={doCopy} />
+                <CopyBlock label="Mở video 3 giây đầu" text={String(selRec.video_opening_3s || "").split(" || ").join("\n")} onCopy={doCopy} />
                 <div className="grid md:grid-cols-2 gap-3">
-                  <CopyBlock label="Messenger script angle" text={selRec.messenger_script_angle} onCopy={doCopy} />
-                  <CopyBlock label="Landing page angle" text={selRec.landing_page_angle} onCopy={doCopy} />
+                  <CopyBlock label="Kịch bản Messenger" text={selRec.messenger_script_angle} onCopy={doCopy} />
+                  <CopyBlock label="Góc landing page" text={selRec.landing_page_angle} onCopy={doCopy} />
                 </div>
-                <CopyBlock label="Visual direction" text={selRec.visual_direction} onCopy={doCopy} />
+                <CopyBlock label="Định hướng hình ảnh" text={selRec.visual_direction} onCopy={doCopy} />
               </div>
-            ) : <p className="text-xs text-slate-400">Chọn một cluster có tín hiệu lặp/bền để xem content.</p>}
+            ) : <p className="text-xs text-slate-400">Chọn một cụm có tín hiệu lặp/bền để xem nội dung.</p>}
           </Section>
         </>
       )}
 
       {/* D. Hook x Format / Funnel */}
-      <Section icon={Filter} title="D. Hook × Format / Funnel">
+      <Section icon={Filter} title="D. Hook × Định dạng / Phễu">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
           <MiniList title="Đi với Video" items={byFormat("video")} />
           <MiniList title="Đi với Image" items={byFormat("image")} />
@@ -214,7 +236,7 @@ export default function HookIntelligenceView({ data, onGoToCreativeBriefs }: { d
       </Section>
 
       {/* E. Risk & Safe Claim */}
-      <Section icon={ShieldAlert} title="E. Risk & Safe Claim">
+      <Section icon={ShieldAlert} title="E. Rủi ro & Câu chữ an toàn">
         {risky.length ? (
           <div className="space-y-2">
             {risky.slice(0, 8).map((c) => {
@@ -222,8 +244,8 @@ export default function HookIntelligenceView({ data, onGoToCreativeBriefs }: { d
               return (
                 <div key={c.hook_cluster_id} className="rounded-xl border border-slate-200 p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-bold text-slate-800">{c.hook_pattern}</p>
-                    <span className={`text-[11px] font-bold ${num(c.risk_score) >= 60 ? RISK_TONE.high : RISK_TONE.medium}`}>risk {num(c.risk_score)}</span>
+                    <p className="text-xs font-bold text-slate-800">{viPattern(c)}</p>
+                    <span className={`text-[11px] font-bold ${num(c.risk_score) >= 60 ? RISK_TONE.high : RISK_TONE.medium}`}>rủi ro {num(c.risk_score)}</span>
                   </div>
                   {!!rec?.avoid_phrases && <p className="text-[11px] text-rose-600 mt-1"><b>Tránh:</b> {rec.avoid_phrases}</p>}
                   {!!rec?.claim_safe_version && <p className="text-[11px] text-emerald-700 mt-0.5"><b>Bản an toàn:</b> {rec.claim_safe_version}</p>}
@@ -245,9 +267,9 @@ export default function HookIntelligenceView({ data, onGoToCreativeBriefs }: { d
 function Header() {
   return (
     <div className="flex flex-col gap-1.5 border-l-2 border-cyan-500 pl-4">
-      <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">HOOK INTELLIGENCE</span>
-      <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Hook Intelligence &amp; Ad Content Generator — Trẻ hóa da</h2>
-      <p className="text-sm text-slate-500">Cụm hook pattern của đối thủ → tín hiệu lặp/bền + rủi ro claim → content SERYN viết lại, dùng chạy ads ngay.</p>
+      <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">PHÂN TÍCH HOOK</span>
+      <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Phân tích Hook &amp; Tạo nội dung quảng cáo — Trẻ hóa da</h2>
+      <p className="text-sm text-slate-500">Gom mẫu hook của đối thủ → tín hiệu lặp/bền + rủi ro câu chữ → nội dung SERYN viết lại, dùng chạy quảng cáo ngay.</p>
     </div>
   );
 }
@@ -291,7 +313,7 @@ function MiniList({ title, items }: { title: string; items: HookCluster[] }) {
     <div className="rounded-xl border border-slate-200 p-3">
       <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">{title}</p>
       {items.length ? (
-        <ul className="space-y-1">{items.slice(0, 5).map((c) => <li key={c.hook_cluster_id} className="text-[11px] text-slate-700 truncate">• {c.hook_pattern} <span className="text-slate-400">({String(c.ads_count)} ad)</span></li>)}</ul>
+        <ul className="space-y-1">{items.slice(0, 5).map((c) => <li key={c.hook_cluster_id} className="text-[11px] text-slate-700 truncate">• {viPattern(c)} <span className="text-slate-400">({String(c.ads_count)} ad)</span></li>)}</ul>
       ) : <p className="text-[11px] text-slate-400">—</p>}
     </div>
   );
