@@ -50,8 +50,15 @@ async function main() {
     confidence_score: it.confidence_score, source_url: Array.isArray(it.source_urls) ? it.source_urls[0] : str(it.source_urls),
     status: "reviewed", created_at: nowISO(), updated_at: nowISO(),
   }));
-  await upsertTab(sheets, titles, TAB.marketIntelligence, HEADERS.marketIntelligence, miRows,
-    (r) => `${r.intelligence_type}|${str(r.suggested_hook).toLowerCase()}|${str(r.service_category)}|${str(r.week_date)}`);
+  // Merge AN TOÀN: chỉ thay row opportunity của claude trùng key; GIỮ NGUYÊN mọi
+  // row khác (source/trend/size/queue/opportunity từ Exa). KHÔNG dùng upsertTab vì
+  // key sẽ trùng cho các row có suggested_hook rỗng -> gộp mất dữ liệu.
+  const existingMI = await readTab(sheets, TAB.marketIntelligence);
+  const oppKey = (r) => `${str(r.suggested_hook).toLowerCase()}|${str(r.service_category)}|${str(r.week_date)}`;
+  const isClaudeOpp = (r) => r.intelligence_type === INTELLIGENCE_TYPE.opportunity && r.run_type === RUN_TYPE.claudeReview;
+  const newOppKeys = new Set(miRows.map(oppKey));
+  const keptMI = existingMI.filter((r) => !(isClaudeOpp(r) && newOppKeys.has(oppKey(r))));
+  await writeTab(sheets, titles, TAB.marketIntelligence, HEADERS.marketIntelligence, [...keptMI, ...miRows]);
 
   // ---- Sync -> SERYN Content Recommendations ----
   const recRows = items.map((it) => ({
@@ -67,8 +74,12 @@ async function main() {
     confidence_score: it.confidence_score,
     source_urls: Array.isArray(it.source_urls) ? it.source_urls.join("|") : str(it.source_urls),
   }));
-  await upsertTab(sheets, titles, TAB.contentRecs, HEADERS.contentRecs, recRows,
-    (r) => `${RUN_TYPE.exaMarket}|${String(r.suggested_hook).toLowerCase()}|${r.week_date}`);
+  // Merge AN TOÀN: giữ nguyên row weekly (source!=exaMarket), chỉ thay row exa trùng key.
+  const existingRecs = await readTab(sheets, TAB.contentRecs);
+  const recKey = (r) => `${str(r.suggested_hook).toLowerCase()}|${str(r.week_date)}`;
+  const newRecKeys = new Set(recRows.map(recKey));
+  const keptRecs = existingRecs.filter((r) => !(String(r.source) === RUN_TYPE.exaMarket && newRecKeys.has(recKey(r))));
+  await writeTab(sheets, titles, TAB.contentRecs, HEADERS.contentRecs, [...keptRecs, ...recRows]);
 
   // ---- Update research_queue rows (status=reviewed) trong Market Intelligence ----
   const topics = new Set(items.map((it) => str(it.topic).toLowerCase()));

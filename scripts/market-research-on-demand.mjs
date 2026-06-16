@@ -12,7 +12,7 @@
      - Crawl Runs                     (run_type=exa_skin_rejuvenation_market)
    ============================================================ */
 import "dotenv/config";
-import { getSheetsClient, readTab, appendTab, upsertTab } from "./lib/sheets.mjs";
+import { getSheetsClient, readTab, appendTab, writeTab } from "./lib/sheets.mjs";
 import { exaSearch } from "./lib/exaClient.mjs";
 import { detectAll } from "./lib/marketResearchUtils.mjs";
 import { estimateMarketSize } from "./lib/marketSizing.mjs";
@@ -165,8 +165,12 @@ async function main() {
     kpi: "qualified_booking", priority: o.priority, confidence_score: o.confidence_score, source_urls: o.source_urls,
   }));
   if (recRows.length) {
-    await upsertTab(sheets, titles, TAB.contentRecs, HEADERS.contentRecs, recRows,
-      (r) => `${RUN_TYPE.exaMarket}|${String(r.suggested_hook).toLowerCase()}|${r.week_date}`);
+    // Merge AN TOÀN: giữ nguyên row weekly (source!=exaMarket), chỉ thay row exa trùng key.
+    const existingRecs = await readTab(sheets, TAB.contentRecs);
+    const recKey = (r) => `${String(r.suggested_hook).toLowerCase()}|${r.week_date}`;
+    const newRecKeys = new Set(recRows.map(recKey));
+    const keptRecs = existingRecs.filter((r) => !(String(r.source) === RUN_TYPE.exaMarket && newRecKeys.has(recKey(r))));
+    await writeTab(sheets, titles, TAB.contentRecs, HEADERS.contentRecs, [...keptRecs, ...recRows]);
   }
 
   // ---- Crawl Runs (gộp run log) ----
