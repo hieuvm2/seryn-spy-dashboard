@@ -37,6 +37,13 @@ const menuGroups: MenuGroup[] = [
     ],
   },
   {
+    title: "Nghiên cứu & mở rộng",
+    items: [
+      { id: "market-research", label: "Nghiên cứu thị trường", icon: Globe },
+      { id: "competitor-discovery", label: "Phát hiện đối thủ", icon: Search },
+    ],
+  },
+  {
     title: "Phân tích đối thủ",
     items: [
       { id: "brands", label: "Đối thủ", icon: FileSpreadsheet },
@@ -45,13 +52,6 @@ const menuGroups: MenuGroup[] = [
       { id: "visual-intelligence", label: "Phân tích hình ảnh", icon: ImageIcon },
       { id: "ad-format-funnel", label: "Định dạng & Phễu", icon: LayoutGrid },
       { id: "weekly-changes", label: "Thay đổi tuần", icon: Layers },
-    ],
-  },
-  {
-    title: "Nghiên cứu & mở rộng",
-    items: [
-      { id: "market-research", label: "Nghiên cứu thị trường", icon: Globe },
-      { id: "competitor-discovery", label: "Phát hiện đối thủ", icon: Search },
     ],
   },
   {
