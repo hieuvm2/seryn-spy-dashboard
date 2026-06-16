@@ -1,32 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { motion } from "motion/react";
-import { Search, Flame, Info, Bookmark, FileText, CheckCircle2 } from "lucide-react";
-import type { SpyDashboardData, ScaledContentAnalysis, SerynAction } from "../../types";
+import { Search, Flame, Info, CheckCircle2 } from "lucide-react";
+import type { SpyDashboardData, ScaledContentAnalysis } from "../../types";
 import { normalizeNumber, orUnknown, scaleMeta, viLabel } from "../../utils/spyData";
-import { addSwipeItem, genId } from "../../utils/swipeFile";
-import { addCreativeBrief, generateBriefFromSwipeItem } from "../../utils/briefs";
-
-function scaledToSwipe(r: ScaledContentAnalysis) {
-  const action = (String(r.seryn_should_copy_adapt_counter_avoid || "monitor").toLowerCase() || "monitor") as SerynAction;
-  return {
-    id: genId(),
-    savedAt: new Date().toISOString(),
-    sourceType: "scaled_content" as const,
-    brand_name: r.brand_name,
-    hook: String(r.representative_hook || "").trim(),
-    service_or_product: r.service_or_product,
-    content_format: r.content_format,
-    content_angle: r.content_angle,
-    offer_detected: r.offer_detected,
-    proof_point: r.proof_point,
-    scale_level: r.scale_level,
-    reason_to_save: r.why_it_is_scaling,
-    action,
-    seryn_reframe: r.seryn_reframe,
-    notes: "",
-    tags: ["scaled"],
-  };
-}
 
 const TONE: Record<string, string> = {
   slate: "bg-slate-100 text-slate-600 border-slate-200",
@@ -49,22 +25,9 @@ function ScaleBadge({ level }: { level: ScaledContentAnalysis["scale_level"] }) 
   return <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${TONE[m.tone]}`}>C{n} · {m.label}</span>;
 }
 
-export default function ScaledContentView({
-  data,
-  onGoToCreativeBriefs,
-}: {
-  data: SpyDashboardData;
-  onGoToCreativeBriefs?: () => void;
-}) {
+export default function ScaledContentView({ data }: { data: SpyDashboardData }) {
   const [q, setQ] = useState("");
-  const [note, setNote] = useState<string | null>(null);
-  const flash = (m: string) => { setNote(m); window.setTimeout(() => setNote(null), 2600); };
-  const onSave = (r: ScaledContentAnalysis) => { addSwipeItem(scaledToSwipe(r)); flash(`Đã lưu vào Swipe File: ${r.brand_name}`); };
-  const onBrief = (r: ScaledContentAnalysis) => {
-    addCreativeBrief(generateBriefFromSwipeItem(scaledToSwipe(r)));
-    flash("Đã tạo Creative Brief. Mở tab Creative Briefs để xem.");
-    onGoToCreativeBriefs?.();
-  };
+  const [note] = useState<string | null>(null);
 
   const rows = useMemo(() => {
     const list = [...data.scaledContentAnalysis].sort(

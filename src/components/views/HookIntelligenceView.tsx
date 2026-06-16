@@ -74,7 +74,7 @@ async function copyText(t: string): Promise<boolean> {
   }
 }
 
-export default function HookIntelligenceView({ data, onGoToCreativeBriefs }: { data: SpyDashboardData; onGoToCreativeBriefs?: () => void }) {
+export default function HookIntelligenceView({ data }: { data: SpyDashboardData }) {
   const clusters = useMemo<HookCluster[]>(
     () => (data.hookIntelligence ?? []).filter((c) => !c.service_category || c.service_category === SC),
     [data.hookIntelligence],
@@ -103,7 +103,7 @@ export default function HookIntelligenceView({ data, onGoToCreativeBriefs }: { d
           <p className="text-sm font-bold text-slate-700">Chưa có cụm Hook Intelligence cho trẻ hóa da.</p>
           <p className="text-xs text-slate-500 mt-1">Chạy <code className="font-mono text-cyan-700">npm run hooks:analyze</code> để tạo cụm hook + content. Bên dưới là danh sách hook nhanh từ dữ liệu hiện có.</p>
         </div>
-        <TopHooksView data={data} onGoToCreativeBriefs={onGoToCreativeBriefs} />
+        <TopHooksView data={data} />
       </div>
     );
   }

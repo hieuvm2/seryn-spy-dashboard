@@ -68,25 +68,6 @@ const RECORD_TABS = {
     ],
     required: ["brand_name"],
   },
-  swipe_file: {
-    tab: "Swipe File",
-    headers: [
-      "id", "savedAt", "sourceType", "brand_name", "hook", "service_or_product",
-      "content_format", "content_angle", "offer_detected", "proof_point", "scale_level",
-      "reason_to_save", "action", "seryn_reframe", "notes", "tags",
-    ],
-    required: ["id", "hook"],
-  },
-  creative_briefs: {
-    tab: "Creative Briefs",
-    headers: [
-      "id", "createdAt", "sourceType", "title", "brand_name", "objective", "market_signal",
-      "competitor_evidence", "seryn_angle", "target_audience", "core_message", "hook_options",
-      "content_format", "script_outline", "visual_direction", "proof_points", "cta", "kpi",
-      "dos", "donts", "markdown",
-    ],
-    required: ["id", "title"],
-  },
   // Exa Competitor Discovery — read + write (approve/reject/edit page_id).
   // idField=discovery_id (không phải "id"). Update đúng dòng theo discovery_id.
   competitor_discovery: {

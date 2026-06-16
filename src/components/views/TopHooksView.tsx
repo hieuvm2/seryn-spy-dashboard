@@ -1,11 +1,9 @@
 import React, { useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { Search, Zap, Bookmark, FileText, ClipboardCopy, CheckCircle2, ExternalLink, ShieldCheck } from "lucide-react";
+import { Search, Zap, ClipboardCopy, CheckCircle2, ExternalLink, ShieldCheck } from "lucide-react";
 import type { SpyDashboardData, TopHookItem } from "../../types";
 import { normalizeNumber, orUnknown, viLabel, scaleMeta } from "../../utils/spyData";
 import { buildTopHooks, isSerynSafeHook } from "../../utils/topHooks";
-import { addSwipeItem, genId } from "../../utils/swipeFile";
-import { addCreativeBrief, generateBriefFromSwipeItem } from "../../utils/briefs";
 
 const ACTION_TONE: Record<string, string> = {
   copy: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -65,34 +63,7 @@ async function copyText(t: string): Promise<boolean> {
   }
 }
 
-function hookToSwipe(h: TopHookItem) {
-  return {
-    id: genId(),
-    savedAt: new Date().toISOString(),
-    sourceType: "hook" as const,
-    brand_name: h.brand_name,
-    hook: h.hook_text,
-    service_or_product: h.service_or_product,
-    content_format: h.content_format,
-    content_angle: h.content_angle,
-    offer_detected: h.offer_detected,
-    proof_point: h.proof_point,
-    scale_level: h.scale_level,
-    reason_to_save: h.scale_reason,
-    action: h.seryn_action || "monitor",
-    seryn_reframe: h.seryn_rewrite,
-    notes: "",
-    tags: ["top-hook"],
-  };
-}
-
-export default function TopHooksView({
-  data,
-  onGoToCreativeBriefs,
-}: {
-  data: SpyDashboardData;
-  onGoToCreativeBriefs?: () => void;
-}) {
+export default function TopHooksView({ data }: { data: SpyDashboardData }) {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
   const [note, setNote] = useState<string | null>(null);
@@ -120,18 +91,9 @@ export default function TopHooksView({
 
   const flash = (m: string) => { setNote(m); window.setTimeout(() => setNote(null), 2600); };
 
-  const onSave = (h: TopHookItem) => {
-    addSwipeItem(hookToSwipe(h));
-    flash(`Đã lưu vào Swipe File: ${h.brand_name}`);
-  };
-  const onBrief = (h: TopHookItem) => {
-    addCreativeBrief(generateBriefFromSwipeItem(hookToSwipe(h)));
-    flash("Đã tạo Creative Brief. Mở tab Creative Briefs để xem.");
-    onGoToCreativeBriefs?.();
-  };
   const onCopy = async (h: TopHookItem) => {
     const ok = await copyText(h.seryn_rewrite || "");
-    flash(ok ? "Đã copy SERYN rewrite." : "Không copy được.");
+    flash(ok ? "Đã copy câu viết lại." : "Không copy được.");
   };
 
   return (

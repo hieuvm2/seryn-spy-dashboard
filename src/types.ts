@@ -331,49 +331,6 @@ export type TopHookItem = {
   seryn_rewrite?: string;
 };
 
-export type SwipeFileItem = {
-  id: string;
-  savedAt: string;
-  sourceType: "hook" | "scaled_content" | "recommendation";
-  brand_name: string;
-  hook: string;
-  service_or_product?: string;
-  content_format?: string;
-  content_angle?: string;
-  offer_detected?: string;
-  proof_point?: string;
-  scale_level?: number | string;
-  reason_to_save?: string;
-  action: SerynAction;
-  seryn_reframe?: string;
-  notes?: string;
-  tags: string[];
-};
-
-export type CreativeBrief = {
-  id: string;
-  createdAt: string;
-  sourceType: "swipe_file" | "recommendation" | "scaled_content" | "hook";
-  title: string;
-  brand_name?: string;
-  objective: string;
-  market_signal: string;
-  competitor_evidence: string;
-  seryn_angle: string;
-  target_audience: string;
-  core_message: string;
-  hook_options: string[];
-  content_format: string;
-  script_outline: string[];
-  visual_direction: string;
-  proof_points: string[];
-  cta: string;
-  kpi: string;
-  dos: string[];
-  donts: string[];
-  markdown: string;
-};
-
 /* ============================================================
    VISUAL INTELLIGENCE — phân tích creative ads (ảnh/video)
    5 lớp: Asset · OCR/Text overlay · Visual · Risk · Pattern
