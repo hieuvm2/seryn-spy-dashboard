@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion } from "motion/react";
 import { Lightbulb, Target, Quote, ShieldCheck, Download, ClipboardCopy, CheckCircle2, Zap } from "lucide-react";
 import type { SpyDashboardData, SerynContentRecommendation } from "../../types";
-import { orUnknown, splitChips, viLabel, isMissing, normalizeNumber } from "../../utils/spyData";
+import { orUnknown, splitChips, viLabel, isMissing, normalizeNumber, humanizeText } from "../../utils/spyData";
 
 async function copyText(t: string): Promise<boolean> {
   try { await navigator.clipboard.writeText(t); return true; }
@@ -53,12 +53,12 @@ function Card({
         <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${PRIO_TONE[prio] || PRIO_TONE.low}`}>{viLabel(r.priority)}</span>
       </div>
 
-      <p className="text-xs text-slate-600"><b>Tín hiệu thị trường:</b> {orUnknown(r.market_signal)}</p>
-      <p className="text-[11px] text-slate-500 font-mono leading-relaxed"><b>Bằng chứng:</b> {orUnknown(r.competitor_evidence)}</p>
+      <p className="text-xs text-slate-600"><b>Tín hiệu thị trường:</b> {humanizeText(orUnknown(r.market_signal))}</p>
+      <p className="text-[11px] text-slate-500 font-mono leading-relaxed"><b>Bằng chứng:</b> {humanizeText(orUnknown(r.competitor_evidence))}</p>
 
       <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
-        <p className="text-sm text-slate-800 italic flex gap-2"><Quote className="w-3.5 h-3.5 text-cyan-500 shrink-0 mt-1" />{orUnknown(r.suggested_hook)}</p>
-        <p className="text-xs text-slate-600"><b>Thông điệp:</b> {orUnknown(r.main_message)}</p>
+        <p className="text-sm text-slate-800 italic flex gap-2"><Quote className="w-3.5 h-3.5 text-cyan-500 shrink-0 mt-1" />{humanizeText(orUnknown(r.suggested_hook))}</p>
+        <p className="text-xs text-slate-600"><b>Thông điệp:</b> {humanizeText(orUnknown(r.main_message))}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">

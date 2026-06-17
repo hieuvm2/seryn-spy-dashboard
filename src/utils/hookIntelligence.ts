@@ -252,9 +252,33 @@ function fill(primary: string[], template: string[], n = 3): string[] {
   return out;
 }
 
+/** Câu dẫn riêng theo nhóm hook (để rewrite KHÁC nhau giữa các loại hook). */
+function catLeadIn(cat: string, pain: string): string {
+  return ({
+    offer_promotion: `Đối thủ đua ưu đãi cho ${pain}; SERYN chọn hướng khác`,
+    urgency: `Thay vì tạo áp lực thời gian quanh ${pain}`,
+    fear_loss_aversion: `Thay vì hù dọa về ${pain}`,
+    mistake_warning: `Thay vì "cảnh báo sai lầm" về ${pain}`,
+    authority: `Bác sĩ SERYN tiếp cận ${pain} bằng chẩn đoán`,
+    education: `Hiểu đúng ${pain} trước đã`,
+    myth_busting: `Có nhiều lầm tưởng quanh ${pain}`,
+    transformation: `Với ${pain}, kết quả đẹp nhất là tự nhiên`,
+    social_proof: `Nhiều người cùng quan tâm ${pain}`,
+    testimonial: `Sau mỗi câu chuyện về ${pain} là một nền da khác nhau`,
+    consultation_invite: `Trước khi điều trị ${pain}`,
+    diagnosis_problem: `Da bạn đang ở giai đoạn nào của ${pain}?`,
+    curiosity: `Điều ít người để ý về ${pain}`,
+    comparison: `So phương pháp cho ${pain} chỉ có nghĩa khi hiểu nền da của bạn`,
+    pain_point: `${cap(pain)} là điều nhiều người gặp khi da đổi theo thời gian`,
+    desire_outcome: `Hướng tới ${pain ? "cải thiện " + pain : "làn da đẹp hơn"}`,
+  } as Record<string, string>)[cat] || `Về ${pain}`;
+}
+
 export function buildSerynRewriteGroups(cluster: HookCluster, rec?: SerynContentRecommendation): SerynRewriteGroups {
   const pain = painOf(cluster);
   const desire = desireOf(cluster);
+  const cat = String(cluster.hook_category || "");
+  const lead = catLeadIn(cat, pain);
   const recHeadlines = rec ? parsePipeList(rec.headline_options) : [];
   const recPrimary = rec ? parsePipeList(rec.primary_text_options) : [];
   const recVideo = rec ? parsePipeList(rec.video_opening_3s) : [];
@@ -262,7 +286,7 @@ export function buildSerynRewriteGroups(cluster: HookCluster, rec?: SerynContent
   const directResponse = fill(
     [...recHeadlines, rec?.ad_copy_short || ""].filter(Boolean),
     [
-      `${cap(pain)}? Hiểu đúng tình trạng da là bước đầu — nhắn tin để được bác sĩ tư vấn cá nhân hóa.`,
+      `${lead} — soi da & đánh giá nền tảng sinh học trước, rồi mới chọn lộ trình hướng tới ${desire}.`,
       `Đừng đoán: soi da để biết ${pain} của bạn đang ở mức nào, rồi mới chọn lộ trình phù hợp.`,
       `${cap(desire)} bắt đầu từ đánh giá nền tảng da — đặt lịch soi da cùng SERYN.`,
     ],
@@ -271,7 +295,7 @@ export function buildSerynRewriteGroups(cluster: HookCluster, rec?: SerynContent
   const premiumClinicTone = fill(
     [rec?.ad_copy_medium || ""].filter(Boolean),
     [
-      `Tại SERYN, mỗi lộ trình cải thiện ${pain} bắt đầu từ việc đọc hiểu nền tảng sinh học của làn da bạn.`,
+      `${lead}: tại SERYN, mỗi lộ trình cải thiện ${pain} bắt đầu từ việc đọc hiểu nền tảng sinh học của làn da bạn.`,
       `${cap(desire)} một cách tự nhiên, có cơ sở khoa học — cá nhân hóa theo chính tình trạng da của bạn.`,
       `Không vội vàng, không đại trà: bác sĩ SERYN đánh giá da trước khi đề xuất giải pháp phù hợp.`,
     ],

@@ -2,7 +2,8 @@ import React, { useState, useMemo } from "react";
 import { motion } from "motion/react";
 import { Search, Flame, Info, CheckCircle2 } from "lucide-react";
 import type { SpyDashboardData, ScaledContentAnalysis } from "../../types";
-import { normalizeNumber, orUnknown, scaleMeta, viLabel, isMeaningful, humanizeText } from "../../utils/spyData";
+import { normalizeNumber, orUnknown, scaleMeta, viLabel, isMeaningful } from "../../utils/spyData";
+import { analyzeScaledRow } from "../../utils/serynAnalysis";
 
 const TONE: Record<string, string> = {
   slate: "bg-slate-100 text-slate-600 border-slate-200",
@@ -69,6 +70,7 @@ export default function ScaledContentView({ data }: { data: SpyDashboardData }) 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {rows.map((r) => {
           const caca = String(r.seryn_should_copy_adapt_counter_avoid || "").toLowerCase();
+          const ai = analyzeScaledRow(r);
           return (
             <div key={r.content_cluster_id || r.representative_ad_id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
               <div className="flex items-center justify-between gap-2">
@@ -85,10 +87,10 @@ export default function ScaledContentView({ data }: { data: SpyDashboardData }) 
               <p className="text-xs text-slate-500 font-mono">
                 <b className="text-slate-700">{orUnknown(r.number_of_similar_ads)}</b> QC tương tự · dài nhất <b className="text-slate-700">{orUnknown(r.longest_days_active)} ngày</b> · TB {orUnknown(r.average_days_active)} ngày
               </p>
-              <p className="text-xs text-slate-600"><b>Vì sao nhân rộng:</b> {humanizeText(orUnknown(r.why_it_is_scaling))}</p>
+              <p className="text-xs text-slate-600"><b>Vì sao nhân rộng:</b> {ai.why}</p>
               <div className="flex items-start gap-2 pt-2 border-t border-slate-100">
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${CACA[caca] || CACA.monitor}`}>{viLabel(r.seryn_should_copy_adapt_counter_avoid)}</span>
-                <span className="text-xs text-slate-600 flex-1">{humanizeText(orUnknown(r.seryn_reframe))}</span>
+                <span className="text-xs text-slate-600 flex-1">{ai.reframe}</span>
               </div>
             </div>
           );

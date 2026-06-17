@@ -8,6 +8,7 @@ import {
   parseTopList, dataQualityReport, latestWeek, buildMarkdownReport, updateActionStatus,
 } from "../../utils/weeklyIntel";
 import { viLabel, humanizeText } from "../../utils/spyData";
+import { analyzeSwipe } from "../../utils/serynAnalysis";
 
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 
@@ -252,7 +253,9 @@ export default function WeeklyIntelligenceView({ data }: { data: SpyDashboardDat
       {/* 8. Swipe File Candidates */}
       <Card icon={Bookmark} title="Đề xuất Swipe File" desc="Ad đáng học theo — lưu vào Swipe File rồi điều chỉnh theo tông SERYN.">
         <div className="grid md:grid-cols-2 gap-3">
-          {swipe.map((s) => (
+          {swipe.map((s) => {
+            const ai = analyzeSwipe(s);
+            return (
             <div key={s.swipe_id} className="border border-slate-200 rounded-xl p-3 flex gap-3">
               {s.thumbnail_url || s.media_url ? (
                 <img src={s.thumbnail_url || s.media_url} alt="" className="w-16 h-16 rounded-lg object-cover bg-slate-100 shrink-0" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
@@ -260,12 +263,13 @@ export default function WeeklyIntelligenceView({ data }: { data: SpyDashboardDat
               <div className="min-w-0">
                 <p className="text-xs font-bold text-slate-800 truncate">{s.brand_name}</p>
                 <p className="text-[11px] text-slate-600 line-clamp-1">{s.hook || "(no hook)"}</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">{humanizeText(String(s.why_save || ""))}</p>
-                <p className="text-[10px] text-cyan-700 mt-0.5 line-clamp-2">{humanizeText(String(s.how_to_adapt || ""))}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">{ai.whySave}</p>
+                <p className="text-[10px] text-cyan-700 mt-0.5 line-clamp-2">{ai.howToAdapt}</p>
                 {s.ad_url && <a href={s.ad_url} target="_blank" rel="noreferrer" className="text-[10px] text-cyan-600 hover:underline inline-flex items-center gap-0.5 mt-0.5">xem ad <ExternalLink className="w-2.5 h-2.5" /></a>}
               </div>
             </div>
-          ))}
+            );
+          })}
           {!swipe.length && <p className="text-xs text-slate-400">Chưa có ad đáng lưu tuần này.</p>}
         </div>
       </Card>
