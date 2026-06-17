@@ -75,35 +75,78 @@ export function analyzeScaledRow(r: ScaledContentAnalysis): ScaledInsight {
 /* ---------- Swipe File suggestions (Báo cáo tuần) ---------- */
 export type SwipeInsight = { whySave: string; howToAdapt: string };
 
+/** Nhận diện chủ đề/pain từ hook+offer; đánh dấu off-topic (ngoài trẻ hóa da). */
+const SKIN_PAIN: Array<[string, RegExp]> = [
+  ["nám/thâm sạm", /nám|tàn nhang|sạm|thâm|đốm nâu/],
+  ["da chảy xệ", /chảy xệ|chùng|nhão|lão hóa|nếp nhăn|sụp mí/],
+  ["mụn/sẹo", /mụn|sẹo|rỗ/],
+  ["lỗ chân lông", /lỗ chân lông/],
+  ["da xỉn màu", /xỉn|kém sắc|tối màu/],
+  ["trẻ hóa/căng bóng da", /trẻ hóa|căng bóng|tái tạo|hifu|thermage|ultherapy|laser trẻ|exosome|collagen|skin booster|nâng cơ/],
+];
+const OFF_TOPIC: Array<[string, RegExp]> = [
+  ["triệt lông", /triệt lông|wax/],
+  ["nâng ngực/vòng 1", /ngực|vòng 1|nâng vòng/],
+  ["răng/nha khoa", /\brăng\b|niềng|veneer|nha khoa/],
+  ["giảm béo", /giảm béo|giảm mỡ|hút mỡ|coolsculpt/],
+  ["phẫu thuật", /nâng mũi|cắt mí|độn cằm|phẫu thuật|gọt|v-?line/],
+  ["phun xăm", /phun mày|phun môi|xăm|điêu khắc/],
+];
+function detectTopic(text: string): { pain: string; onTopic: boolean; offLabel: string } {
+  for (const [label, re] of OFF_TOPIC) if (re.test(text)) {
+    // off-topic trừ khi cũng có tín hiệu da rõ
+    if (!/trẻ hóa|căng bóng|nám|lão hóa|nếp nhăn|da mặt/.test(text)) return { pain: "", onTopic: false, offLabel: label };
+  }
+  for (const [pain, re] of SKIN_PAIN) if (re.test(text)) return { pain, onTopic: true, offLabel: "" };
+  return { pain: "dấu hiệu lão hóa da", onTopic: true, offLabel: "" };
+}
+
 export function analyzeSwipe(s: SwipeSuggestion): SwipeInsight {
   const brand = String(s.brand_name || "đối thủ");
   const hook = String(s.hook || "").trim();
+  const snippet = hook ? `"${hook.slice(0, 46)}${hook.length > 46 ? "…" : ""}"` : "creative";
   const offer = isMeaningful(s.offer) ? String(s.offer) : "";
-  const angle = lc(s.angle);
   const fmt = lbl(s.format);
-  const seed = `${brand}|${hook}`;
+  const seed = `${brand}|${hook}|${offer}`;
+  const blob = lc(`${hook} ${offer} ${s.angle}`);
+  const { pain, onTopic, offLabel } = detectTopic(blob);
+  const isOffer = !!offer || /giảm|ưu đãi|khuyến mãi|miễn phí|trợ giá|đồng giá|sale|\boff\b|combo|tặng|\d\s*k\b|\d\s*%/.test(blob);
+  const isDoctor = /bác sĩ|chuyên gia|y khoa|phác đồ|ts\.?\s*bs/.test(lc(hook));
+  const isTransform = /trước sau|lột xác|thay đổi|sau \d|trẻ.* tuổi/.test(lc(hook));
 
-  const offerWords = /giảm|ưu đãi|khuyến mãi|miễn phí|trợ giá|đồng giá|sale|off|\d/.test(lc(offer) + " " + lc(hook));
-  const doctor = /bác sĩ|chuyên gia|y khoa|phác đồ/.test(lc(hook));
-  const transform = /trước sau|lột xác|thay đổi|sau \d/.test(lc(hook));
+  // ---- WHY SAVE (dùng dữ liệu thật + lý do riêng) ----
+  let whySave: string;
+  if (!onTopic) {
+    whySave = `${brand} đẩy mảng ${offLabel} (${snippet}) — NGOÀI trục trẻ hóa da của SERYN. Chỉ lưu để tham chiếu cách đóng gói/CTA, không áp dụng trực tiếp.`;
+  } else if (isOffer) {
+    whySave = `${brand} neo ${offer ? `ưu đãi "${offer}"` : "ưu đãi"} cho ${pain} (${snippet}) để kéo tương tác nhanh — lưu để hiểu cách họ đóng gói offer, KHÔNG sao chép kiểu giảm giá.`;
+  } else if (isDoctor) {
+    whySave = `${brand} khai thác uy tín bác sĩ cho ${pain} trong ${fmt || "creative"} (${snippet}) — gần với trục "nền tảng sinh học" của SERYN, đáng học cấu trúc.`;
+  } else if (isTransform) {
+    whySave = `${brand} nhấn kết quả ${pain} (${snippet}) — lưu để học cách kể chuyện, nhưng phải bỏ phóng đại khi SERYN dùng lại.`;
+  } else {
+    whySave = `Hook ${snippet} của ${brand} bắt đúng nỗi lo ${pain} — lưu làm tham chiếu góc tiếp cận.`;
+  }
 
-  const whySave = offerWords
-    ? `${brand} dùng mồi ưu đãi${offer ? ` ("${offer}")` : ""} để kéo tương tác nhanh — đáng lưu để hiểu cách họ đóng gói offer, KHÔNG để bắt chước giảm giá.`
-    : doctor
-      ? `${brand} khai thác uy tín bác sĩ trong ${fmt || "creative"} — đáng lưu vì gần với trục "nền tảng sinh học" của SERYN.`
-      : transform
-        ? `${brand} nhấn kết quả thay đổi — đáng lưu để học cách kể, nhưng cần bỏ phóng đại khi SERYN dùng lại.`
-        : `Hook "${hook.slice(0, 50)}" của ${brand} bắt đúng mối quan tâm trẻ hóa da — đáng lưu làm tham chiếu góc tiếp cận.`;
-
-  const howToAdapt = offerWords
-    ? `SERYN viết lại: bỏ giảm giá, đổi sang "soi da/đánh giá nền tảng sinh học" làm điểm vào; nhấn chỉ định đúng thay vì giá rẻ.`
-    : doctor
-      ? `Giữ vai trò bác sĩ nhưng nâng lên giải thích cơ chế lão hóa & cá nhân hóa lộ trình; CTA: đặt lịch soi da.`
-      : transform
-        ? `Đổi "thay đổi tức thì" thành kết quả tự nhiên, bền vững (kết quả tùy cơ địa); thêm bước đánh giá trước điều trị.`
-        : pick([
-            `Dựng lại theo tông điềm tĩnh, cao cấp; mở bằng việc hiểu đúng tình trạng da rồi mới tới giải pháp.`,
-            `Giữ góc tiếp cận, đổi giọng sang khoa học & cá nhân hóa; CTA nhẹ "đặt lịch soi da".`,
-          ], seed);
+  // ---- HOW TO ADAPT (riêng theo topic/pain, xoay biến thể) ----
+  let howToAdapt: string;
+  if (!onTopic) {
+    howToAdapt = `Không dùng trực tiếp; nếu cần chỉ học cách trình bày rồi chuyển hẳn về trục trẻ hóa da (soi da, nền tảng sinh học).`;
+  } else if (isOffer) {
+    howToAdapt = pick([
+      `Bỏ con số ${offer ? `"${offer}"` : "khuyến mãi"}; đổi điểm vào thành soi da & đánh giá nền tảng sinh học cho ${pain}, nhấn chỉ định đúng thay vì giá rẻ.`,
+      `Giữ sức hút của ưu đãi nhưng chuyển thành "gói đánh giá ${pain} cá nhân hóa" — giá trị thay vì giá rẻ.`,
+      `Đổi mồi giá sang mồi giá trị: 1 buổi soi da hiểu ${pain}, rồi mới tư vấn lộ trình.`,
+    ], seed);
+  } else if (isDoctor) {
+    howToAdapt = `Giữ vai bác sĩ, nâng lên giải thích cơ chế ${pain} & cá nhân hóa lộ trình; CTA: đặt lịch soi da.`;
+  } else if (isTransform) {
+    howToAdapt = `Đổi "thay đổi tức thì" thành kết quả tự nhiên, bền vững với ${pain} (kết quả tùy cơ địa); thêm bước đánh giá trước điều trị.`;
+  } else {
+    howToAdapt = pick([
+      `Giữ góc tiếp cận ${pain}, đổi giọng sang khoa học & cá nhân hóa; CTA nhẹ "đặt lịch soi da".`,
+      `Mở bằng việc hiểu đúng ${pain} rồi mới tới giải pháp; tông điềm tĩnh, cao cấp.`,
+    ], seed);
+  }
   return { whySave, howToAdapt };
 }
