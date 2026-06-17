@@ -4,16 +4,8 @@ import TopHeader from "./components/TopHeader";
 import BrandDetailDrawer from "./components/BrandDetailDrawer";
 import OverviewView from "./components/views/OverviewView";
 import BrandsView from "./components/views/BrandsView";
-import ScaledContentView from "./components/views/ScaledContentView";
-import HookIntelligenceView from "./components/views/HookIntelligenceView";
-import VisualIntelligenceView from "./components/views/VisualIntelligenceView";
-import WeeklyChangesView from "./components/views/WeeklyChangesView";
-import SerynRecommendationsView from "./components/views/SerynRecommendationsView";
 import CompetitorSetupView from "./components/views/CompetitorSetupView";
-import WeeklyIntelligenceView from "./components/views/WeeklyIntelligenceView";
-import MarketResearchView from "./components/views/MarketResearchView";
 import CompetitorDiscoveryView from "./components/views/CompetitorDiscoveryView";
-import AdFormatFunnelView from "./components/views/AdFormatFunnelView";
 import DataImportView from "./components/views/DataImportView";
 
 import { sampleSpyDashboardData } from "./sampleData";
@@ -193,16 +185,8 @@ export default function App() {
         <main className="p-4 sm:p-6 lg:p-8 flex-1 max-w-7xl w-full mx-auto pb-24">
           {activeSection === "overview" && <OverviewView data={spyData} onSelectBrand={setSelectedBrand} />}
           {activeSection === "brands" && <BrandsView data={spyData} onSelectBrand={setSelectedBrand} />}
-          {activeSection === "scaled-content" && <ScaledContentView data={spyData} />}
-          {activeSection === "top-hooks" && <HookIntelligenceView data={spyData} />}
-          {activeSection === "visual-intelligence" && <VisualIntelligenceView data={spyData} />}
-          {activeSection === "weekly-changes" && <WeeklyChangesView data={spyData} />}
-          {activeSection === "seryn-recommendations" && <SerynRecommendationsView data={spyData} />}
-          {activeSection === "weekly-intelligence" && <WeeklyIntelligenceView data={spyData} />}
           {activeSection === "competitor-setup" && <CompetitorSetupView />}
-          {activeSection === "market-research" && <MarketResearchView data={spyData} />}
           {activeSection === "competitor-discovery" && <CompetitorDiscoveryView data={spyData} />}
-          {activeSection === "ad-format-funnel" && <AdFormatFunnelView data={spyData} />}
           {activeSection === "data-import" && (
             <DataImportView
               data={spyData}

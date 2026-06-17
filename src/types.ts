@@ -6,16 +6,8 @@
 export type ViewId =
   | "overview"
   | "brands"
-  | "scaled-content"
-  | "top-hooks"
-  | "visual-intelligence"
-  | "weekly-changes"
-  | "seryn-recommendations"
-  | "weekly-intelligence"
-  | "competitor-setup"
-  | "market-research"
   | "competitor-discovery"
-  | "ad-format-funnel"
+  | "competitor-setup"
   | "data-import";
 
 /** Nguồn dữ liệu đang hiển thị. */

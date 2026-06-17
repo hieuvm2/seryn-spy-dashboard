@@ -8,7 +8,10 @@ import type { SpyDashboardData } from "../types";
 import { splitChips, orUnknown, viLabel, isMissing, isMeaningful, humanizeText } from "../utils/spyData";
 import { getBrandProfile } from "../utils/brandIntelligence";
 import { isDirectCompetitor } from "../utils/directCompetitors";
-import { analyzeScaledRow } from "../utils/serynAnalysis";
+import {
+  buildAdContentIntelligenceForBrand, formatContentBriefForCopy, ANGLE_VI,
+  type AdContentIntelligence,
+} from "../utils/adContentIntelligence";
 
 const num = (v: unknown) => { const n = Number(String(v ?? "").replace(/[^\d.-]/g, "")); return Number.isFinite(n) ? n : 0; };
 const pct = (v: unknown) => `${Math.round(num(v) * 100)}%`;
@@ -53,7 +56,7 @@ function Chips({ value, tone = "slate" }: { value?: string; tone?: "slate" | "em
   const cls = tone === "emerald" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-slate-50 border-slate-200 text-slate-600";
   return (
     <div className="flex flex-wrap gap-1.5">
-      {items.map((it) => <span key={it} className={`border px-2 py-0.5 rounded text-[11px] font-semibold ${cls}`}>{viLabel(it)}</span>)}
+      {items.map((it, i) => <span key={`${it}-${i}`} className={`border px-2 py-0.5 rounded text-[11px] font-semibold ${cls}`}>{viLabel(it)}</span>)}
     </div>
   );
 }
@@ -80,6 +83,7 @@ export default function BrandDetailDrawer({
   const doCopy = async (t: string, m = "Đã copy.") => flash((await copyText(t)) ? m : "Không copy được.");
 
   const p = brandName ? getBrandProfile(brandName, data) : null;
+  const content = brandName ? buildAdContentIntelligenceForBrand(brandName, data) : [];
   const snap = p?.snapshot;
   const disc = p?.discovery;
   const skinN = num(snap?.skin_rejuvenation_ads_count);
@@ -136,16 +140,6 @@ export default function BrandDetailDrawer({
                     </div>
                   </Section>
 
-                  {/* 2. Services & offers */}
-                  <Section icon={Layers} title="Dịch vụ & ưu đãi">
-                    <p className="text-[11px] text-slate-400 font-semibold uppercase mb-1">Dịch vụ đang chạy</p>
-                    <Chips value={snap?.services_running || disc?.detected_services} />
-                    <p className="text-[11px] text-slate-400 font-semibold uppercase mt-3 mb-1">Giá ghi nhận</p>
-                    <Chips value={snap?.prices_detected || disc?.detected_prices} />
-                    <p className="text-[11px] text-slate-400 font-semibold uppercase mt-3 mb-1">Ưu đãi</p>
-                    <Chips value={snap?.offers_detected || disc?.detected_offers} />
-                  </Section>
-
                   {/* 3. Ad content */}
                   <Section icon={FileText} title="Nội dung quảng cáo">
                     <div className="space-y-2">
@@ -157,18 +151,14 @@ export default function BrandDetailDrawer({
                     </div>
                   </Section>
 
-                  {/* 4. Hook clusters */}
-                  <Section icon={Zap} title="Hook nổi bật">
-                    {p.hookClusters.length ? (
-                      <div className="space-y-2">
-                        {p.hookClusters.slice(0, 5).map((c) => (
-                          <div key={c.hook_cluster_id} className="border border-slate-100 rounded-lg p-2.5">
-                            <p className="text-xs font-bold text-slate-700">{viLabel(c.hook_category)} · {viLabel(c.hook_formula)}</p>
-                            <p className="text-[11px] text-slate-500 mt-0.5 italic line-clamp-2">{c.example_hooks}</p>
-                          </div>
-                        ))}
+                  {/* 4. Phân tích content quảng cáo (section chính, full width) */}
+                  <Section icon={FileText} title="Phân tích content quảng cáo" accent full>
+                    <p className="text-[10px] text-slate-400 mb-3 italic">Đây là tín hiệu từ dữ liệu ads (số content lặp + thời gian chạy…), không phải dữ liệu hiệu quả chuyển đổi (CPA/ROAS).</p>
+                    {content.length ? (
+                      <div className="grid md:grid-cols-2 gap-3">
+                        {content.slice(0, 8).map((c) => <div key={c.id}><ContentCard c={c} onCopy={doCopy} /></div>)}
                       </div>
-                    ) : <p className="text-xs text-slate-400">Chưa có cụm hook gắn brand này.</p>}
+                    ) : <p className="text-xs text-slate-400">Chưa đủ dữ liệu để dựng content pattern cho brand này.</p>}
                   </Section>
 
                   {/* 5. Visual */}
@@ -198,35 +188,6 @@ export default function BrandDetailDrawer({
                         <p className="text-[11px] text-slate-500 mt-2">Chủ đạo: <b>{viLabel(String(snap?.skin_rejuvenation_top_format || ""))}</b> → <b>{viLabel(String(snap?.skin_rejuvenation_top_inferred_objective || ""))}</b></p>
                       </div>
                     ) : <p className="text-xs text-slate-400">Chưa có dữ liệu format/funnel trẻ hóa da.</p>}
-                  </Section>
-
-                  {/* 7. Scaled content (full width) */}
-                  <Section icon={Flame} title="Nội dung đang lặp lại / nhân rộng" accent full>
-                    {p.scaled.length ? (
-                      <div className="grid md:grid-cols-2 gap-3">
-                        {p.scaled.map((c) => {
-                          const ai = analyzeScaledRow(c);
-                          const caca = String(c.seryn_should_copy_adapt_counter_avoid || "").toLowerCase();
-                          return (
-                            <div key={c.content_cluster_id} className="bg-white border border-slate-200 rounded-xl p-3 space-y-1.5">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs font-bold text-slate-700">{viLabel(c.content_format)} · {viLabel(c.service_or_product)}</span>
-                                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">{num(c.number_of_similar_ads) >= 3 ? "Nhiều ads tương tự" : num(c.longest_days_active) >= 30 ? "Chạy dài ngày" : "Cần theo dõi"}</span>
-                              </div>
-                              <p className="text-sm text-slate-700 italic">“{orUnknown(c.representative_hook)}”</p>
-                              <p className="text-[11px] text-slate-500">{ai.why}</p>
-                              {caca && caca !== "unknown" && (
-                                <div className="flex items-start gap-2 pt-1 border-t border-slate-100">
-                                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded border shrink-0 ${CACA[caca] || CACA.monitor}`}>{viLabel(caca)}</span>
-                                  <span className="text-[11px] text-cyan-700">{ai.reframe}</span>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : <p className="text-xs text-slate-400">Chưa có tín hiệu lặp lại rõ ràng.</p>}
-                    <p className="text-[10px] text-slate-400 mt-2 italic">Đây là tín hiệu lặp lại từ ads (số lượng + thời gian chạy), chưa xác nhận hiệu quả chuyển đổi.</p>
                   </Section>
 
                   {/* 8. Weekly change */}
@@ -326,5 +287,102 @@ export default function BrandDetailDrawer({
         </>
       )}
     </AnimatePresence>
+  );
+}
+
+/* ---------- Content pattern card (Phân tích content quảng cáo) ---------- */
+const SCALE_VI: Record<string, string> = {
+  "Weak Signal": "Tín hiệu yếu", "Repeated Content": "Content lặp lại",
+  "Long-running Content": "Chạy dài ngày", "Strong Content Pattern": "Pattern nội dung mạnh",
+};
+const SCALE_TONE: Record<string, string> = {
+  "Weak Signal": "bg-slate-100 text-slate-600 border-slate-200",
+  "Repeated Content": "bg-sky-50 text-sky-700 border-sky-200",
+  "Long-running Content": "bg-amber-50 text-amber-700 border-amber-200",
+  "Strong Content Pattern": "bg-emerald-50 text-emerald-700 border-emerald-200",
+};
+const ACTION_VI: Record<string, string> = { Adapt: "Điều chỉnh", Counter: "Phản đòn", Monitor: "Theo dõi", Avoid: "Tránh", "Test Safe Version": "Test bản an toàn" };
+const OBJ_VI: Record<string, string> = { messenger: "Messenger", lead_form: "Lead form", landing_page_conversion: "Trang đích", phone_call: "Gọi điện", awareness: "Nhận biết", unknown: "Chưa rõ" };
+const FMT_VI: Record<string, string> = { image: "Ảnh", video: "Video", carousel: "Carousel", unknown: "Chưa rõ" };
+
+function ContentCard({ c, onCopy }: { c: AdContentIntelligence; onCopy: (t: string, m?: string) => void }) {
+  const [tab, setTab] = useState<"breakdown" | "psych" | "seryn" | "evidence">("breakdown");
+  const riskTone = c.riskLevel === "High" ? "text-rose-600" : c.riskLevel === "Medium" ? "text-amber-600" : "text-emerald-600";
+  const b = c.contentBreakdown, ps = c.psychology, r = c.serynResponse;
+  const TABS: { k: typeof tab; label: string }[] = [
+    { k: "breakdown", label: "Bóc tách" }, { k: "psych", label: "Tâm lý" }, { k: "seryn", label: "SERYN" }, { k: "evidence", label: "Bằng chứng" },
+  ];
+  const KV = ({ k, v }: { k: string; v?: string }) => <p className="text-[11px] text-slate-600"><b className="text-slate-500">{k}:</b> {v && isMeaningful(v) ? v : "N/A"}</p>;
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs font-bold text-slate-800 leading-snug">{c.contentSummary}</p>
+        <span className="shrink-0 text-xs font-extrabold px-2 py-0.5 rounded-lg bg-slate-800 text-white" title="Tín hiệu từ dữ liệu ads, không phải CPA/ROAS">{c.contentScore}</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5 text-[10px]">
+        <span className={`font-bold px-2 py-0.5 rounded border ${SCALE_TONE[c.scaleSignal]}`}>{SCALE_VI[c.scaleSignal]}</span>
+        <span className={`font-bold px-2 py-0.5 rounded border border-slate-200 ${riskTone}`}>Rủi ro: {c.riskLevel}</span>
+        <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{ANGLE_VI[c.contentAngle] || c.contentAngle}</span>
+        <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{FMT_VI[c.adFormat]}</span>
+        <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{OBJ_VI[c.inferredObjective]}</span>
+      </div>
+
+      <div className="flex border-b border-slate-100 text-[11px]">
+        {TABS.map((t) => (
+          <button key={t.k} onClick={() => setTab(t.k)} className={`px-2 py-1 font-bold border-b-2 transition ${tab === t.k ? "border-cyan-600 text-cyan-700" : "border-transparent text-slate-400 hover:text-slate-600"}`}>{t.label}</button>
+        ))}
+      </div>
+
+      {tab === "breakdown" && (
+        <div className="space-y-0.5">
+          <KV k="Mở đầu" v={b.openingLine} />
+          <KV k="Thông điệp" v={b.mainMessage} />
+          <KV k="Nỗi đau" v={c.painPoint} /><KV k="Mong muốn" v={c.desiredOutcome} />
+          <KV k="Cơ chế" v={b.mechanism} /><KV k="Bằng chứng" v={b.proofElement} />
+          <KV k="Ưu đãi" v={b.offerElement} /><KV k="CTA" v={b.ctaElement} />
+          <p className="text-[11px] text-slate-500 mt-1">Cấu trúc: {b.contentStructure.join(" → ")}</p>
+        </div>
+      )}
+      {tab === "psych" && (
+        <div className="space-y-0.5">
+          <KV k="Pain" v={ps.customerPain} /><KV k="Desire" v={ps.customerDesire} />
+          <KV k="Niềm tin" v={ps.beliefTrigger} /><KV k="Gỡ phản đối" v={ps.objectionHandled} />
+          <KV k="Cảm xúc" v={ps.emotionalTrigger} /><KV k="Nhận thức" v={ps.awarenessStage} />
+          <p className="text-[11px] text-slate-600 mt-1">{ps.whyItMayWork}</p>
+          <p className={`text-[11px] mt-1 ${num(c.riskLevel === "High" ? 1 : 0) ? "text-rose-700 font-semibold" : "text-slate-500"}`}>{ps.riskNote}</p>
+        </div>
+      )}
+      {tab === "seryn" && (
+        <div className="space-y-1">
+          <p className="text-[11px]"><span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200">{ACTION_VI[r.recommendedAction] || r.recommendedAction}</span> <b className="text-slate-700">{r.suggestedAngle}</b></p>
+          <KV k="Counter" v={r.counterPositioning} />
+          <KV k="Short copy" v={r.shortAdCopy} />
+          <KV k="Premium" v={r.premiumRewrite} />
+          <KV k="An toàn" v={r.safeRewrite} />
+          <KV k="Visual" v={r.visualDirection} />
+          <KV k="CTA" v={r.recommendedCTA} />
+          <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">{r.complianceWarning}</p>
+        </div>
+      )}
+      {tab === "evidence" && (
+        <div className="space-y-0.5">
+          <KV k="Số content" v={String(c.adsCount)} /><KV k="Ngày chạy" v={c.activeDays ? String(c.activeDays) : ""} />
+          <KV k="Dịch vụ" v={c.serviceCategory} /><KV k="Visual" v={c.visualAngle || c.visualFormat} />
+          {c.exampleAdUrls.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {c.exampleAdUrls.slice(0, 5).map((u, i) => <a key={i} href={u} target="_blank" rel="noreferrer" className="text-[11px] text-cyan-600 hover:underline inline-flex items-center gap-0.5">ad {i + 1} <ExternalLink className="w-3 h-3" /></a>)}
+            </div>
+          )}
+          {!c.exampleAdUrls.length && c.exampleAdIds.length > 0 && <p className="text-[11px] text-slate-400">ads: {c.exampleAdIds.join(", ")}</p>}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2 pt-1.5 border-t border-slate-100">
+        <button onClick={() => onCopy(c.contentSummary, "Đã copy tóm tắt.")} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-500 flex items-center gap-1"><ClipboardCopy className="w-3 h-3" /> Tóm tắt</button>
+        <button onClick={() => onCopy(c.contentBreakdown.contentStructure.join("\n"), "Đã copy bóc tách.")} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-500 flex items-center gap-1"><ClipboardCopy className="w-3 h-3" /> Bóc tách</button>
+        <button onClick={() => onCopy([r.suggestedAngle, r.counterPositioning, r.shortAdCopy, r.premiumRewrite].join("\n"), "Đã copy SERYN response.")} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-500 flex items-center gap-1"><ClipboardCopy className="w-3 h-3" /> SERYN</button>
+        <button onClick={() => onCopy(formatContentBriefForCopy(c), "Đã copy brief.")} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-500 flex items-center gap-1"><ClipboardCopy className="w-3 h-3" /> Full brief</button>
+      </div>
+    </div>
   );
 }

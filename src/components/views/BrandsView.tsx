@@ -4,6 +4,16 @@ import { Search, Flame, ChevronRight, Star } from "lucide-react";
 import type { SpyDashboardData } from "../../types";
 import { normalizeNumber, splitChips, orUnknown, viLabel, isMissing } from "../../utils/spyData";
 import { useDirectCompetitors, isDirectCompetitor } from "../../utils/directCompetitors";
+import { buildAdContentIntelligenceForBrand, ANGLE_VI } from "../../utils/adContentIntelligence";
+
+const SCALE_SHORT: Record<string, string> = {
+  "Weak Signal": "Tín hiệu yếu", "Repeated Content": "Content lặp lại",
+  "Long-running Content": "Chạy dài ngày", "Strong Content Pattern": "Pattern mạnh",
+};
+const OBJ_SHORT: Record<string, string> = {
+  messenger: "Messenger", lead_form: "Lead form", landing_page_conversion: "Trang đích",
+  phone_call: "Gọi điện", awareness: "Nhận biết", unknown: "Chưa rõ",
+};
 
 type BrandFilter = "all" | "direct" | "scaled" | "ads-up" | "new-offer" | "new-service" | "new-angle";
 const BRAND_FILTERS: { id: BrandFilter; label: string }[] = [
@@ -21,8 +31,8 @@ function Chips({ value, max = 4 }: { value?: string; max?: number }) {
   if (!items.length) return <span className="text-xs text-slate-400">chưa rõ</span>;
   return (
     <div className="flex flex-wrap gap-1">
-      {items.slice(0, max).map((it) => (
-        <span key={it} className="bg-slate-50 border border-slate-200 text-slate-600 px-2 py-0.5 rounded text-[11px] font-semibold">{viLabel(it)}</span>
+      {items.slice(0, max).map((it, i) => (
+        <span key={`${it}-${i}`} className="bg-slate-50 border border-slate-200 text-slate-600 px-2 py-0.5 rounded text-[11px] font-semibold">{viLabel(it)}</span>
       ))}
       {items.length > max && <span className="text-[11px] text-slate-400 font-semibold">+{items.length - max}</span>}
     </div>
@@ -43,6 +53,16 @@ export default function BrandsView({
   const changeByBrand = useMemo(() => {
     const m: Record<string, (typeof data.weeklyStrategyChange)[number]> = {};
     data.weeklyStrategyChange.forEach((c) => { m[c.brand_name] = c; });
+    return m;
+  }, [data]);
+
+  // Tóm tắt content nổi bật theo brand (góc content + objective + tín hiệu).
+  const contentByBrand = useMemo(() => {
+    const m: Record<string, { angle: string; objective: string; signal: string; score: number }> = {};
+    data.brandWeeklySnapshot.forEach((r) => {
+      const top = buildAdContentIntelligenceForBrand(r.brand_name, data)[0];
+      if (top) m[r.brand_name] = { angle: top.contentAngle, objective: top.inferredObjective, signal: top.scaleSignal, score: top.contentScore };
+    });
     return m;
   }, [data]);
 
@@ -111,8 +131,7 @@ export default function BrandsView({
               <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] uppercase tracking-wider text-slate-500 font-bold">
                 <th className="px-4 py-3">Đối thủ</th>
                 <th className="px-4 py-3 text-right">QC</th>
-                <th className="px-4 py-3">Dịch vụ</th>
-                <th className="px-4 py-3">Ưu đãi</th>
+                <th className="px-4 py-3">Góc content</th>
                 <th className="px-4 py-3">Định dạng</th>
                 <th className="px-4 py-3 text-right">Nhân rộng</th>
                 <th className="px-4 py-3"></th>
@@ -140,8 +159,18 @@ export default function BrandsView({
                     <td className="px-4 py-3 text-right">
                       <span className={`font-mono font-extrabold px-2 py-0.5 rounded text-[11px] ${ads > 0 ? "text-cyan-700 bg-cyan-50 border border-cyan-100" : "text-slate-400 bg-slate-50 border border-slate-200"}`}>{ads}</span>
                     </td>
-                    <td className="px-4 py-3"><Chips value={r.services_running} /></td>
-                    <td className="px-4 py-3 max-w-[200px]"><span className="text-xs text-slate-600 font-medium line-clamp-2">{orUnknown(r.offers_detected)}</span></td>
+                    <td className="px-4 py-3">
+                      {contentByBrand[r.brand_name] ? (
+                        <div className="space-y-1 max-w-[180px]">
+                          <span className="inline-block text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded">{ANGLE_VI[contentByBrand[r.brand_name].angle] || contentByBrand[r.brand_name].angle}</span>
+                          <div className="flex flex-wrap gap-1 text-[10px] text-slate-500 font-semibold">
+                            <span>{OBJ_SHORT[contentByBrand[r.brand_name].objective] || "Chưa rõ"}</span>
+                            <span className="text-slate-300">·</span>
+                            <span>{SCALE_SHORT[contentByBrand[r.brand_name].signal]}</span>
+                          </div>
+                        </div>
+                      ) : <span className="text-xs text-slate-300">—</span>}
+                    </td>
                     <td className="px-4 py-3"><Chips value={r.main_content_formats} max={3} /></td>
                     <td className="px-4 py-3 text-right">
                       {scaled > 0 ? (
@@ -157,7 +186,7 @@ export default function BrandsView({
                 );
               })}
               {!rows.length && (
-                <tr><td colSpan={7} className="px-4 py-10 text-center text-slate-400 text-sm font-semibold">Không có đối thủ khớp.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400 text-sm font-semibold">Không có đối thủ khớp.</td></tr>
               )}
             </tbody>
           </table>
