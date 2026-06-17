@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from "react";
 import { motion } from "motion/react";
-import { Search, Flame, ChevronRight } from "lucide-react";
+import { Search, Flame, ChevronRight, Star } from "lucide-react";
 import type { SpyDashboardData } from "../../types";
 import { normalizeNumber, splitChips, orUnknown, viLabel, isMissing } from "../../utils/spyData";
+import { useDirectCompetitors, isDirectCompetitor } from "../../utils/directCompetitors";
 
-type BrandFilter = "all" | "scaled" | "ads-up" | "new-offer" | "new-service" | "new-angle";
+type BrandFilter = "all" | "direct" | "scaled" | "ads-up" | "new-offer" | "new-service" | "new-angle";
 const BRAND_FILTERS: { id: BrandFilter; label: string }[] = [
   { id: "all", label: "Tất cả" },
+  { id: "direct", label: "Đối thủ trực tiếp" },
   { id: "scaled", label: "Có nội dung nhân rộng" },
   { id: "ads-up", label: "Tăng quảng cáo" },
   { id: "new-offer", label: "Có ưu đãi mới" },
@@ -36,6 +38,7 @@ export default function BrandsView({
 }) {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<BrandFilter>("all");
+  const direct = useDirectCompetitors();
 
   const changeByBrand = useMemo(() => {
     const m: Record<string, (typeof data.weeklyStrategyChange)[number]> = {};
@@ -44,12 +47,17 @@ export default function BrandsView({
   }, [data]);
 
   const rows = useMemo(() => {
-    let list = [...data.brandWeeklySnapshot].sort(
-      (a, b) => normalizeNumber(b.total_active_ads) - normalizeNumber(a.total_active_ads)
-    );
+    // Ưu tiên đối thủ trực tiếp lên đầu, rồi theo số QC đang chạy.
+    let list = [...data.brandWeeklySnapshot].sort((a, b) => {
+      const da = isDirectCompetitor(a.brand_name, direct) ? 1 : 0;
+      const db = isDirectCompetitor(b.brand_name, direct) ? 1 : 0;
+      if (da !== db) return db - da;
+      return normalizeNumber(b.total_active_ads) - normalizeNumber(a.total_active_ads);
+    });
     list = list.filter((r) => {
       const ch = changeByBrand[r.brand_name];
       switch (filter) {
+        case "direct": return isDirectCompetitor(r.brand_name, direct);
         case "scaled": return normalizeNumber(r.scaled_content_count) > 0;
         case "ads-up": return !!ch && normalizeNumber(ch.active_ads_change) > 0;
         case "new-offer": return !!ch && !isMissing(ch.new_offers_detected);
@@ -61,7 +69,7 @@ export default function BrandsView({
     if (!q.trim()) return list;
     const k = q.toLowerCase();
     return list.filter((r) => Object.values(r).some((v) => String(v).toLowerCase().includes(k)));
-  }, [data, q, filter, changeByBrand]);
+  }, [data, q, filter, changeByBrand, direct]);
 
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -114,14 +122,19 @@ export default function BrandsView({
               {rows.map((r) => {
                 const ads = normalizeNumber(r.total_active_ads);
                 const scaled = normalizeNumber(r.scaled_content_count);
+                const isDirect = isDirectCompetitor(r.brand_name, direct);
                 return (
                   <tr
                     key={r.brand_name}
                     onClick={() => onSelectBrand(r.brand_name)}
-                    className="border-b border-slate-100 last:border-0 hover:bg-cyan-50/40 cursor-pointer transition group"
+                    className={`border-b border-slate-100 last:border-0 cursor-pointer transition group ${isDirect ? "bg-amber-50/40 hover:bg-amber-50/70" : "hover:bg-cyan-50/40"}`}
                   >
                     <td className="px-4 py-3">
-                      <div className="font-extrabold text-slate-800 group-hover:text-cyan-700">{r.brand_name}</div>
+                      <div className="flex items-center gap-2">
+                        {isDirect && <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />}
+                        <span className="font-extrabold text-slate-800 group-hover:text-cyan-700">{r.brand_name}</span>
+                        {isDirect && <span className="text-[9px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">Trực tiếp</span>}
+                      </div>
                       <div className="text-[11px] text-slate-400 font-medium truncate max-w-[220px]">{orUnknown(r.weekly_change_summary)}</div>
                     </td>
                     <td className="px-4 py-3 text-right">

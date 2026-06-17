@@ -12,6 +12,8 @@ import {
   testCrawl,
   competitorWriteConfigured,
 } from "../../utils/competitors";
+import { useDirectCompetitors, toggleDirectCompetitor } from "../../utils/directCompetitors";
+import { Star } from "lucide-react";
 
 const STATUS_TONE: Record<string, string> = {
   ok: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -34,6 +36,7 @@ export default function CompetitorSetupView() {
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
   const [editing, setEditing] = useState<string | null>(null);
   const writeOnline = competitorWriteConfigured();
+  const direct = useDirectCompetitors();
 
   const flash = (msg: string, ok = true) => { setNote({ msg, ok }); window.setTimeout(() => setNote(null), 2800); };
   const reload = () => { loadCompetitorsAsync().then(({ items, warning }) => { setList(items); setWarning(warning || null); }); };
@@ -150,6 +153,13 @@ export default function CompetitorSetupView() {
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => toggleDirectCompetitor(c.brand)}
+                    title="Đối thủ trực tiếp — ưu tiên hiển thị ở các tab khác"
+                    className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg border transition cursor-pointer ${direct.has(c.brand) ? "text-amber-700 bg-amber-50 border-amber-200" : "text-slate-500 border-slate-200 hover:bg-slate-50"}`}
+                  >
+                    <Star className={`w-3.5 h-3.5 ${direct.has(c.brand) ? "fill-amber-400 text-amber-500" : ""}`} /> Trực tiếp
+                  </button>
                   <button onClick={() => onCrawl(c)} className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg border border-indigo-100 transition cursor-pointer" title="Test crawl"><FlaskConical className="w-3.5 h-3.5" /> Test</button>
                   <button onClick={() => onToggle(c)} className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg border transition cursor-pointer ${c.active ? "text-emerald-600 border-emerald-100 hover:bg-emerald-50" : "text-slate-500 border-slate-200 hover:bg-slate-50"}`}><Power className="w-3.5 h-3.5" /> {c.active ? "On" : "Off"}</button>
                   <button onClick={() => setEditing(isEdit ? null : c.id)} className="text-xs font-bold text-slate-600 hover:bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 transition cursor-pointer">{isEdit ? "Xong" : "Sửa"}</button>

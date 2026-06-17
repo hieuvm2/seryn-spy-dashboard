@@ -1,8 +1,9 @@
 import React from "react";
 import { motion } from "motion/react";
-import { Flame, Layers, TrendingUp, TrendingDown, Building2, Activity } from "lucide-react";
+import { Flame, Layers, TrendingUp, TrendingDown, Building2, Activity, Star } from "lucide-react";
 import type { SpyDashboardData } from "../../types";
 import { normalizeNumber, countChips, scaleMeta, viLabel, humanizeText } from "../../utils/spyData";
+import { useDirectCompetitors, isDirectCompetitor } from "../../utils/directCompetitors";
 import { latestWeek, dataQualityReport } from "../../utils/weeklyIntel";
 import { latestCrawlRun, incrementalSummary } from "../../utils/incremental";
 
@@ -45,6 +46,7 @@ function ChipList({ items }: { items: { label: string; n: number }[] }) {
 }
 
 export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboardData; onSelectBrand?: (brand: string) => void }) {
+  const direct = useDirectCompetitors();
   const snap = data.brandWeeklySnapshot;
   const totalBrands = snap.length;
   const activeBrands = snap.filter((b) => normalizeNumber(b.total_active_ads) > 0).length;
@@ -127,6 +129,7 @@ export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboa
                 return (
                   <div key={r.brand} className="flex items-center gap-3">
                     <span className="w-5 h-5 rounded bg-slate-100 font-mono text-[10px] font-bold text-slate-600 flex items-center justify-center border border-slate-200">{i + 1}</span>
+                    {isDirectCompetitor(r.brand, direct) && <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />}
                     <span className="font-bold text-slate-800 flex-1 truncate">{r.brand}</span>
                     <span className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded">{meta.label}</span>
                     <span className="text-xs font-mono text-slate-500">{r.clusters} cụm</span>

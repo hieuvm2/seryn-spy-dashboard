@@ -2,11 +2,12 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   X, Flame, Layers, Activity, Tag, FileText, GitCompareArrows, Sparkles,
-  Zap, Image as ImageIcon, Filter, Globe, ShieldAlert, ClipboardCopy, ExternalLink, CheckCircle2,
+  Zap, Image as ImageIcon, Filter, Globe, ShieldAlert, ClipboardCopy, ExternalLink, CheckCircle2, Star,
 } from "lucide-react";
 import type { SpyDashboardData } from "../types";
 import { splitChips, orUnknown, viLabel, isMissing, isMeaningful, humanizeText } from "../utils/spyData";
 import { getBrandProfile } from "../utils/brandIntelligence";
+import { isDirectCompetitor } from "../utils/directCompetitors";
 import { analyzeScaledRow } from "../utils/serynAnalysis";
 
 const num = (v: unknown) => { const n = Number(String(v ?? "").replace(/[^\d.-]/g, "")); return Number.isFinite(n) ? n : 0; };
@@ -98,7 +99,10 @@ export default function BrandDetailDrawer({
             <div className="px-6 py-4 bg-white border-b border-slate-200 shrink-0 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">HỒ SƠ ĐỐI THỦ</p>
-                <h3 className="text-lg font-extrabold text-slate-900 truncate">{brandName}</h3>
+                <h3 className="text-lg font-extrabold text-slate-900 truncate flex items-center gap-2">
+                  {brandName}
+                  {isDirectCompetitor(brandName) && <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0"><Star className="w-3 h-3 fill-amber-400 text-amber-500" /> Trực tiếp</span>}
+                </h3>
                 {snap && <p className="text-xs text-slate-500 font-medium mt-0.5 max-w-2xl line-clamp-2">{humanizeText(orUnknown(snap.content_strategy_summary))}</p>}
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[11px] text-slate-500">
                   {!!snap?.page_ids && <span>page_id: <span className="font-mono">{String(snap.page_ids)}</span></span>}
