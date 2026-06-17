@@ -35,6 +35,7 @@ export type AdContentIntelligence = {
   adFormat: "image" | "video" | "carousel" | "unknown";
   inferredObjective: "messenger" | "lead_form" | "landing_page_conversion" | "phone_call" | "awareness" | "unknown";
   visualAngle: string; visualFormat: string;
+  thumbnailUrl?: string;
   adsCount: number; activeDays: number; exampleAdIds: string[]; exampleAdUrls: string[];
   repetitionSignal: "Low" | "Medium" | "High";
   scaleSignal: "Weak Signal" | "Repeated Content" | "Long-running Content" | "Strong Content Pattern";
@@ -347,17 +348,35 @@ export function buildSerynContentResponse(item: Partial<AdContentIntelligence>):
 }
 
 /* ---------- builders ---------- */
-function exampleAdsFor(brandAds: AdLevelAnalysis[], serviceCat: string, fmt: string): { ids: string[]; urls: string[] } {
+function exampleAdsFor(brandAds: AdLevelAnalysis[], serviceCat: string, fmt: string, repId?: string): { ids: string[]; urls: string[] } {
   const matched = brandAds.filter((a) =>
-    (serviceCat && a.service_or_product === serviceCat) || (fmt && a.content_format === fmt),
+    (repId && String(a.ad_id) === repId) || (serviceCat && a.service_or_product === serviceCat) || (fmt && a.content_format === fmt),
   );
   const pool = matched.length ? matched : brandAds;
   const ids: string[] = [], urls: string[] = [];
-  for (const a of pool.slice(0, 5)) { if (a.ad_id) ids.push(String(a.ad_id)); if (a.ad_snapshot_url) urls.push(String(a.ad_snapshot_url)); }
+  if (repId) ids.push(repId);
+  for (const a of pool.slice(0, 5)) { if (a.ad_id && !ids.includes(String(a.ad_id))) ids.push(String(a.ad_id)); if (a.ad_snapshot_url) urls.push(String(a.ad_snapshot_url)); }
   return { ids, urls };
 }
 
-export function buildAdContentIntelligenceForBrand(brandName: string, data: SpyDashboardData): AdContentIntelligence[] {
+/** Map ad_id -> thumbnail (thumbnail/media/image/video preview) từ visualAnalysis.
+ *  Memo theo tham chiếu `data` để BrandsView gọi cho ~23 brand không dựng lại index. */
+const _thumbIndexCache = new WeakMap<SpyDashboardData, Map<string, string>>();
+function buildThumbIndex(data: SpyDashboardData): Map<string, string> {
+  const cached = _thumbIndexCache.get(data);
+  if (cached) return cached;
+  const m = new Map<string, string>();
+  for (const v of (data.visualAnalysis ?? [])) {
+    if (!v.ad_id) continue;
+    const t = v.thumbnail_url || v.media_url || (v.image_urls && v.image_urls[0]) || v.video_preview_url;
+    if (t) m.set(String(v.ad_id), String(t));
+  }
+  _thumbIndexCache.set(data, m);
+  return m;
+}
+const isTrueish = (v: unknown) => v === true || /^(true|yes|1|active|đang|có)/i.test(String(v ?? "").trim());
+
+export function buildAdContentIntelligenceForBrand(brandName: string, data: SpyDashboardData, limit = 10): AdContentIntelligence[] {
   const scaled = getBrandScaledContent(brandName, data);
   const ads = getBrandAds(brandName, data);
   const snap = getBrandSnapshot(brandName, data);
@@ -365,32 +384,58 @@ export function buildAdContentIntelligenceForBrand(brandName: string, data: SpyD
   const visualAngle = visual?.dominant_visual_angle ? String(visual.dominant_visual_angle) : "";
   const visualFormat = visual?.top_visual_formats ? String(visual.top_visual_formats).split("|")[0] : "";
   const beforeAfter = num(visual?.before_after_rate) >= 0.3;
+  const thumbIndex = buildThumbIndex(data);
 
-  // Nguồn chính: scaled content. Fallback: gom adLevel theo content_angle.
-  type Src = { text: string; service: string; format: string; angle: string; offer: string; price: string; proof: string; cta: string; ads: number; days: number; id: string };
-  let sources: Src[] = [];
-  if (scaled.length) {
-    sources = scaled.map((c, i) => ({
-      text: String(c.representative_hook || ""), service: String(c.service_or_product || ""),
-      format: String(c.content_format || ""), angle: String(c.content_angle || ""),
-      offer: String(c.offer_detected || ""), price: String(c.price_detected || ""),
+  // Mỗi nguồn = 1 quảng cáo/nội dung tiêu biểu. `ads` = số lượng QC chạy (số ad
+  // tương tự trong cụm) → dùng để xếp hạng "số lượng QC nhiều nhất".
+  type Src = { text: string; service: string; format: string; angle: string; offer: string; price: string; proof: string; cta: string; ads: number; days: number; id: string; repId: string };
+  const sources: Src[] = [];
+  const seenHooks = new Set<string>();
+  const seenAdIds = new Set<string>();
+  const hookKey = (s: string) => lc(s).replace(/[^a-z0-9à-ỹ ]/gi, "").slice(0, 60).trim();
+
+  // 1) Nguồn chính: cụm nội dung nhân rộng (scaled), số ad tương tự = số lượng QC.
+  for (let i = 0; i < scaled.length; i++) {
+    const c = scaled[i];
+    const text = String(c.representative_hook || "");
+    const repId = String(c.representative_ad_id || "");
+    const hk = hookKey(text);
+    if (hk) { if (seenHooks.has(hk)) continue; seenHooks.add(hk); }
+    if (repId) seenAdIds.add(repId);
+    sources.push({
+      text, service: String(c.service_or_product || ""), format: String(c.content_format || ""),
+      angle: String(c.content_angle || ""), offer: String(c.offer_detected || ""), price: String(c.price_detected || ""),
       proof: String(c.proof_point || ""), cta: "",
       ads: num(c.number_of_similar_ads) || 1, days: num(c.longest_days_active),
-      id: String(c.content_cluster_id || c.representative_ad_id || `sc-${i}`),
-    }));
-  } else if (ads.length) {
-    const byAngle = new Map<string, AdLevelAnalysis[]>();
-    for (const a of ads) { const k = String(a.content_angle || a.service_or_product || "unknown"); (byAngle.get(k) || byAngle.set(k, []).get(k))!.push(a); }
-    sources = [...byAngle.entries()].slice(0, 8).map(([k, list], i) => {
-      const rep = list.slice().sort((x, y) => num(y.days_active) - num(x.days_active))[0];
-      return {
-        text: String(rep.hook_raw_text || rep.hook_text || rep.headline || ""), service: String(rep.service_or_product || ""),
-        format: String(rep.ad_format || rep.media_type || ""), angle: String(rep.content_angle || k),
-        offer: String(rep.offer_detected || ""), price: String(rep.price_detected || ""),
-        proof: String(rep.proof_point || ""), cta: String(rep.cta || ""),
-        ads: list.length, days: num(rep.days_active), id: `ad-${k}-${i}`,
-      };
+      id: String(c.content_cluster_id || c.representative_ad_id || `sc-${i}`), repId,
     });
+  }
+
+  // 2) Bổ sung quảng cáo lẻ tốt nhất (ad-level) cho đủ ~limit — ưu tiên ad nhân
+  //    rộng / chạy dài ngày / đang active. Bỏ trùng hook & ad đã có ở cụm.
+  if (sources.length < limit && ads.length) {
+    const ranked = ads.slice().sort((x, y) =>
+      (num(y.scale_level) * 20 + (isTrueish(y.is_likely_scaled) ? 30 : 0) + Math.min(num(y.days_active), 60)) -
+      (num(x.scale_level) * 20 + (isTrueish(x.is_likely_scaled) ? 30 : 0) + Math.min(num(x.days_active), 60)),
+    );
+    for (const a of ranked) {
+      if (sources.length >= limit + 4) break;
+      const adId = String(a.ad_id || "");
+      if (adId && seenAdIds.has(adId)) continue;
+      const text = String(a.hook_raw_text || a.hook_text || a.headline || "");
+      if (!text) continue; // bỏ ad không có nội dung để hiển thị (tránh card trống)
+      const hk = hookKey(text);
+      if (seenHooks.has(hk)) continue;
+      seenHooks.add(hk);
+      if (adId) seenAdIds.add(adId);
+      sources.push({
+        text, service: String(a.service_or_product || ""), format: String(a.ad_format || a.media_type || ""),
+        angle: String(a.content_angle || ""), offer: String(a.offer_detected || ""), price: String(a.price_detected || ""),
+        proof: String(a.proof_point || ""), cta: String(a.cta || ""),
+        ads: 1, days: num(a.days_active), // ad lẻ = 1 QC (adsCount = số lượng QC thật, không phải scale_level)
+        id: adId || `ad-${sources.length}`, repId: adId,
+      });
+    }
   }
 
   const out = sources.map((s) => {
@@ -407,7 +452,8 @@ export function buildAdContentIntelligenceForBrand(brandName: string, data: SpyD
       ? inferObjectiveFromContent(`${text} ${cta}`, "")
       : (snap?.skin_rejuvenation_top_inferred_objective && snap.skin_rejuvenation_top_inferred_objective !== "unknown" ? snap.skin_rejuvenation_top_inferred_objective as AdContentIntelligence["inferredObjective"] : "unknown");
     const risk = riskOf(text, offer, beforeAfter && angle === "social_proof");
-    const ex = exampleAdsFor(ads, s.service, s.format);
+    const ex = exampleAdsFor(ads, s.service, s.format, s.repId);
+    const thumbnailUrl = [s.repId, ...ex.ids].map((id) => thumbIndex.get(String(id))).find(Boolean);
 
     const base: Partial<AdContentIntelligence> = {
       brandName, contentText: text,
@@ -416,7 +462,7 @@ export function buildAdContentIntelligenceForBrand(brandName: string, data: SpyD
       treatmentType: s.service, contentAngle: angle, painPoint: pain, desiredOutcome: desire,
       offerDetected: offer, priceDetected: isMeaningful(s.price) ? s.price : "", proofType: proof, cta,
       adFormat, inferredObjective: objective,
-      visualAngle: visualAngle ? viLabel(visualAngle) : "", visualFormat: visualFormat,
+      visualAngle: visualAngle ? viLabel(visualAngle) : "", visualFormat: visualFormat, thumbnailUrl,
       adsCount: s.ads, activeDays: s.days, exampleAdIds: ex.ids, exampleAdUrls: ex.urls,
       repetitionSignal: repetitionOf(s.ads), scaleSignal: scaleSignalOf(s.ads, s.days), riskLevel: risk,
     };
@@ -430,12 +476,10 @@ export function buildAdContentIntelligenceForBrand(brandName: string, data: SpyD
     return item;
   });
 
-  return out.sort((a, b) => b.contentScore - a.contentScore);
-}
-
-export function buildAllAdContentIntelligence(data: SpyDashboardData): AdContentIntelligence[] {
-  const brands = [...new Set((data.brandWeeklySnapshot ?? []).map((b) => b.brand_name).filter(Boolean))];
-  return brands.flatMap((b) => buildAdContentIntelligenceForBrand(b, data));
+  // Xếp theo SỐ LƯỢNG QC nhiều nhất, rồi tới content signal.
+  return out
+    .sort((a, b) => (b.adsCount - a.adsCount) || (b.contentScore - a.contentScore))
+    .slice(0, limit);
 }
 
 export { ANGLE_VI };

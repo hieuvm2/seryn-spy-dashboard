@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  X, Layers, Activity, FileText, GitCompareArrows, Sparkles,
+  X, Activity, FileText, GitCompareArrows, Sparkles,
   Image as ImageIcon, Filter, Globe, ShieldAlert, ExternalLink, Star,
 } from "lucide-react";
 import type { SpyDashboardData } from "../types";
 import { splitChips, orUnknown, viLabel, isMissing, isMeaningful, humanizeText } from "../utils/spyData";
-import { getBrandProfile, getBrandBestAds, type BrandBestAd } from "../utils/brandIntelligence";
+import { getBrandProfile } from "../utils/brandIntelligence";
 import { isDirectCompetitor } from "../utils/directCompetitors";
 import {
   buildAdContentIntelligenceForBrand, ANGLE_VI,
@@ -69,8 +69,7 @@ export default function BrandDetailDrawer({
 }: { brandName: string | null; data: SpyDashboardData; open: boolean; onClose: () => void }) {
 
   const p = brandName ? getBrandProfile(brandName, data) : null;
-  const content = brandName ? buildAdContentIntelligenceForBrand(brandName, data) : [];
-  const bestAds = brandName ? getBrandBestAds(brandName, data, 6) : [];
+  const content = brandName ? buildAdContentIntelligenceForBrand(brandName, data, 10) : [];
   const snap = p?.snapshot;
   const disc = p?.discovery;
   const skinN = num(snap?.skin_rejuvenation_ads_count);
@@ -137,12 +136,13 @@ export default function BrandDetailDrawer({
                     </div>
                   </Section>
 
-                  {/* 4. Phân tích content quảng cáo (section chính, full width) */}
+                  {/* 4. Phân tích content quảng cáo (section chính, full width) — gồm
+                       luôn các quảng cáo tốt nhất (số lượng QC nhiều nhất) + ảnh thumbnail. */}
                   <Section icon={FileText} title="Phân tích content quảng cáo" accent full>
-                    <p className="text-[10px] text-slate-400 mb-3 italic">Đây là tín hiệu từ dữ liệu ads (số content lặp + thời gian chạy…), không phải dữ liệu hiệu quả chuyển đổi (CPA/ROAS).</p>
+                    <p className="text-[10px] text-slate-400 mb-3 italic">~10 quảng cáo có số lượng QC nhiều nhất của brand — kèm ảnh + bóc tách nội dung. Đây là tín hiệu từ dữ liệu ads (số QC lặp + thời gian chạy…), không phải dữ liệu hiệu quả chuyển đổi (CPA/ROAS).</p>
                     {content.length ? (
                       <div className="grid md:grid-cols-2 gap-3">
-                        {content.slice(0, 8).map((c) => <div key={c.id}><ContentCard c={c} /></div>)}
+                        {content.slice(0, 10).map((c) => <div key={c.id}><ContentCard c={c} /></div>)}
                       </div>
                     ) : <p className="text-xs text-slate-400">Chưa đủ dữ liệu để dựng content pattern cho brand này.</p>}
                   </Section>
@@ -225,17 +225,7 @@ export default function BrandDetailDrawer({
                     ) : <p className="text-xs text-slate-400">Chưa có gợi ý nội dung gắn brand này — xem tổng hợp ở Tổng quan.</p>}
                   </Section>
 
-                  {/* 11. Best ads (full) — quảng cáo tốt nhất + thumbnail */}
-                  <Section icon={Layers} title="Quảng cáo tốt nhất" accent full>
-                    <p className="text-[10px] text-slate-400 mb-3 italic">Xếp hạng theo tín hiệu scale + số ngày chạy + đang active — không phải dữ liệu hiệu quả thật (CPA/ROAS).</p>
-                    {bestAds.length ? (
-                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {bestAds.map((b, i) => <div key={b.ad.ad_id || i}><BestAdCard b={b} /></div>)}
-                      </div>
-                    ) : <p className="text-xs text-slate-400">Chưa có ad-level cho brand này.</p>}
-                  </Section>
-
-                  {/* 12. Risk note (full) */}
+                  {/* 11. Risk note (full) */}
                   <Section icon={ShieldAlert} title="Ghi chú rủi ro" full>
                     <p className="text-xs text-slate-600">
                       {num(p.visual?.high_risk_rate) >= 0.3 || num(p.visual?.before_after_rate) >= 0.4
@@ -276,16 +266,23 @@ function ContentCard({ c }: { c: AdContentIntelligence }) {
   ];
   const KV = ({ k, v }: { k: string; v?: string }) => <p className="text-[11px] text-slate-600"><b className="text-slate-500">{k}:</b> {v && isMeaningful(v) ? v : "N/A"}</p>;
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-bold text-slate-800 leading-snug">{c.contentSummary}</p>
-        <span className="shrink-0 text-xs font-extrabold px-2 py-0.5 rounded-lg bg-slate-800 text-white" title="Tín hiệu từ dữ liệu ads, không phải CPA/ROAS">{c.contentScore}</span>
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+      {/* Thumbnail QC + overlay: số lượng QC, scale, content signal */}
+      <div className="relative">
+        <AdThumb url={c.thumbnailUrl} format={c.adFormat} />
+        {c.adsCount > 1 && <span className="absolute top-1.5 left-1.5 text-[9px] font-extrabold uppercase tracking-wide text-rose-700 bg-rose-50/95 border border-rose-200 px-1.5 py-0.5 rounded">{c.adsCount} QC</span>}
+        <span className="absolute top-1.5 right-1.5 text-[11px] font-extrabold px-1.5 py-0.5 rounded-lg bg-slate-900/85 text-white" title="Tín hiệu từ dữ liệu ads, không phải CPA/ROAS">{c.contentScore}</span>
+        {c.exampleAdUrls[0] && <a href={c.exampleAdUrls[0]} target="_blank" rel="noreferrer" className="absolute bottom-1.5 right-1.5 text-[10px] font-bold text-white bg-cyan-600/90 hover:bg-cyan-600 px-2 py-0.5 rounded inline-flex items-center gap-0.5">Mở QC <ExternalLink className="w-3 h-3" /></a>}
       </div>
+
+      <div className="p-3 space-y-2">
+      <p className="text-xs font-bold text-slate-800 leading-snug">{c.contentSummary}</p>
       <div className="flex flex-wrap gap-1.5 text-[10px]">
         <span className={`font-bold px-2 py-0.5 rounded border ${SCALE_TONE[c.scaleSignal]}`}>{SCALE_VI[c.scaleSignal]}</span>
         <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{ANGLE_VI[c.contentAngle] || c.contentAngle}</span>
         <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{FMT_VI[c.adFormat]}</span>
         <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{OBJ_VI[c.inferredObjective]}</span>
+        {c.activeDays > 0 && <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{c.activeDays} ngày</span>}
       </div>
 
       <div className="flex border-b border-slate-100 text-[11px]">
@@ -337,11 +334,12 @@ function ContentCard({ c }: { c: AdContentIntelligence }) {
           {!c.exampleAdUrls.length && c.exampleAdIds.length > 0 && <p className="text-[11px] text-slate-400">ads: {c.exampleAdIds.join(", ")}</p>}
         </div>
       )}
+      </div>
     </div>
   );
 }
 
-/* ---------- Best ad card (Quảng cáo tốt nhất + thumbnail) ---------- */
+/* ---------- Ad thumbnail (dùng chung cho content card) ---------- */
 function AdThumb({ url, format }: { url?: string; format?: string }) {
   const [err, setErr] = useState(false);
   if (url && !err) {
@@ -351,32 +349,6 @@ function AdThumb({ url, format }: { url?: string; format?: string }) {
     <div className="w-full aspect-[4/3] bg-slate-50 border-b border-slate-100 flex flex-col items-center justify-center gap-1 text-slate-300">
       <ImageIcon className="w-7 h-7" />
       <span className="text-[10px] font-semibold">{format && isMeaningful(format) ? viLabel(format) : "Không có ảnh"}</span>
-    </div>
-  );
-}
-
-function BestAdCard({ b }: { b: BrandBestAd }) {
-  const a = b.ad;
-  const fmt = String(a.ad_format || a.media_type || "");
-  const hook = a.hook_raw_text || a.hook_text || a.headline || a.primary_text;
-  return (
-    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col">
-      <div className="relative">
-        <AdThumb url={b.thumbnailUrl} format={fmt} />
-        {b.isScaled && <span className="absolute top-1.5 left-1.5 text-[9px] font-bold uppercase tracking-wide text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">Nhân rộng</span>}
-      </div>
-      <div className="p-2.5 space-y-1.5 flex-1 flex flex-col">
-        <p className="text-[11px] font-bold text-slate-800 leading-snug line-clamp-3">{hook && isMeaningful(String(hook)) ? humanizeText(String(hook)) : "—"}</p>
-        <div className="flex flex-wrap gap-1 text-[9px] font-semibold">
-          {isMeaningful(fmt) && <span className="px-1.5 py-0.5 rounded border border-slate-200 text-slate-600">{viLabel(fmt)}</span>}
-          {b.daysActive > 0 && <span className="px-1.5 py-0.5 rounded border border-slate-200 text-slate-600">{b.daysActive} ngày</span>}
-          {isMeaningful(a.service_or_product) && <span className="px-1.5 py-0.5 rounded border border-slate-200 text-slate-600">{viLabel(String(a.service_or_product))}</span>}
-        </div>
-        {isMeaningful(a.offer_detected) && <p className="text-[10px] text-emerald-700"><b>Ưu đãi:</b> {String(a.offer_detected)}</p>}
-        <div className="mt-auto pt-1">
-          {a.ad_snapshot_url ? <a href={String(a.ad_snapshot_url)} target="_blank" rel="noreferrer" className="text-[11px] font-bold text-cyan-600 hover:text-cyan-500 inline-flex items-center gap-0.5">Mở quảng cáo <ExternalLink className="w-3 h-3" /></a> : <span className="text-[10px] text-slate-300">không có link</span>}
-        </div>
-      </div>
     </div>
   );
 }
