@@ -9,7 +9,7 @@ import { splitChips, orUnknown, viLabel, isMissing, isMeaningful, humanizeText }
 import { getBrandProfile } from "../utils/brandIntelligence";
 import { isDirectCompetitor } from "../utils/directCompetitors";
 import {
-  buildAdContentIntelligenceForBrand, formatContentBriefForCopy, ANGLE_VI,
+  buildAdContentIntelligenceForBrand, ANGLE_VI,
   type AdContentIntelligence,
 } from "../utils/adContentIntelligence";
 
@@ -156,7 +156,7 @@ export default function BrandDetailDrawer({
                     <p className="text-[10px] text-slate-400 mb-3 italic">Đây là tín hiệu từ dữ liệu ads (số content lặp + thời gian chạy…), không phải dữ liệu hiệu quả chuyển đổi (CPA/ROAS).</p>
                     {content.length ? (
                       <div className="grid md:grid-cols-2 gap-3">
-                        {content.slice(0, 8).map((c) => <div key={c.id}><ContentCard c={c} onCopy={doCopy} /></div>)}
+                        {content.slice(0, 8).map((c) => <div key={c.id}><ContentCard c={c} /></div>)}
                       </div>
                     ) : <p className="text-xs text-slate-400">Chưa đủ dữ liệu để dựng content pattern cho brand này.</p>}
                   </Section>
@@ -305,7 +305,7 @@ const ACTION_VI: Record<string, string> = { Adapt: "Điều chỉnh", Counter: "
 const OBJ_VI: Record<string, string> = { messenger: "Messenger", lead_form: "Lead form", landing_page_conversion: "Trang đích", phone_call: "Gọi điện", awareness: "Nhận biết", unknown: "Chưa rõ" };
 const FMT_VI: Record<string, string> = { image: "Ảnh", video: "Video", carousel: "Carousel", unknown: "Chưa rõ" };
 
-function ContentCard({ c, onCopy }: { c: AdContentIntelligence; onCopy: (t: string, m?: string) => void }) {
+function ContentCard({ c }: { c: AdContentIntelligence }) {
   const [tab, setTab] = useState<"breakdown" | "psych" | "seryn" | "evidence">("breakdown");
   const riskTone = c.riskLevel === "High" ? "text-rose-600" : c.riskLevel === "Medium" ? "text-amber-600" : "text-emerald-600";
   const b = c.contentBreakdown, ps = c.psychology, r = c.serynResponse;
@@ -376,13 +376,6 @@ function ContentCard({ c, onCopy }: { c: AdContentIntelligence; onCopy: (t: stri
           {!c.exampleAdUrls.length && c.exampleAdIds.length > 0 && <p className="text-[11px] text-slate-400">ads: {c.exampleAdIds.join(", ")}</p>}
         </div>
       )}
-
-      <div className="flex flex-wrap gap-2 pt-1.5 border-t border-slate-100">
-        <button onClick={() => onCopy(c.contentSummary, "Đã copy tóm tắt.")} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-500 flex items-center gap-1"><ClipboardCopy className="w-3 h-3" /> Tóm tắt</button>
-        <button onClick={() => onCopy(c.contentBreakdown.contentStructure.join("\n"), "Đã copy bóc tách.")} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-500 flex items-center gap-1"><ClipboardCopy className="w-3 h-3" /> Bóc tách</button>
-        <button onClick={() => onCopy([r.suggestedAngle, r.counterPositioning, r.shortAdCopy, r.premiumRewrite].join("\n"), "Đã copy SERYN response.")} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-500 flex items-center gap-1"><ClipboardCopy className="w-3 h-3" /> SERYN</button>
-        <button onClick={() => onCopy(formatContentBriefForCopy(c), "Đã copy brief.")} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-500 flex items-center gap-1"><ClipboardCopy className="w-3 h-3" /> Full brief</button>
-      </div>
     </div>
   );
 }
