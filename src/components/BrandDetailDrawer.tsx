@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  X, Flame, Layers, Activity, Tag, FileText, GitCompareArrows, Sparkles,
-  Zap, Image as ImageIcon, Filter, Globe, ShieldAlert, ClipboardCopy, ExternalLink, CheckCircle2, Star,
+  X, Layers, Activity, FileText, GitCompareArrows, Sparkles,
+  Image as ImageIcon, Filter, Globe, ShieldAlert, ExternalLink, Star,
 } from "lucide-react";
 import type { SpyDashboardData } from "../types";
 import { splitChips, orUnknown, viLabel, isMissing, isMeaningful, humanizeText } from "../utils/spyData";
@@ -23,14 +23,6 @@ const CACA: Record<string, string> = {
   avoid: "bg-slate-100 text-slate-600 border-slate-200",
   monitor: "bg-slate-100 text-slate-600 border-slate-200",
 };
-
-async function copyText(t: string): Promise<boolean> {
-  try { await navigator.clipboard.writeText(t); return true; }
-  catch {
-    try { const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); return true; }
-    catch { return false; }
-  }
-}
 
 function Section({ icon: Icon, title, accent, full, children }: { icon: any; title: string; accent?: boolean; full?: boolean; children: React.ReactNode }) {
   return (
@@ -70,17 +62,11 @@ function Rate({ label, v }: { label: string; v: unknown }) {
     </div>
   );
 }
-function CopyBtn({ onClick, label }: { onClick: () => void; label?: string }) {
-  return <button onClick={onClick} className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-500"><ClipboardCopy className="w-3 h-3" /> {label || "Copy"}</button>;
-}
 const ar = (v: unknown) => Array.isArray(v) ? v : [];
 
 export default function BrandDetailDrawer({
   brandName, data, open, onClose,
 }: { brandName: string | null; data: SpyDashboardData; open: boolean; onClose: () => void }) {
-  const [note, setNote] = useState<string | null>(null);
-  const flash = (m: string) => { setNote(m); window.setTimeout(() => setNote(null), 2000); };
-  const doCopy = async (t: string, m = "Đã copy.") => flash((await copyText(t)) ? m : "Không copy được.");
 
   const p = brandName ? getBrandProfile(brandName, data) : null;
   const content = brandName ? buildAdContentIntelligenceForBrand(brandName, data) : [];
@@ -119,7 +105,6 @@ export default function BrandDetailDrawer({
               <button onClick={onClose} className="w-9 h-9 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 transition shrink-0"><X className="w-4.5 h-4.5" /></button>
             </div>
 
-            {note && <div className="absolute bottom-4 right-4 z-50 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200 shadow-lg"><CheckCircle2 className="w-4 h-4" /> {note}</div>}
 
             {/* Body — 2 cột desktop */}
             <div className="flex-1 overflow-y-auto p-5">
@@ -225,25 +210,16 @@ export default function BrandDetailDrawer({
                     {snap?.seryn_opportunity && <p className="text-sm text-slate-700 leading-relaxed mb-3">{humanizeText(orUnknown(snap.seryn_opportunity))}</p>}
                     {p.recommendations.length ? (
                       <div className="grid md:grid-cols-2 gap-3">
-                        {p.recommendations.slice(0, 6).map((r, i) => {
-                          const full = [r.suggested_hook, r.suggested_content_angle, r.suggested_offer_angle, r.main_message, r.cta].filter(Boolean).join("\n");
-                          return (
-                            <div key={i} className="bg-white border border-slate-200 rounded-xl p-3 space-y-1.5 text-xs">
-                              {!!r.suggested_hook && <p className="font-bold text-slate-800 italic">“{humanizeText(String(r.suggested_hook))}”</p>}
-                              {!!r.suggested_content_angle && <p className="text-slate-600"><b>Góc:</b> {humanizeText(String(r.suggested_content_angle))}</p>}
-                              {!!r.suggested_offer_angle && <p className="text-slate-600"><b>Offer:</b> {humanizeText(String(r.suggested_offer_angle))}</p>}
-                              {!!r.main_message && <p className="text-slate-600">{humanizeText(String(r.main_message))}</p>}
-                              {!!r.claim_safe_version && <p className="text-emerald-700"><b>Bản an toàn:</b> {String(r.claim_safe_version)}</p>}
-                              {!!r.cta && <p className="text-cyan-700 font-semibold">CTA: {String(r.cta)}</p>}
-                              <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-100">
-                                {!!r.suggested_hook && <CopyBtn label="Copy hook" onClick={() => doCopy(String(r.suggested_hook), "Đã copy hook.")} />}
-                                {!!r.suggested_content_angle && <CopyBtn label="Copy góc" onClick={() => doCopy(String(r.suggested_content_angle), "Đã copy góc.")} />}
-                                {!!r.claim_safe_version && <CopyBtn label="Copy bản an toàn" onClick={() => doCopy(String(r.claim_safe_version), "Đã copy.")} />}
-                                <CopyBtn label="Copy brief" onClick={() => doCopy(full, "Đã copy brief.")} />
-                              </div>
-                            </div>
-                          );
-                        })}
+                        {p.recommendations.slice(0, 6).map((r, i) => (
+                          <div key={i} className="bg-white border border-slate-200 rounded-xl p-3 space-y-1.5 text-xs">
+                            {!!r.suggested_hook && <p className="font-bold text-slate-800 italic">“{humanizeText(String(r.suggested_hook))}”</p>}
+                            {!!r.suggested_content_angle && <p className="text-slate-600"><b>Góc:</b> {humanizeText(String(r.suggested_content_angle))}</p>}
+                            {!!r.suggested_offer_angle && <p className="text-slate-600"><b>Offer:</b> {humanizeText(String(r.suggested_offer_angle))}</p>}
+                            {!!r.main_message && <p className="text-slate-600">{humanizeText(String(r.main_message))}</p>}
+                            {!!r.claim_safe_version && <p className="text-emerald-700"><b>Bản an toàn:</b> {String(r.claim_safe_version)}</p>}
+                            {!!r.cta && <p className="text-cyan-700 font-semibold">CTA: {String(r.cta)}</p>}
+                          </div>
+                        ))}
                       </div>
                     ) : <p className="text-xs text-slate-400">Chưa có gợi ý nội dung gắn brand này — xem tổng hợp ở Tổng quan.</p>}
                   </Section>
@@ -307,7 +283,6 @@ const FMT_VI: Record<string, string> = { image: "Ảnh", video: "Video", carouse
 
 function ContentCard({ c }: { c: AdContentIntelligence }) {
   const [tab, setTab] = useState<"breakdown" | "psych" | "seryn" | "evidence">("breakdown");
-  const riskTone = c.riskLevel === "High" ? "text-rose-600" : c.riskLevel === "Medium" ? "text-amber-600" : "text-emerald-600";
   const b = c.contentBreakdown, ps = c.psychology, r = c.serynResponse;
   const TABS: { k: typeof tab; label: string }[] = [
     { k: "breakdown", label: "Bóc tách" }, { k: "psych", label: "Tâm lý" }, { k: "seryn", label: "SERYN" }, { k: "evidence", label: "Bằng chứng" },
@@ -321,7 +296,6 @@ function ContentCard({ c }: { c: AdContentIntelligence }) {
       </div>
       <div className="flex flex-wrap gap-1.5 text-[10px]">
         <span className={`font-bold px-2 py-0.5 rounded border ${SCALE_TONE[c.scaleSignal]}`}>{SCALE_VI[c.scaleSignal]}</span>
-        <span className={`font-bold px-2 py-0.5 rounded border border-slate-200 ${riskTone}`}>Rủi ro: {c.riskLevel}</span>
         <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{ANGLE_VI[c.contentAngle] || c.contentAngle}</span>
         <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{FMT_VI[c.adFormat]}</span>
         <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{OBJ_VI[c.inferredObjective]}</span>

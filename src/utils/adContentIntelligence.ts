@@ -438,31 +438,4 @@ export function buildAllAdContentIntelligence(data: SpyDashboardData): AdContent
   return brands.flatMap((b) => buildAdContentIntelligenceForBrand(b, data));
 }
 
-/* ---------- copy ---------- */
-export function formatContentBriefForCopy(item: AdContentIntelligence): string {
-  const r = item.serynResponse;
-  return [
-    `=== PHÂN TÍCH CONTENT — ${item.brandName} ===`,
-    `Tóm tắt: ${item.contentSummary}`,
-    `Góc content: ${ANGLE_VI[item.contentAngle] || item.contentAngle} · Pain: ${item.painPoint} → ${item.desiredOutcome}`,
-    `Offer: ${item.offerDetected || "—"} · Proof: ${item.proofType} · CTA: ${item.cta || "—"}`,
-    `Format: ${item.adFormat} · Objective: ${item.inferredObjective} · Scale: ${item.scaleSignal} · Risk: ${item.riskLevel}`,
-    `Số content: ${item.adsCount} · Ngày chạy: ${item.activeDays || "—"}`,
-    "",
-    "=== SERYN RESPONSE ===",
-    `Hành động: ${r.recommendedAction}`,
-    `Góc đề xuất: ${r.suggestedAngle}`,
-    `Counter: ${r.counterPositioning}`,
-    `Short copy: ${r.shortAdCopy}`,
-    `Premium: ${r.premiumRewrite}`,
-    `Safe: ${r.safeRewrite}`,
-    `Video: ${r.videoScriptOutline.join(" | ")}`,
-    `Visual: ${r.visualDirection}`,
-    `CTA: ${r.recommendedCTA}`,
-    `Compliance: ${r.complianceWarning}`,
-    "",
-    "(Tín hiệu từ dữ liệu ads, không phải CPA/ROAS.)",
-  ].join("\n");
-}
-
 export { ANGLE_VI };
