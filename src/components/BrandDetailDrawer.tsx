@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import type { SpyDashboardData } from "../types";
 import { splitChips, orUnknown, viLabel, isMissing, isMeaningful, humanizeText } from "../utils/spyData";
-import { getBrandProfile } from "../utils/brandIntelligence";
+import { getBrandProfile, getBrandBestAds, type BrandBestAd } from "../utils/brandIntelligence";
 import { isDirectCompetitor } from "../utils/directCompetitors";
 import {
   buildAdContentIntelligenceForBrand, ANGLE_VI,
@@ -70,6 +70,7 @@ export default function BrandDetailDrawer({
 
   const p = brandName ? getBrandProfile(brandName, data) : null;
   const content = brandName ? buildAdContentIntelligenceForBrand(brandName, data) : [];
+  const bestAds = brandName ? getBrandBestAds(brandName, data, 6) : [];
   const snap = p?.snapshot;
   const disc = p?.discovery;
   const skinN = num(snap?.skin_rejuvenation_ads_count);
@@ -224,26 +225,12 @@ export default function BrandDetailDrawer({
                     ) : <p className="text-xs text-slate-400">Chưa có gợi ý nội dung gắn brand này — xem tổng hợp ở Tổng quan.</p>}
                   </Section>
 
-                  {/* 11. Ads examples (full) */}
-                  <Section icon={Layers} title="Ví dụ quảng cáo" full>
-                    {p.ads.length ? (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-xs">
-                          <thead className="text-slate-400 font-mono uppercase tracking-wider">
-                            <tr className="text-left border-b border-slate-100"><th className="py-1.5 pr-2">Hook</th><th className="pr-2">Định dạng</th><th className="pr-2">Ưu đãi</th><th className="pr-2">Ngày</th><th>Ad</th></tr>
-                          </thead>
-                          <tbody>
-                            {p.ads.slice(0, 10).map((a, i) => (
-                              <tr key={a.ad_id || i} className="border-b border-slate-50">
-                                <td className="py-1.5 pr-2 text-slate-700 max-w-[16rem] truncate">{orUnknown(a.hook_raw_text || a.hook_text || a.headline)}</td>
-                                <td className="pr-2 text-slate-500">{viLabel(String(a.ad_format || a.media_type || ""))}</td>
-                                <td className="pr-2 text-slate-500">{isMeaningful(a.offer_detected) ? String(a.offer_detected) : "—"}</td>
-                                <td className="pr-2 text-slate-500">{orUnknown(a.days_active)}</td>
-                                <td>{a.ad_snapshot_url ? <a href={String(a.ad_snapshot_url)} target="_blank" rel="noreferrer" className="text-cyan-600 hover:underline inline-flex items-center gap-0.5">mở <ExternalLink className="w-3 h-3" /></a> : "—"}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                  {/* 11. Best ads (full) — quảng cáo tốt nhất + thumbnail */}
+                  <Section icon={Layers} title="Quảng cáo tốt nhất" accent full>
+                    <p className="text-[10px] text-slate-400 mb-3 italic">Xếp hạng theo tín hiệu scale + số ngày chạy + đang active — không phải dữ liệu hiệu quả thật (CPA/ROAS).</p>
+                    {bestAds.length ? (
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {bestAds.map((b, i) => <div key={b.ad.ad_id || i}><BestAdCard b={b} /></div>)}
                       </div>
                     ) : <p className="text-xs text-slate-400">Chưa có ad-level cho brand này.</p>}
                   </Section>
@@ -350,6 +337,46 @@ function ContentCard({ c }: { c: AdContentIntelligence }) {
           {!c.exampleAdUrls.length && c.exampleAdIds.length > 0 && <p className="text-[11px] text-slate-400">ads: {c.exampleAdIds.join(", ")}</p>}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ---------- Best ad card (Quảng cáo tốt nhất + thumbnail) ---------- */
+function AdThumb({ url, format }: { url?: string; format?: string }) {
+  const [err, setErr] = useState(false);
+  if (url && !err) {
+    return <img src={url} onError={() => setErr(true)} loading="lazy" alt="" className="w-full aspect-[4/3] object-cover bg-slate-100" />;
+  }
+  return (
+    <div className="w-full aspect-[4/3] bg-slate-50 border-b border-slate-100 flex flex-col items-center justify-center gap-1 text-slate-300">
+      <ImageIcon className="w-7 h-7" />
+      <span className="text-[10px] font-semibold">{format && isMeaningful(format) ? viLabel(format) : "Không có ảnh"}</span>
+    </div>
+  );
+}
+
+function BestAdCard({ b }: { b: BrandBestAd }) {
+  const a = b.ad;
+  const fmt = String(a.ad_format || a.media_type || "");
+  const hook = a.hook_raw_text || a.hook_text || a.headline || a.primary_text;
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col">
+      <div className="relative">
+        <AdThumb url={b.thumbnailUrl} format={fmt} />
+        {b.isScaled && <span className="absolute top-1.5 left-1.5 text-[9px] font-bold uppercase tracking-wide text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">Nhân rộng</span>}
+      </div>
+      <div className="p-2.5 space-y-1.5 flex-1 flex flex-col">
+        <p className="text-[11px] font-bold text-slate-800 leading-snug line-clamp-3">{hook && isMeaningful(String(hook)) ? humanizeText(String(hook)) : "—"}</p>
+        <div className="flex flex-wrap gap-1 text-[9px] font-semibold">
+          {isMeaningful(fmt) && <span className="px-1.5 py-0.5 rounded border border-slate-200 text-slate-600">{viLabel(fmt)}</span>}
+          {b.daysActive > 0 && <span className="px-1.5 py-0.5 rounded border border-slate-200 text-slate-600">{b.daysActive} ngày</span>}
+          {isMeaningful(a.service_or_product) && <span className="px-1.5 py-0.5 rounded border border-slate-200 text-slate-600">{viLabel(String(a.service_or_product))}</span>}
+        </div>
+        {isMeaningful(a.offer_detected) && <p className="text-[10px] text-emerald-700"><b>Ưu đãi:</b> {String(a.offer_detected)}</p>}
+        <div className="mt-auto pt-1">
+          {a.ad_snapshot_url ? <a href={String(a.ad_snapshot_url)} target="_blank" rel="noreferrer" className="text-[11px] font-bold text-cyan-600 hover:text-cyan-500 inline-flex items-center gap-0.5">Mở quảng cáo <ExternalLink className="w-3 h-3" /></a> : <span className="text-[10px] text-slate-300">không có link</span>}
+        </div>
+      </div>
     </div>
   );
 }

@@ -9,10 +9,12 @@ import type {
   SpyDashboardData, BrandWeeklySnapshot, AdLevelAnalysis, ScaledContentAnalysis,
   WeeklyStrategyChange, BrandVisualSummary, VisualPattern, HookCluster,
   SerynContentRecommendation, CompetitorDiscoveryCandidate, MarketIntelligenceItem,
+  VisualAnalysis,
 } from "../types";
 
 const lc = (s?: string): string => String(s || "").toLowerCase().trim();
 const num = (v: unknown): number => { const n = Number(String(v ?? "").replace(/[^\d.-]/g, "")); return Number.isFinite(n) ? n : 0; };
+const truthy = (v: unknown): boolean => v === true || /^(true|yes|1|active|đang|có)/i.test(String(v ?? "").trim());
 /** So khớp brand "lỏng": chứa nhau sau khi bỏ dấu/ký tự thừa. */
 function brandMatch(a?: string, b?: string): boolean {
   const x = lc(a), y = lc(b);
@@ -72,6 +74,56 @@ export function getBrandMarketSignals(brand: string, d: SpyDashboardData): Marke
     // trend/opportunity: chỉ lấy nếu nhắc tên brand
     return lc(`${m.topic} ${m.summary} ${m.evidence}`).includes(lc(brand));
   }).slice(0, 8);
+}
+
+/** 1 quảng cáo "tốt nhất" của brand: ad gốc + thumbnail (nếu có) + điểm xếp hạng.
+ *  Điểm = tín hiệu scale + số ngày chạy + đang active — KHÔNG phải hiệu quả thật. */
+export type BrandBestAd = {
+  ad: AdLevelAnalysis;
+  thumbnailUrl?: string;
+  daysActive: number;
+  isScaled: boolean;
+  score: number;
+};
+
+/** Lọc ra những quảng cáo "tốt nhất" của brand: ưu tiên ad nhân rộng / chạy
+ *  dài ngày / đang active. Ghép `visualAnalysis` theo ad_id để lấy ảnh thumbnail. */
+export function getBrandBestAds(brand: string, d: SpyDashboardData, limit = 6): BrandBestAd[] {
+  const ads = getBrandAds(brand, d);
+  if (!ads.length) return [];
+
+  const vById = new Map<string, VisualAnalysis>();
+  for (const v of (d.visualAnalysis ?? [])) {
+    if (v.ad_id && brandMatch(v.brand, brand)) vById.set(String(v.ad_id), v);
+  }
+  const thumbOf = (v?: VisualAnalysis): string | undefined =>
+    v?.thumbnail_url || v?.media_url || (v?.image_urls && v.image_urls[0]) || v?.video_preview_url || undefined;
+
+  const scored: BrandBestAd[] = ads.map((a) => {
+    const v = a.ad_id ? vById.get(String(a.ad_id)) : undefined;
+    const thumb = thumbOf(v);
+    const days = num(a.days_active);
+    const isScaled = truthy(a.is_likely_scaled);
+    const active = truthy(a.status) || lc(a.status).includes("active") || lc(a.status).includes("đang");
+    const score =
+      num(a.scale_level) * 20 +
+      (isScaled ? 30 : 0) +
+      Math.min(days, 60) +
+      (active ? 15 : 0) +
+      (thumb ? 12 : 0);
+    return { ad: a, thumbnailUrl: thumb, daysActive: days, isScaled, score };
+  });
+
+  // Bỏ ad trùng hook/headline để không hiện gần như y hệt nhau.
+  const seen = new Set<string>();
+  const deduped = scored.filter((s) => {
+    const k = lc(s.ad.hook_raw_text || s.ad.hook_text || s.ad.headline || "");
+    if (!k) return true;
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  });
+
+  return deduped.sort((x, y) => y.score - x.score).slice(0, limit);
 }
 
 export type BrandIntelligenceProfile = {
