@@ -16,12 +16,17 @@ import {
   Search,
   ClipboardList,
   LayoutGrid,
+  X,
 } from "lucide-react";
 import type { ViewId } from "../types";
 
 interface SidebarProps {
   activeSection: ViewId;
   setActiveSection: (sec: ViewId) => void;
+  /** Mở drawer trên mobile. Trên desktop sidebar luôn hiện. */
+  mobileOpen?: boolean;
+  /** Đóng drawer (mobile). */
+  onClose?: () => void;
 }
 
 type MenuItem = { id: ViewId; label: string; icon: any };
@@ -69,26 +74,49 @@ const menuGroups: MenuGroup[] = [
   },
 ];
 
-export default function Sidebar({ activeSection, setActiveSection }: SidebarProps) {
+export default function Sidebar({ activeSection, setActiveSection, mobileOpen = false, onClose }: SidebarProps) {
   const handleNav = (id: ViewId) => {
     setActiveSection(id);
     window.location.hash = id;
     window.scrollTo({ top: 0, behavior: "smooth" });
+    onClose?.(); // đóng drawer sau khi chọn (mobile)
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 text-slate-800 flex flex-col fixed top-0 bottom-0 left-0 z-30 shadow-sm">
+    <>
+      {/* Backdrop (chỉ mobile, khi drawer mở) */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-30 lg:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={`w-64 max-w-[85vw] bg-white border-r border-slate-200 text-slate-800 flex flex-col fixed top-0 bottom-0 left-0 z-40 shadow-sm transition-transform duration-300 lg:translate-x-0 ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
       {/* Brand */}
       <div className="px-5 py-5 border-b border-slate-100 flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center text-white shrink-0 shadow-lg shadow-cyan-600/20">
           <Database className="w-4.5 h-4.5" />
         </div>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-base font-extrabold tracking-tight text-slate-900 leading-tight">
             SERYN <span className="text-cyan-600">INSIGHTS</span>
           </h1>
           <p className="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold">Competitor Intelligence</p>
         </div>
+        {/* Nút đóng drawer (mobile) */}
+        <button
+          onClick={onClose}
+          className="ml-auto lg:hidden w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 transition shrink-0"
+          aria-label="Đóng menu"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Nav (grouped) */}
@@ -136,5 +164,6 @@ export default function Sidebar({ activeSection, setActiveSection }: SidebarProp
         </div>
       </div>
     </aside>
+    </>
   );
 }

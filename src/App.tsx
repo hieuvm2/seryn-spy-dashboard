@@ -51,6 +51,7 @@ export default function App() {
   const [dataSource, setDataSource] = useState<DataSourceType>(stored ? (loadSourceType() ?? "local-csv") : "demo");
   const [activeSection, setActiveSection] = useState<ViewId>("overview");
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // drawer sidebar trên mobile
 
   // ONLINE SHEET DATA — trạng thái đồng bộ Google Sheets.
   const onlineConfigured = isOnlineConfigured();
@@ -135,6 +136,7 @@ export default function App() {
     setActiveSection(id);
     window.location.hash = id;
     window.scrollTo({ top: 0, behavior: "smooth" });
+    setSidebarOpen(false); // đóng drawer sau khi điều hướng (mobile)
   };
 
   const handleDataChange = (next: SpyDashboardData, source: DataSourceType = "local-csv") => {
@@ -164,9 +166,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex font-sans selection:bg-cyan-100 selection:text-cyan-900">
-      <Sidebar activeSection={activeSection} setActiveSection={goView} />
+      <Sidebar
+        activeSection={activeSection}
+        setActiveSection={goView}
+        mobileOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
-      <div className="flex-1 pl-64 flex flex-col min-h-screen">
+      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen min-w-0">
         <TopHeader
           dataSource={dataSource}
           market="Vietnam"
@@ -174,9 +181,10 @@ export default function App() {
           isOnlineLoading={isOnlineLoading}
           onImportClick={() => goView("data-import")}
           onClear={handleClear}
+          onMenuClick={() => setSidebarOpen(true)}
         />
 
-        <main className="p-8 flex-1 max-w-7xl w-full mx-auto pb-24">
+        <main className="p-4 sm:p-6 lg:p-8 flex-1 max-w-7xl w-full mx-auto pb-24">
           {activeSection === "overview" && <OverviewView data={spyData} />}
           {activeSection === "brands" && <BrandsView data={spyData} onSelectBrand={setSelectedBrand} />}
           {activeSection === "scaled-content" && <ScaledContentView data={spyData} />}
