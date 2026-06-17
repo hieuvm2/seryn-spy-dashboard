@@ -27,6 +27,10 @@ import { analyzeHook } from "./lib/hookAnalysis.mjs";
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const PROVIDER = (process.env.ADS_SOURCE_PROVIDER || "mock").trim().toLowerCase();
+/* PHẠM VI SPY (mặc định): chỉ ad CĂNG DA / TRẺ HÓA DA MẶT (service_category=skin_rejuvenation)
+   của danh sách đối thủ trong tab Competitors. KHÔNG spy dịch vụ khác (nâng ngực, hút mỡ,
+   nâng mũi/cắt mí, răng, triệt lông, filler/botox thuần…). Đặt ADS_SCOPE=all để tắt lọc. */
+const ADS_SCOPE = (process.env.ADS_SCOPE || "skin_rejuvenation").trim().toLowerCase();
 
 /* ---- versions (incremental cache) ---- */
 const ANALYSIS_VERSION = "v2";
@@ -707,6 +711,16 @@ function analyzeAd(raw, brand, weekDate, prevAdIds, opts = {}) {
   delete hk._claim;
   Object.assign(base, hk);
   return base;
+}
+
+/** PHẠM VI SPY: chỉ giữ ad căng da / trẻ hóa da mặt (skin_rejuvenation), loại dịch vụ khác.
+ *  ADS_SCOPE=all -> giữ nguyên tất cả. Log số ad bị loại để minh bạch (không bịa). */
+function scopeAds(ads, brandName) {
+  if (ADS_SCOPE === "all") return ads;
+  const kept = ads.filter((a) => a.service_category === SERVICE_CATEGORY);
+  const dropped = ads.length - kept.length;
+  if (dropped > 0) console.log(`    ↳ scope trẻ hóa da: "${brandName}" bỏ ${dropped}/${ads.length} ad dịch vụ khác (giữ ${kept.length}).`);
+  return kept;
 }
 
 function applyScale(ads) {
@@ -1438,13 +1452,18 @@ async function main() {
       const carried = prevAdsByBrand[brand.brand_name];
       warn(`Brand "${brand.brand_name}": pull lỗi — giữ lại ${carried.length} ad tuần trước (carried_forward, KHÔNG kết luận dừng).`);
       ads = carried.map((r) => ({ ...r, week_date: weekDate, analysis_status: "carried_forward", reused_from_cache: "true", notes: ((r.notes || "") + " | carried_forward (crawl_failed)").trim() }));
+      ads = scopeAds(ads, brand.brand_name); // chỉ giữ ad trẻ hóa da (kể cả dữ liệu carried cũ)
       carriedCount += ads.length;
     } else {
       if (!raw.length) warn(`Brand "${brand.brand_name}": 0 ad thu được (crawl ${crawlOk ? "OK" : "lỗi"}).`);
       ads = raw.map((r) => analyzeWithCache(r, brand));
+      ads = scopeAds(ads, brand.brand_name); // PHẠM VI: chỉ căng da/trẻ hóa da mặt — loại dịch vụ khác trước khi cluster/thống kê
       ads = applyScale(ads);
-      // raw archive — MỌI provider (có _raw thì lưu raw, không thì lưu object normalized)
+      // raw archive — chỉ lưu ad trong phạm vi (đồng bộ với dataset, không lưu creative dịch vụ khác)
+      const keptIds = new Set(ads.map((a) => a.ad_id));
       for (const r of raw) {
+        const adId = r.ad_id || `${brand.brand_name}-${r.start_date}`;
+        if (!keptIds.has(adId)) continue;
         const { _raw, _reused, ...rest } = r;
         archiveRows.push({
           crawl_run_id: runId, week_date: weekDate, brand: brand.brand_name, page_id: r.page_id, ad_id: r.ad_id,
