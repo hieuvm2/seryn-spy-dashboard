@@ -7,8 +7,45 @@ import type { SpyDashboardData, WeeklySummary, ActionPlanItem, SwipeSuggestion }
 import {
   parseTopList, dataQualityReport, latestWeek, buildMarkdownReport, updateActionStatus,
 } from "../../utils/weeklyIntel";
+import { viLabel, humanizeText } from "../../utils/spyData";
 
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+
+/* Gợi ý cụ thể cho SERYN theo từng giá trị (hook type / offer / format). */
+const HOOK_SUGGEST: Record<string, string> = {
+  offer_led: "Đừng đua giá — chuyển thành soi da/đánh giá cá nhân hóa",
+  doctor_authority: "Học cấu trúc bác sĩ, nâng lên nền tảng sinh học",
+  medical_authority: "Học cấu trúc bác sĩ, nâng lên nền tảng sinh học",
+  fear_based: "Tránh hù dọa — đổi sang giáo dục điềm tĩnh",
+  problem_led: "Khơi đúng vấn đề da rồi dẫn tới soi da",
+  consultation_led: "Mời soi da / tư vấn cá nhân hóa",
+  social_proof: "Dùng review thật + giải thích cơ chế",
+  transformation_led: "Nhấn kết quả tự nhiên (kết quả tùy cơ địa)",
+  education_led: "Giáo dục nền tảng sinh học, dẫn tới tư vấn",
+  premium_positioning: "Định vị cao cấp, không FOMO",
+  curiosity: "Giữ tò mò nhưng kèm thông tin đúng",
+};
+const FORMAT_SUGGEST: Record<string, string> = {
+  offer_promotion: "Tránh banner giá — làm bản editorial cao cấp",
+  doctor_explainer: "Reel bác sĩ giải thích nền tảng sinh học",
+  technology_proof: "Giải thích công nghệ kèm chỉ định cá nhân hóa",
+  before_after: "Hạn chế before/after — nhấn kết quả tự nhiên",
+  customer_testimonial: "Câu chuyện khách hàng + lý giải bác sĩ",
+  consultation_lead: "Landing/booking soi da cá nhân hóa",
+  educational_post: "Bài giáo dục dẫn tới soi da",
+  kol_review: "KOL kèm phân tích bác sĩ, tránh hứa hẹn",
+  facility_trust: "Khoe cơ sở + đội ngũ chuyên môn",
+  problem_solution: "Khơi vấn đề → giải pháp cá nhân hóa",
+};
+function suggestFor(kind: "hook" | "offer" | "format", key: string): string {
+  const k = String(key || "").toLowerCase();
+  if (kind === "hook") return HOOK_SUGGEST[k] || "Cân nhắc test theo tông SERYN (điềm tĩnh, cao cấp)";
+  if (kind === "format") return FORMAT_SUGGEST[k] || "Sản xuất bản SERYN: khoa học, cao cấp";
+  // offer: theo từ khóa
+  if (/miễn phí/.test(k)) return "Đổi 'miễn phí' → soi da miễn phí có giá trị";
+  if (/giảm|ưu đãi|khuyến mãi|sale|off|trợ giá|đồng giá/.test(k) || /\d/.test(k)) return "Phản đòn: đổi giảm giá → giá trị chỉ định đúng";
+  return "Tạo counter-offer theo tông SERYN (không đua giá)";
+}
 
 const PRIO_COLOR: Record<string, string> = {
   high: "bg-rose-50 text-rose-700 border-rose-200",
@@ -45,7 +82,7 @@ function Stat({ label, value, accent }: { label: string; value: React.ReactNode;
   );
 }
 
-function TopTable({ raw, sampleFrom, actionHint }: { raw: unknown; sampleFrom?: { ads?: any[]; field?: string }; actionHint: string }) {
+function TopTable({ raw, kind }: { raw: unknown; kind: "hook" | "offer" | "format" }) {
   const items = parseTopList(raw);
   if (!items.length) return <p className="text-xs text-slate-400">Chưa có dữ liệu.</p>;
   return (
@@ -56,9 +93,9 @@ function TopTable({ raw, sampleFrom, actionHint }: { raw: unknown; sampleFrom?: 
       <tbody>
         {items.map((it, i) => (
           <tr key={i} className="border-b border-slate-50">
-            <td className="py-2 pr-3 font-bold text-slate-800">{it.key}</td>
+            <td className="py-2 pr-3 font-bold text-slate-800">{kind === "offer" ? it.key : viLabel(it.key)}</td>
             <td className="pr-3 text-cyan-600 font-mono font-bold">{it.count}</td>
-            <td className="text-slate-500">{actionHint}</td>
+            <td className="text-slate-500">{suggestFor(kind, it.key)}</td>
           </tr>
         ))}
       </tbody>
@@ -124,9 +161,9 @@ export default function WeeklyIntelligenceView({ data }: { data: SpyDashboardDat
           <Stat label="Ad active" value={String(summary.total_ads_active ?? "—")} />
           <Stat label="Ad mới" value={String(summary.total_new_ads ?? "—")} />
           <Stat label="Nội dung nhân rộng" value={String(summary.scaled_ads_count ?? "—")} />
-          <Stat label="Data quality" value={`${dq.score}/100`} accent={dq.level === "good"} />
+          <Stat label="Chất lượng dữ liệu" value={`${dq.score}/100`} accent={dq.level === "good"} />
         </div>
-        <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 border border-slate-100 rounded-xl p-3">{summary.executive_summary}</p>
+        <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 border border-slate-100 rounded-xl p-3">{humanizeText(String(summary.executive_summary || ""))}</p>
       </Card>
 
       {/* 2. Data Quality Warnings */}
@@ -150,7 +187,7 @@ export default function WeeklyIntelligenceView({ data }: { data: SpyDashboardDat
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="text-slate-400 font-mono uppercase tracking-wider">
-              <tr className="text-left border-b border-slate-100"><th className="py-2 pr-3">Brand</th><th className="pr-3">Ad active</th><th className="pr-3">Ad mới</th><th>Ghi chú</th></tr>
+              <tr className="text-left border-b border-slate-100"><th className="py-2 pr-3">Thương hiệu</th><th className="pr-3">Ad active</th><th className="pr-3">Ad mới</th><th>Ghi chú</th></tr>
             </thead>
             <tbody>
               {byActive.slice(0, 8).map((b, i) => {
@@ -172,9 +209,9 @@ export default function WeeklyIntelligenceView({ data }: { data: SpyDashboardDat
 
       {/* 4-6. Top hooks / offers / formats */}
       <div className="grid lg:grid-cols-3 gap-6">
-        <Card icon={Zap} title="Top Hooks"><TopTable raw={summary.top_hooks} actionHint="Test với offer SERYN" /></Card>
-        <Card icon={Tag} title="Top Offers"><TopTable raw={summary.top_offers} actionHint="Tạo counter-offer" /></Card>
-        <Card icon={LayoutGrid} title="Top Creative Formats"><TopTable raw={summary.top_creative_formats} actionHint="Sản xuất 3 creative" /></Card>
+        <Card icon={Zap} title="Top Hooks"><TopTable raw={summary.top_hooks} kind="hook" /></Card>
+        <Card icon={Tag} title="Top Offers"><TopTable raw={summary.top_offers} kind="offer" /></Card>
+        <Card icon={LayoutGrid} title="Top Creative Formats"><TopTable raw={summary.top_creative_formats} kind="format" /></Card>
       </div>
 
       {/* 7. Weekly Action Plan */}
@@ -203,9 +240,9 @@ export default function WeeklyIntelligenceView({ data }: { data: SpyDashboardDat
                   {["new", "reviewed", "in_progress", "done", "ignored"].map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
-              <p className="text-xs font-bold text-slate-800">{a.insight}</p>
-              {a.evidence && <p className="text-[11px] text-slate-500 mt-0.5">{a.evidence}</p>}
-              <p className="text-[11px] text-cyan-700 mt-1">→ {a.suggested_action}</p>
+              <p className="text-xs font-bold text-slate-800">{humanizeText(String(a.insight || ""))}</p>
+              {a.evidence && <p className="text-[11px] text-slate-500 mt-0.5">{humanizeText(String(a.evidence))}</p>}
+              <p className="text-[11px] text-cyan-700 mt-1">→ {humanizeText(String(a.suggested_action || ""))}</p>
             </div>
           ))}
           {!filteredActions.length && <p className="text-xs text-slate-400">Không có action khớp bộ lọc.</p>}
@@ -223,8 +260,8 @@ export default function WeeklyIntelligenceView({ data }: { data: SpyDashboardDat
               <div className="min-w-0">
                 <p className="text-xs font-bold text-slate-800 truncate">{s.brand_name}</p>
                 <p className="text-[11px] text-slate-600 line-clamp-1">{s.hook || "(no hook)"}</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">{s.why_save}</p>
-                <p className="text-[10px] text-cyan-700 mt-0.5 line-clamp-2">{s.how_to_adapt}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">{humanizeText(String(s.why_save || ""))}</p>
+                <p className="text-[10px] text-cyan-700 mt-0.5 line-clamp-2">{humanizeText(String(s.how_to_adapt || ""))}</p>
                 {s.ad_url && <a href={s.ad_url} target="_blank" rel="noreferrer" className="text-[10px] text-cyan-600 hover:underline inline-flex items-center gap-0.5 mt-0.5">xem ad <ExternalLink className="w-2.5 h-2.5" /></a>}
               </div>
             </div>
@@ -249,7 +286,7 @@ function Header({ onCopy, copied, hasData }: { onCopy: () => void; copied: boole
   return (
     <div className="flex items-start justify-between gap-3">
       <div>
-        <h2 className="text-xl font-extrabold text-slate-900">Weekly Intelligence</h2>
+        <h2 className="text-xl font-extrabold text-slate-900">Báo cáo tuần</h2>
         <p className="text-sm text-slate-500">Báo cáo &amp; kế hoạch hành động tuần cho team marketing — tự sinh mỗi thứ Hai.</p>
       </div>
       {hasData && (

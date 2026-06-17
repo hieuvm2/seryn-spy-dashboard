@@ -259,6 +259,7 @@ const VI_LABELS: Record<string, string> = {
   insight_led: "Khơi sự thật ngầm",
   doctor_authority: "Uy tín bác sĩ",
   offer_led: "Dẫn bằng ưu đãi",
+  consultation_led: "Dẫn tư vấn",
   transformation_led: "Lột xác",
   social_proof: "Bằng chứng số đông",
   curiosity: "Tò mò",
@@ -500,6 +501,11 @@ export function humanizeText(value?: string): string {
   let s = String(value ?? "");
   if (!s) return s;
   for (const [re, vi] of FREE_TEXT_EN) s = s.replace(re, vi);
+  // Dịch token snake_case (vd doctor_explainer, offer_led) nếu có nhãn tiếng Việt.
+  s = s.replace(/[a-z][a-z0-9]*(?:_[a-z0-9]+)+/gi, (tok) => {
+    const vi = VI_LABELS[tok.toLowerCase()];
+    return vi || tok;
+  });
   return s.replace(/\s{2,}/g, " ").replace(/\s+,/g, ",").trim();
 }
 
