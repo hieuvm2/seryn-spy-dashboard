@@ -159,7 +159,7 @@ export default function TopHooksView({ data }: { data: SpyDashboardData }) {
               <div className="flex items-center justify-between gap-2">
                 <h4 className="font-extrabold text-slate-800 flex items-center gap-2"><Zap className="w-4 h-4 text-cyan-500" />{h.brand_name}</h4>
                 <div className="flex items-center gap-1.5">
-                  {sl > 0 && <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${SCALE_TONE[m.tone]}`}>C{sl} · {m.label}</span>}
+                  {sl > 0 && <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${SCALE_TONE[m.tone]}`} title="Tín hiệu từ số ads tương tự + thời gian chạy, không phải CPA/ROAS">{m.label}</span>}
                   {safe && <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center gap-1"><ShieldCheck className="w-3 h-3" />An toàn</span>}
                 </div>
               </div>

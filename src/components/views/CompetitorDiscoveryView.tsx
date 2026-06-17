@@ -51,13 +51,29 @@ export default function CompetitorDiscoveryView({ data }: { data: SpyDashboardDa
     };
   }, [items]);
 
+  // Sort: ready_for_spy trước → status ưu tiên → có page_id → có fanpage → có website → brand.
+  const STATUS_ORDER: Record<string, number> = { approved: 0, needs_page_id: 1, needs_review: 2, new: 3, duplicate: 4, rejected: 5, imported_to_competitors: 6 };
   const filtered = useMemo(() => {
+    const rank = (c: CompetitorDiscoveryCandidate) => [
+      String(c.ready_for_spy).toLowerCase() === "true" ? 0 : 1,
+      STATUS_ORDER[String(c.status).toLowerCase()] ?? 9,
+      isNumericPageId(c.facebook_page_id) ? 0 : 1,
+      c.facebook_url ? 0 : 1,
+      c.website_url ? 0 : 1,
+    ];
     return items.filter((c) => {
       if (status !== "all" && String(c.status).toLowerCase() !== status) return false;
       if (readyOnly && String(c.ready_for_spy).toLowerCase() !== "true") return false;
-      if (q) { const t = `${c.brand_name} ${c.website_url} ${c.facebook_url} ${c.detected_services}`.toLowerCase(); if (!t.includes(q.toLowerCase())) return false; }
+      if (q) {
+        const t = `${c.brand_name} ${c.website_url} ${c.website_domain} ${c.facebook_url} ${c.facebook_page_id} ${c.phone} ${c.address} ${c.detected_services}`.toLowerCase();
+        if (!t.includes(q.toLowerCase())) return false;
+      }
       return true;
-    }).sort((a, b) => num(b.overall_confidence_score) - num(a.overall_confidence_score));
+    }).sort((a, b) => {
+      const ra = rank(a), rb = rank(b);
+      for (let i = 0; i < ra.length; i++) if (ra[i] !== rb[i]) return ra[i] - rb[i];
+      return String(a.brand_name).localeCompare(String(b.brand_name));
+    });
   }, [items, status, q, readyOnly]);
 
   function act(fn: () => Promise<{ message: string }>): void {
@@ -132,15 +148,15 @@ export default function CompetitorDiscoveryView({ data }: { data: SpyDashboardDa
           <table className="w-full text-xs">
             <thead className="bg-slate-50 text-slate-400 font-mono uppercase tracking-wider">
               <tr className="text-left">
-                <th className="py-2.5 px-3">Đối thủ</th><th className="px-2">Liên kết</th><th className="px-2">page_id</th>
-                <th className="px-2">Dịch vụ</th><th className="px-2">Tin cậy</th><th className="px-2">Trạng thái</th><th className="px-2">Spy</th><th className="px-2 text-right">Thao tác</th>
+                <th className="py-2.5 px-3">Đối thủ</th><th className="px-2">Website</th><th className="px-2">Fanpage</th><th className="px-2">Page ID</th>
+                <th className="px-2">Dịch vụ</th><th className="px-2">Hotline</th><th className="px-2">Địa chỉ</th><th className="px-2">Trạng thái</th><th className="px-2">Spy</th><th className="px-2 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((c) => (
                 <Row key={String(c.discovery_id)} c={c} onAct={act} />
               ))}
-              {!filtered.length && <tr><td colSpan={8} className="py-4 text-center text-slate-400">Không có đối thủ nào khớp bộ lọc.</td></tr>}
+              {!filtered.length && <tr><td colSpan={10} className="py-4 text-center text-slate-400">Không có đối thủ nào khớp bộ lọc.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -151,7 +167,7 @@ export default function CompetitorDiscoveryView({ data }: { data: SpyDashboardDa
         <p className="flex items-center gap-1.5 font-bold"><AlertTriangle className="w-3.5 h-3.5" /> Lưu ý khi import</p>
         <p>• Đối thủ không có <code>page_id</code> dạng số sẽ ở trạng thái <b>needs_page_id</b> — ScrapeCreators chưa thể spy ads tin cậy.</p>
         <p>• Vanity Facebook URL (facebook.com/brand) KHÔNG phải page_id. Đừng bịa page_id.</p>
-        <p>• Sau khi <b>duyệt</b> (page_id dạng số, độ tin cậy ≥ 0.65), chạy <code className="font-mono">npm run competitors:import</code> để đưa vào tab <b>Competitors</b>. Lần weekly spy kế tiếp ScrapeCreators sẽ crawl.</p>
+        <p>• Sau khi <b>duyệt</b> (cần page_id dạng số), chạy <code className="font-mono">npm run competitors:import</code> để đưa vào tab <b>Competitors</b>. Lần weekly spy kế tiếp ScrapeCreators sẽ crawl.</p>
       </div>
     </div>
   );
@@ -169,11 +185,11 @@ const Row: React.FC<{ c: CompetitorDiscoveryCandidate; onAct: (fn: () => Promise
         {c.duplicate_of && <p className="text-[10px] text-slate-400">trùng với {c.duplicate_of}</p>}
         <p className="text-[10px] text-slate-400 max-w-[14rem] truncate">{humanizeText(String(c.evidence_summary || ""))}</p>
       </td>
+      <td className="px-2 max-w-[10rem]">
+        {c.website_url ? <a href={String(c.website_url)} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline flex items-center gap-0.5 truncate">{String(c.website_domain || "web")} <ExternalLink className="w-3 h-3 shrink-0" /></a> : <span className="text-slate-300">—</span>}
+      </td>
       <td className="px-2">
-        <div className="flex flex-col gap-0.5">
-          {c.website_url && <a href={String(c.website_url)} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline flex items-center gap-0.5">web <ExternalLink className="w-3 h-3" /></a>}
-          {c.facebook_url && <a href={String(c.facebook_url)} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline flex items-center gap-0.5">fb <ExternalLink className="w-3 h-3" /></a>}
-        </div>
+        {c.facebook_url ? <a href={String(c.facebook_url)} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline flex items-center gap-0.5">fanpage <ExternalLink className="w-3 h-3" /></a> : <span className="text-slate-300">—</span>}
       </td>
       <td className="px-2">
         {editing ? (
@@ -194,7 +210,8 @@ const Row: React.FC<{ c: CompetitorDiscoveryCandidate; onAct: (fn: () => Promise
           {String(c.detected_services || "").split("|").filter(Boolean).slice(0, 3).map((s, i) => <span key={i} className="px-1 bg-slate-100 rounded text-[10px]">{viLabel(s)}</span>)}
         </div>
       </td>
-      <td className="px-2 font-bold text-slate-700">{pct(c.overall_confidence_score)}</td>
+      <td className="px-2 text-slate-600 font-mono text-[11px] whitespace-nowrap">{c.phone ? String(c.phone) : <span className="text-slate-300">—</span>}</td>
+      <td className="px-2 text-slate-500 max-w-[12rem]"><span className="line-clamp-2 text-[11px]">{c.address ? String(c.address) : "—"}</span></td>
       <td className="px-2"><span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${STATUS_COLOR[st] || "bg-slate-100 text-slate-600"}`}>{STATUS_VI[st] || c.status}</span></td>
       <td className="px-2">{ready ? <span className="text-emerald-600 font-bold">✓</span> : <span className="text-slate-300">—</span>}</td>
       <td className="px-2">
@@ -236,7 +253,7 @@ function buildHealth(run: CrawlRun | undefined, c: Counts): HealthItem[] {
   else if (run && String(run.status) === "partial") out.push({ level: "warn", text: `Run gần nhất chạy một phần (partial): ${run.error_summary || "một số query Exa lỗi"}.` });
   if (c.found > 0 && c.needs_page_id > 0) out.push({ level: "warn", text: `${c.needs_page_id} đối thủ thiếu page_id — bổ sung page_id (dạng số) rồi duyệt thì mới spy ads được.` });
   if (c.approved > 0 && c.imported === 0) out.push({ level: "warn", text: `${c.approved} đối thủ đã duyệt nhưng chưa import — chạy "npm run competitors:import" để đưa vào Competitors.` });
-  if (c.found > 0 && c.ready === 0) out.push({ level: "info", text: "Chưa có đối thủ nào sẵn sàng spy (cần page_id dạng số + đã duyệt + độ tin cậy ≥ 0.65)." });
+  if (c.found > 0 && c.ready === 0) out.push({ level: "info", text: "Chưa có đối thủ nào sẵn sàng spy (cần page_id dạng số + đã duyệt)." });
   if (c.duplicate > 0) out.push({ level: "info", text: `${c.duplicate} đối thủ trùng với danh sách hiện có — đã tự loại khỏi import.` });
   return out;
 }

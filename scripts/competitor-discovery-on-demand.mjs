@@ -19,6 +19,7 @@ import {
   normalizeBrandName, extractCandidateBrand, extractWebsiteUrl, extractSocialLinks,
   normalizeFacebookUrl, extractFacebookPageIdFromUrl, isNumericPageId,
   scoreCompetitorCandidate, dedupeCompetitorCandidates, brandQualityScore,
+  extractPhones, extractHotline, extractAddresses, buildFanpageQueries,
 } from "./lib/competitorDiscoveryUtils.mjs";
 import { extractDomain } from "./lib/exaClient.mjs";
 import { buildCompetitorQueries } from "./lib/queries.mjs";
@@ -80,8 +81,12 @@ async function main() {
         brand_name: brand, website_url: "", facebook_url: "", facebook_page_id: "",
         facebook_page_name: "", instagram_url: "", tiktok_url: "",
         detected_services: "", detected_offers: "", detected_prices: "",
+        phone: "", address: "",
         source_urls: [], source_titles: [], source_types: new Set(), evidenceBits: [],
       };
+      // enrichment cho scraper: hotline + địa chỉ (best-effort, không bịa)
+      if (!agg.phone) agg.phone = extractHotline(fullText) || (extractPhones(fullText)[0] || "");
+      if (!agg.address) agg.address = extractAddresses(fullText)[0] || "";
       if (!agg.website_url && website) agg.website_url = website;
       if (!agg.facebook_url && fbUrl) agg.facebook_url = fbUrl;
       if (!agg.facebook_page_id && isNumericPageId(fbPageId)) agg.facebook_page_id = fbPageId;
@@ -108,6 +113,7 @@ async function main() {
     facebook_page_name: a.facebook_page_name,
     instagram_url: a.instagram_url, tiktok_url: a.tiktok_url,
     detected_services: a.detected_services, detected_offers: a.detected_offers, detected_prices: a.detected_prices,
+    phone: a.phone || "", address: a.address || "",
     source_urls: a.source_urls.slice(0, 6).join("|"), source_titles: a.source_titles.slice(0, 6).join(" || "),
     source_types: [...a.source_types].join("|"),
     evidence_summary: a.evidenceBits.slice(0, 3).join(" || "),
@@ -115,6 +121,31 @@ async function main() {
   }));
 
   candidates = dedupeCompetitorCandidates(candidates, existingCompetitors, prevDiscovery);
+
+  // ---- ENRICHMENT: candidate có website nhưng thiếu fanpage -> tìm fanpage (cost guard) ----
+  const MAX_FANPAGE_ENRICH = 8; // số candidate tối đa được enrich/run
+  let enrichTargets = candidates.filter((c) => !c.facebook_url && c.website_url && c.detected_services && !c.duplicate_of).slice(0, MAX_FANPAGE_ENRICH);
+  let fanpageQueriesRun = 0;
+  for (const c of enrichTargets) {
+    const fq = buildFanpageQueries(c, cfg.geo);
+    for (const q of fq) {
+      const r = await exaSearch(q, { numResults: 3, type: cfg.searchType, country: cfg.searchCountry });
+      fanpageQueriesRun++;
+      if (!r.ok) continue;
+      for (const res of r.results) {
+        const social = extractSocialLinks(res);
+        const fb = /facebook\.com/i.test(res.domain) ? res.url : (social.facebook[0] || "");
+        if (!fb) continue;
+        const norm = normalizeFacebookUrl(fb);
+        if (!c.facebook_url) { c.facebook_url = norm; c.facebook_page_name = /facebook\.com/i.test(res.domain) ? res.title.slice(0, 80) : c.facebook_page_name; }
+        const pid = extractFacebookPageIdFromUrl(norm);
+        if (isNumericPageId(pid) && !c.facebook_page_id) c.facebook_page_id = pid;
+        break;
+      }
+      if (c.facebook_url) break; // đã có fanpage -> ngừng query candidate này
+    }
+  }
+  if (fanpageQueriesRun) console.log(`  [enrich] ${enrichTargets.length} candidate · ${fanpageQueriesRun} fanpage queries`);
 
   // Lọc rác trước khi ghi (bài blog/SEO không phải brand thật).
   const before = candidates.length;
@@ -151,7 +182,7 @@ async function main() {
       website_url: c.website_url, website_domain: c.website_domain,
       facebook_url: c.facebook_url, facebook_page_id: c.facebook_page_id, facebook_page_name: c.facebook_page_name,
       instagram_url: c.instagram_url, tiktok_url: c.tiktok_url,
-      phone: "", address: "", location: cfg.geo,
+      phone: c.phone || "", address: c.address || "", location: c.address || cfg.geo,
       detected_services: c.detected_services, detected_offers: c.detected_offers, detected_prices: c.detected_prices,
       source_urls: c.source_urls, source_titles: c.source_titles, source_types: c.source_types,
       evidence_summary: c.evidence_summary,

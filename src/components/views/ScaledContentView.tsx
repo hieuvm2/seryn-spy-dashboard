@@ -23,7 +23,7 @@ const CACA: Record<string, string> = {
 function ScaleBadge({ level }: { level: ScaledContentAnalysis["scale_level"] }) {
   const n = normalizeNumber(level);
   const m = scaleMeta(n);
-  return <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${TONE[m.tone]}`}>C{n} · {m.label}</span>;
+  return <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${TONE[m.tone]}`} title="Tín hiệu từ số ads tương tự + thời gian chạy, không phải CPA/ROAS">{m.label}</span>;
 }
 
 export default function ScaledContentView({ data }: { data: SpyDashboardData }) {

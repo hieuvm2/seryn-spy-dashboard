@@ -249,3 +249,77 @@ export function dedupeCompetitorCandidates(candidates, existingCompetitors = [],
     return { ...c, duplicate_of: dupOf };
   });
 }
+
+/* ============================================================
+   ENRICHMENT — phone / address / fanpage cho scraper
+   ============================================================ */
+
+/** Chuẩn hóa số điện thoại VN: +84/84 -> 0; chỉ nhận 10–11 số bắt đầu 0. */
+export function normalizePhoneVN(phone) {
+  let p = str(phone).replace(/[^\d+]/g, "");
+  if (p.startsWith("+84")) p = "0" + p.slice(3);
+  else if (p.startsWith("84") && p.length >= 11) p = "0" + p.slice(2);
+  p = p.replace(/\D/g, "");
+  return /^0\d{8,10}$/.test(p) ? p : "";
+}
+
+/** Trích mọi số điện thoại VN từ text (đã normalize, dedupe). */
+export function extractPhones(text) {
+  const t = str(text);
+  const raw = t.match(/(?:\+?84|0)(?:[\s.\-]?\d){8,10}/g) || [];
+  const out = [];
+  for (const r of raw) { const n = normalizePhoneVN(r); if (n && !out.includes(n)) out.push(n); }
+  return out;
+}
+
+/** Hotline ưu tiên: số đứng sau "hotline"; fallback số đầu tiên. */
+export function extractHotline(text) {
+  const t = str(text);
+  const m = t.match(/hotline[:\s]*((?:\+?84|0)(?:[\s.\-]?\d){8,10})/i);
+  if (m) { const n = normalizePhoneVN(m[1]); if (n) return n; }
+  return extractPhones(t)[0] || "";
+}
+
+const ADDR_CUES = /(địa chỉ|address|cơ sở|chi nhánh|cs\d)[:\s]/i;
+const CITY_CUE = /(hà nội|tp\.?\s*hcm|hồ chí minh|sài gòn|đà nẵng|quận\s|phường\s|đường\s|số\s*\d)/i;
+/** Trích đoạn địa chỉ (best-effort): câu sau cue "Địa chỉ", hoặc câu chứa thành phố/đường + số. */
+export function extractAddresses(text) {
+  const t = str(text).replace(/\s+/g, " ");
+  const out = [];
+  const cueMatch = t.match(new RegExp(`${ADDR_CUES.source}([^.|\n]{6,90})`, "i"));
+  if (cueMatch) out.push(cueMatch[2].trim().replace(/[,;]\s*$/, ""));
+  for (const seg of t.split(/[.|\n•]/)) {
+    const s = seg.trim();
+    if (s.length >= 8 && s.length <= 90 && CITY_CUE.test(s) && /\d/.test(s) && !out.includes(s)) out.push(s);
+    if (out.length >= 2) break;
+  }
+  return out;
+}
+
+/** Query Exa bổ sung để tìm fanpage cho 1 candidate có website nhưng thiếu FB. */
+export function buildFanpageQueries(candidate, geo) {
+  const brand = str(candidate.brand_name).trim();
+  const domain = str(candidate.website_domain || extractDomain(candidate.website_url)).trim();
+  const out = [];
+  if (brand) {
+    out.push(`"${brand}" facebook`);
+    out.push(`"${brand}" site:facebook.com`);
+    out.push(`"${brand}" fanpage ${geo || ""}`.trim());
+  }
+  if (domain) out.push(`"${domain}" facebook`);
+  // tối đa 3 query/candidate (cost guard)
+  return [...new Set(out)].slice(0, 3);
+}
+
+/** Merge enrichment vào candidate base (chỉ điền field còn trống). */
+export function mergeCandidateEnrichment(base, enrichment = {}) {
+  const out = { ...base };
+  for (const k of ["facebook_url", "facebook_page_id", "facebook_page_name", "instagram_url", "tiktok_url", "phone", "address", "location"]) {
+    if (!str(out[k]).trim() && str(enrichment[k]).trim()) out[k] = enrichment[k];
+  }
+  if (enrichment.detected_services) {
+    const merged = [...new Set([...str(out.detected_services).split("|"), ...str(enrichment.detected_services).split("|")].filter(Boolean))];
+    out.detected_services = merged.join("|");
+  }
+  return out;
+}

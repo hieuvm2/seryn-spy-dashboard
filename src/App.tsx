@@ -32,18 +32,22 @@ import { fetchOnlineSpyData, getOnlineApiUrl, isOnlineConfigured } from "./utils
 const VALID_VIEWS: ViewId[] = [
   "overview",
   "brands",
-  "scaled-content",
-  "top-hooks",
-  "visual-intelligence",
-  "weekly-changes",
-  "seryn-recommendations",
-  "weekly-intelligence",
-  "competitor-setup",
-  "market-research",
   "competitor-discovery",
-  "ad-format-funnel",
+  "competitor-setup",
   "data-import",
 ];
+
+/** Hash cũ -> view mới (tránh app trắng màn hình khi mở bookmark cũ). */
+const VIEW_REDIRECTS: Partial<Record<string, ViewId>> = {
+  "weekly-intelligence": "overview",
+  "scaled-content": "brands",
+  "top-hooks": "brands",
+  "visual-intelligence": "brands",
+  "ad-format-funnel": "brands",
+  "weekly-changes": "brands",
+  "market-research": "brands",
+  "seryn-recommendations": "brands",
+};
 
 export default function App() {
   const stored = loadSpyDataFromLocalStorage();
@@ -124,8 +128,10 @@ export default function App() {
   // URL hash sync (open valid view from hash; default overview)
   useEffect(() => {
     const apply = () => {
-      const hash = window.location.hash.substring(1) as ViewId;
-      setActiveSection(VALID_VIEWS.includes(hash) ? hash : "overview");
+      const hash = window.location.hash.substring(1);
+      const redirect = VIEW_REDIRECTS[hash];
+      if (redirect) { window.location.hash = redirect; return; }
+      setActiveSection(VALID_VIEWS.includes(hash as ViewId) ? (hash as ViewId) : "overview");
     };
     apply();
     window.addEventListener("hashchange", apply);
@@ -185,7 +191,7 @@ export default function App() {
         />
 
         <main className="p-4 sm:p-6 lg:p-8 flex-1 max-w-7xl w-full mx-auto pb-24">
-          {activeSection === "overview" && <OverviewView data={spyData} />}
+          {activeSection === "overview" && <OverviewView data={spyData} onSelectBrand={setSelectedBrand} />}
           {activeSection === "brands" && <BrandsView data={spyData} onSelectBrand={setSelectedBrand} />}
           {activeSection === "scaled-content" && <ScaledContentView data={spyData} />}
           {activeSection === "top-hooks" && <HookIntelligenceView data={spyData} />}

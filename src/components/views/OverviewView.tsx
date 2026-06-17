@@ -2,7 +2,9 @@ import React from "react";
 import { motion } from "motion/react";
 import { Flame, Layers, TrendingUp, TrendingDown, Building2, Activity } from "lucide-react";
 import type { SpyDashboardData } from "../../types";
-import { normalizeNumber, countChips, scaleMeta, viLabel } from "../../utils/spyData";
+import { normalizeNumber, countChips, scaleMeta, viLabel, humanizeText } from "../../utils/spyData";
+import { latestWeek, dataQualityReport } from "../../utils/weeklyIntel";
+import { latestCrawlRun, incrementalSummary } from "../../utils/incremental";
 
 function SectionTitle({ tag, title, desc }: { tag: string; title: string; desc?: string }) {
   return (
@@ -42,7 +44,7 @@ function ChipList({ items }: { items: { label: string; n: number }[] }) {
   );
 }
 
-export default function OverviewView({ data }: { data: SpyDashboardData }) {
+export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboardData; onSelectBrand?: (brand: string) => void }) {
   const snap = data.brandWeeklySnapshot;
   const totalBrands = snap.length;
   const activeBrands = snap.filter((b) => normalizeNumber(b.total_active_ads) > 0).length;
@@ -64,9 +66,21 @@ export default function OverviewView({ data }: { data: SpyDashboardData }) {
   });
   const topScaling = Object.values(scalingMap).sort((a, b) => b.maxLvl - a.maxLvl || b.clusters - a.clusters);
 
+  const summary = latestWeek(data.weeklySummary ?? []);
+  const dq = dataQualityReport(summary);
+  const crawl = latestCrawlRun(data);
+  const inc = incrementalSummary(data);
+  const failedPages = normalizeNumber(crawl?.failed_pages ?? summary?.total_crawl_failed_pages);
+  const successPages = normalizeNumber(crawl?.success_pages);
+  const actions = (data.actionPlan ?? []).filter((a) => !summary?.week_start || a.week_start === summary.week_start).slice(0, 6);
+  const execSummary = humanizeText(String(
+    summary?.executive_summary ||
+    `Đang theo dõi ${totalBrands} đối thủ với ${totalAds.toLocaleString("vi-VN")} quảng cáo đang chạy (${newAds} mới, ${stoppedAds} đã dừng tuần này). ${totalScaled} cụm nội dung đang được nhân rộng — tín hiệu từ dữ liệu ads, chưa xác nhận hiệu quả chuyển đổi.`,
+  ));
+
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <SectionTitle tag="TỔNG QUAN THỊ TRƯỜNG" title="Tổng quan quảng cáo thị trường" desc="Toàn cảnh hoạt động quảng cáo đối thủ trong tuần." />
+      <SectionTitle tag="TỔNG QUAN SPY ADS" title="Tổng quan Spy Ads" desc="Tình hình quảng cáo đối thủ và các thay đổi đáng chú ý trong tuần." />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Kpi label="Tổng đối thủ" value={totalBrands} icon={Building2} />
@@ -75,6 +89,15 @@ export default function OverviewView({ data }: { data: SpyDashboardData }) {
         <Kpi label="Nội dung nhân rộng" value={totalScaled} icon={Flame} accent="bg-rose-50 text-rose-600" />
         <Kpi label="QC mới tuần này" value={newAds} icon={TrendingUp} accent="bg-emerald-50 text-emerald-600" />
         <Kpi label="QC đã dừng" value={stoppedAds} icon={TrendingDown} accent="bg-amber-50 text-amber-600" />
+        <Kpi label="Page crawl OK / lỗi" value={`${successPages || "—"} / ${failedPages}`} icon={Activity} accent={failedPages > 0 ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"} />
+        {summary && <Kpi label="Chất lượng dữ liệu" value={`${dq.score}/100`} icon={Building2} accent={dq.level === "good" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"} />}
+      </div>
+
+      {/* Báo cáo tuần (gộp từ Weekly Intelligence) */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-2">Báo cáo tuần</h3>
+        <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 border border-slate-100 rounded-xl p-3">{execSummary}</p>
+        <p className="text-[11px] text-slate-400 mt-2 italic">Tín hiệu từ dữ liệu ads (số lượng + thời gian chạy), không phải kết quả ROAS/CPA.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -107,7 +130,7 @@ export default function OverviewView({ data }: { data: SpyDashboardData }) {
                   <div key={r.brand} className="flex items-center gap-3">
                     <span className="w-5 h-5 rounded bg-slate-100 font-mono text-[10px] font-bold text-slate-600 flex items-center justify-center border border-slate-200">{i + 1}</span>
                     <span className="font-bold text-slate-800 flex-1 truncate">{r.brand}</span>
-                    <span className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded">C{r.maxLvl} · {meta.label}</span>
+                    <span className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded">{meta.label}</span>
                     <span className="text-xs font-mono text-slate-500">{r.clusters} cụm</span>
                   </div>
                 );
@@ -119,6 +142,36 @@ export default function OverviewView({ data }: { data: SpyDashboardData }) {
           <p className="mt-5 text-[11px] text-slate-500 font-medium border-t border-slate-100 pt-3 leading-relaxed">
             Lưu ý: “khả năng đang nhân rộng dựa trên thời lượng chạy + lặp lại — chưa xác nhận hiệu quả/lợi nhuận”. Không có dữ liệu ngân sách/chuyển đổi.
           </p>
+        </div>
+      </div>
+
+      {/* Kế hoạch hành động + Tình trạng dữ liệu */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-3">Kế hoạch hành động</h3>
+          <div className="space-y-2">
+            {actions.length ? actions.map((a) => (
+              <div key={a.action_id} className="border border-slate-100 rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                  <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border bg-slate-50 text-slate-500">{String(a.priority || "")}</span>
+                  {a.related_brand && <button onClick={() => onSelectBrand?.(String(a.related_brand))} className="text-[10px] font-bold text-cyan-700 hover:underline">{a.related_brand} ↗</button>}
+                </div>
+                <p className="text-xs font-bold text-slate-800">{humanizeText(String(a.insight || ""))}</p>
+                {a.suggested_action && <p className="text-[11px] text-cyan-700 mt-0.5">→ {humanizeText(String(a.suggested_action))}</p>}
+              </div>
+            )) : <p className="text-xs text-slate-400">Chưa có action tuần này.</p>}
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-3">Tình trạng dữ liệu</h3>
+          <div className="space-y-1.5 text-xs">
+            <div className="flex justify-between py-1 border-b border-slate-100"><span className="text-slate-500 font-semibold uppercase text-[11px]">Lần crawl gần nhất</span><span className="text-slate-800 font-bold">{crawl?.finished_at || crawl?.started_at || "—"}</span></div>
+            <div className="flex justify-between py-1 border-b border-slate-100"><span className="text-slate-500 font-semibold uppercase text-[11px]">Page lỗi</span><span className={`font-bold ${failedPages > 0 ? "text-amber-600" : "text-emerald-600"}`}>{failedPages}</span></div>
+            <div className="flex justify-between py-1 border-b border-slate-100"><span className="text-slate-500 font-semibold uppercase text-[11px]">Carried forward</span><span className="text-slate-800 font-bold">{inc.carried}</span></div>
+            <div className="flex justify-between py-1"><span className="text-slate-500 font-semibold uppercase text-[11px]">Trạng thái crawl</span><span className="text-slate-800 font-bold">{crawl?.status || "—"}</span></div>
+          </div>
+          {failedPages > 0 && <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">{failedPages} page crawl lỗi — KHÔNG kết luận đối thủ tắt ads ở các page này.</p>}
         </div>
       </div>
     </motion.div>

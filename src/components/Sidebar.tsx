@@ -35,41 +35,18 @@ type MenuGroup = { title: string; items: MenuItem[] };
 /** Danh mục gom nhóm theo luồng làm việc: Tổng quan → Phân tích → Nghiên cứu → Sáng tạo → Cấu hình. */
 const menuGroups: MenuGroup[] = [
   {
-    title: "Tổng quan",
+    title: "Spy Ads đối thủ",
     items: [
       { id: "overview", label: "Tổng quan", icon: LayoutDashboard },
-      { id: "weekly-intelligence", label: "Báo cáo tuần", icon: ClipboardList },
-    ],
-  },
-  {
-    title: "Nghiên cứu & mở rộng",
-    items: [
-      { id: "market-research", label: "Nghiên cứu thị trường", icon: Globe },
-      { id: "competitor-discovery", label: "Phát hiện đối thủ", icon: Search },
-    ],
-  },
-  {
-    title: "Phân tích đối thủ",
-    items: [
       { id: "brands", label: "Đối thủ", icon: FileSpreadsheet },
-      { id: "scaled-content", label: "Nội dung nhân rộng", icon: Flame },
-      { id: "top-hooks", label: "Phân tích Hook", icon: Zap },
-      { id: "visual-intelligence", label: "Phân tích hình ảnh", icon: ImageIcon },
-      { id: "ad-format-funnel", label: "Định dạng & Phễu", icon: LayoutGrid },
-      { id: "weekly-changes", label: "Thay đổi tuần", icon: Layers },
-    ],
-  },
-  {
-    title: "Sáng tạo cho SERYN",
-    items: [
-      { id: "seryn-recommendations", label: "Gợi ý cho SERYN", icon: Lightbulb },
+      { id: "competitor-discovery", label: "Phát hiện đối thủ", icon: Search },
     ],
   },
   {
     title: "Cấu hình & dữ liệu",
     items: [
       { id: "competitor-setup", label: "Cấu hình đối thủ", icon: Users },
-      { id: "data-import", label: "Nhập dữ liệu", icon: Upload },
+      { id: "data-import", label: "Dữ liệu", icon: Upload },
     ],
   },
 ];

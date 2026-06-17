@@ -579,15 +579,15 @@ export function scaleMeta(level: unknown): { label: string; tone: "slate" | "sky
   const n = normalizeNumber(level);
   switch (n) {
     case 1:
-      return { label: "Đang thử", tone: "slate" };
+      return { label: "Tín hiệu yếu", tone: "slate" };
     case 2:
-      return { label: "Mới nhân rộng", tone: "sky" };
+      return { label: "Tín hiệu lặp lại", tone: "sky" };
     case 3:
-      return { label: "Nhân rộng mạnh", tone: "amber" };
+      return { label: "Tín hiệu mạnh", tone: "amber" };
     case 4:
-      return { label: "Thắng bền vững", tone: "rose" };
+      return { label: "Chạy dài ngày (bền)", tone: "rose" };
     default:
-      return { label: "Chưa rõ", tone: "slate" };
+      return { label: "Cần theo dõi", tone: "slate" };
   }
 }
 
