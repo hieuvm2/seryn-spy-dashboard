@@ -89,8 +89,6 @@ export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboa
         <Kpi label="Nội dung nhân rộng" value={totalScaled} icon={Flame} accent="bg-rose-50 text-rose-600" />
         <Kpi label="QC mới tuần này" value={newAds} icon={TrendingUp} accent="bg-emerald-50 text-emerald-600" />
         <Kpi label="QC đã dừng" value={stoppedAds} icon={TrendingDown} accent="bg-amber-50 text-amber-600" />
-        <Kpi label="Page crawl OK / lỗi" value={`${successPages || "—"} / ${failedPages}`} icon={Activity} accent={failedPages > 0 ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"} />
-        {summary && <Kpi label="Chất lượng dữ liệu" value={`${dq.score}/100`} icon={Building2} accent={dq.level === "good" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"} />}
       </div>
 
       {/* Báo cáo tuần (gộp từ Weekly Intelligence) */}
