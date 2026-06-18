@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { Users, Plus, Search, CheckCircle2, AlertTriangle, Power, FlaskConical, Cloud, CloudOff } from "lucide-react";
+import { Users, Plus, Search, CheckCircle2, AlertTriangle, Power, FlaskConical, Cloud, CloudOff, Trash2 } from "lucide-react";
 import type { Competitor } from "../../types";
 import {
   loadCompetitorsAsync,
   createCompetitor,
   updateCompetitor,
   toggleCompetitorActive,
+  deleteCompetitor,
   validateCompetitor,
   statusFor,
   testCrawl,
@@ -63,6 +64,12 @@ export default function CompetitorSetupView() {
   const onPatch = (id: string, patch: Partial<Competitor>) => { updateCompetitor(id, patch); reload(); };
   const onToggle = (c: Competitor) => { toggleCompetitorActive(c.id, !c.active); reload(); flash(c.active ? "Đã tắt." : "Đã bật."); };
   const onCrawl = (c: Competitor) => { const r = testCrawl(c); flash(r.message, r.ok); };
+  const onDelete = (c: Competitor) => {
+    if (!window.confirm(`Xóa hẳn đối thủ "${c.brand}" khỏi watchlist?\nPipeline sẽ KHÔNG spy brand này nữa. (Nếu chỉ muốn tạm dừng, dùng nút On/Off.)`)) return;
+    const { synced } = deleteCompetitor(c.id);
+    reload();
+    flash(synced ? `Đã xóa "${c.brand}" + đồng bộ Google Sheets.` : `Đã xóa "${c.brand}" (local).`, true);
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -163,6 +170,7 @@ export default function CompetitorSetupView() {
                   <button onClick={() => onCrawl(c)} className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg border border-indigo-100 transition cursor-pointer" title="Test crawl"><FlaskConical className="w-3.5 h-3.5" /> Test</button>
                   <button onClick={() => onToggle(c)} className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg border transition cursor-pointer ${c.active ? "text-emerald-600 border-emerald-100 hover:bg-emerald-50" : "text-slate-500 border-slate-200 hover:bg-slate-50"}`}><Power className="w-3.5 h-3.5" /> {c.active ? "On" : "Off"}</button>
                   <button onClick={() => setEditing(isEdit ? null : c.id)} className="text-xs font-bold text-slate-600 hover:bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 transition cursor-pointer">{isEdit ? "Xong" : "Sửa"}</button>
+                  <button onClick={() => onDelete(c)} title="Xóa hẳn khỏi watchlist" className="flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg border border-rose-100 transition cursor-pointer"><Trash2 className="w-3.5 h-3.5" /> Xóa</button>
                 </div>
               </div>
             );

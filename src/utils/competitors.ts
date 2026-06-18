@@ -245,6 +245,23 @@ export function softDeleteCompetitor(id: string): Competitor | null {
   return updateCompetitor(id, { active: false, notes: "(đã ẩn)" });
 }
 
+/** Xóa local theo id. */
+function removeLocal(id: string): void {
+  saveDrafts(loadDrafts().filter((x) => x.id !== id));
+}
+/** Xóa online qua Apps Script (doPost action=delete theo id). */
+function remoteDelete(id: string): void {
+  if (!competitorWriteConfigured()) return;
+  apiPost({ type: "competitors", action: "delete", record: { id } })
+    .catch((e) => console.warn("Xóa competitor online thất bại — đã xóa local:", e));
+}
+/** XÓA HẲN đối thủ khỏi watchlist (local + Sheet). Pipeline sẽ không spy brand này nữa. */
+export function deleteCompetitor(id: string): { synced: boolean } {
+  removeLocal(id);
+  remoteDelete(id);
+  return { synced: competitorWriteConfigured() };
+}
+
 /* ---------- Test crawl (MVP — kiểm tra cấu hình, chưa gọi backend thật) ---------- */
 export type CrawlResult = { ok: boolean; status: CompetitorStatus; message: string };
 export function testCrawl(c: Competitor): CrawlResult {
