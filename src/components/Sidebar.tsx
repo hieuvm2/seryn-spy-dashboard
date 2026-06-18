@@ -77,14 +77,10 @@ export default function Sidebar({ activeSection, setActiveSection, mobileOpen = 
       >
       {/* Brand */}
       <div className="px-5 py-5 border-b border-slate-100 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center text-white shrink-0 shadow-lg shadow-cyan-600/20">
-          <Database className="w-4.5 h-4.5" />
-        </div>
+        <img src="/seryn-mark.png" alt="SERYN" className="w-9 h-9 object-contain shrink-0" />
         <div className="min-w-0">
-          <h1 className="text-base font-extrabold tracking-tight text-slate-900 leading-tight">
-            SERYN <span className="text-cyan-600">INSIGHTS</span>
-          </h1>
-          <p className="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold">Competitor Intelligence</p>
+          <h1 className="font-brand text-2xl font-bold tracking-[0.18em] text-slate-900 leading-none">SERYN</h1>
+          <p className="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold mt-1">Competitor Intelligence</p>
         </div>
         {/* Nút đóng drawer (mobile) */}
         <button
