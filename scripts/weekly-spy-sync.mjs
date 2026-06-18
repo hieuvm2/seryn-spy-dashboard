@@ -730,11 +730,25 @@ function analyzeAd(raw, brand, weekDate, prevAdIds, opts = {}) {
   return base;
 }
 
+/** Danh sách ad_id bị AI vision loại (ảnh/nội dung thực ra là body/dịch vụ khác).
+ *  Nạp từ scripts/vision_excludes.json (mảng ad_id, hoặc {excludeIds:[...]}). */
+const VISION_EXCLUDES = (() => {
+  try {
+    const p = new URL("./vision_excludes.json", import.meta.url);
+    if (!fs.existsSync(p)) return new Set();
+    const raw = JSON.parse(fs.readFileSync(p, "utf8"));
+    const ids = Array.isArray(raw) ? raw : (raw.excludeIds || raw.ids || []);
+    return new Set(ids.map((x) => String(x).trim()).filter(Boolean));
+  } catch { return new Set(); }
+})();
+
 /** PHẠM VI SPY: chỉ giữ ad căng da / trẻ hóa da mặt (skin_rejuvenation), loại dịch vụ khác.
- *  ADS_SCOPE=all -> giữ nguyên tất cả. Log số ad bị loại để minh bạch (không bịa). */
+ *  + loại ad_id do AI vision đánh dấu (ảnh thực ra là body/dịch vụ khác).
+ *  ADS_SCOPE=all -> bỏ qua lọc service (vẫn áp vision excludes). Log để minh bạch. */
 function scopeAds(ads, brandName) {
-  if (ADS_SCOPE === "all") return ads;
-  const kept = ads.filter((a) => a.service_category === SERVICE_CATEGORY);
+  const kept = ads.filter((a) =>
+    (ADS_SCOPE === "all" || a.service_category === SERVICE_CATEGORY) && !VISION_EXCLUDES.has(String(a.ad_id)),
+  );
   const dropped = ads.length - kept.length;
   if (dropped > 0) console.log(`    ↳ scope trẻ hóa da: "${brandName}" bỏ ${dropped}/${ads.length} ad dịch vụ khác (giữ ${kept.length}).`);
   return kept;

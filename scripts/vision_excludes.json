@@ -1,0 +1,403 @@
+{
+ "note": "ad_id bị AI vision loại (ảnh/nội dung thực ra là body/dịch vụ khác, không phải trẻ hóa da mặt). Tạo 2026-06-18.",
+ "week": "2026-06-15",
+ "excludeIds": [
+  "36063782866598985",
+  "884917940654477",
+  "33565456053068077",
+  "961310143392397",
+  "980584741323517",
+  "3589565041199663",
+  "953181634447512",
+  "1518577833306096",
+  "2561549547635356",
+  "2242487849625003",
+  "1688927669020288",
+  "1591222499207827",
+  "4034062876899407",
+  "1646019503336862",
+  "1406256401171917",
+  "1701727891237683",
+  "1591900448894045",
+  "1904179243503955",
+  "27307798732149401",
+  "1727738988566594",
+  "2538385299898138",
+  "1383041080329020",
+  "1008942064943011",
+  "4351147705196146",
+  "1747618929569009",
+  "26856565840650558",
+  "1020737654250154",
+  "838794368492892",
+  "1573210650842664",
+  "1312026670463189",
+  "2461576417643755",
+  "2084952208902737",
+  "1884185205610784",
+  "1865584054192013",
+  "1975885276647845",
+  "1434175794870100",
+  "4559498130959555",
+  "912029648519637",
+  "1671499264071943",
+  "1568799097541008",
+  "2144319196392925",
+  "1512143457232985",
+  "1938275463533735",
+  "1253635439990928",
+  "1313443090441050",
+  "844099975069748",
+  "1627633801674307",
+  "1357442159200305",
+  "1540575253822036",
+  "1474944957676574",
+  "1851554092174906",
+  "1264728339191771",
+  "1564209474680429",
+  "1837619266916141",
+  "1280727324022731",
+  "3281801865327470",
+  "939548108821720",
+  "2426884694398712",
+  "975215815015282",
+  "2464304564087535",
+  "1302190178561078",
+  "3092044264319178",
+  "3239498686243060",
+  "27410843391887889",
+  "1472637281285941"
+ ],
+ "detail": [
+  {
+   "ad_id": "36063782866598985",
+   "real_service": "phẫu thuật cắt mỡ bọng mắt (thẩm mỹ mắt)",
+   "reason": "Ảnh: bác sĩ + cận cảnh đôi mắt có bọng mỡ với mũi tên đỏ; chữ lớn 'Cắt mỡ bọng mắt cho U40-U70'. Đây là phẫu thuật thẩm mỹ mắt (blepharoplasty), không phải trẻ hóa/căng da da mặt."
+  },
+  {
+   "ad_id": "884917940654477",
+   "real_service": "phẫu thuật thẩm mỹ mắt / sụp mí",
+   "reason": "Ảnh: mặt phụ nữ before-after vùng mắt; chữ 'Combo Trẻ hóa mắt'. Nội dung xử lý mắt sụp mí, da dư mỡ thừa bằng phẫu thuật mắt — là thẩm mỹ mắt, không phải trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "33565456053068077",
+   "real_service": "phẫu thuật cắt mỡ bọng mắt (thẩm mỹ mắt)",
+   "reason": "Ảnh: mặt dán băng vùng mắt + cận cảnh; chữ 'Trẻ hoá bọng mắt to cho U40-U70'. Text nói xử lý bọng mắt to — phẫu thuật thẩm mỹ mắt, không thuộc trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "961310143392397",
+   "real_service": "nội dung branding bác sĩ (không có dịch vụ trẻ hóa da)",
+   "reason": "Ảnh: chân dung bác sĩ Tú Dung; chữ 'Chân dung vị bác sĩ 1 mình sống 7 cuộc đời...'. Đây là bài kể chuyện/branding cá nhân bác sĩ, không quảng cáo dịch vụ trẻ hóa/căng da da mặt cụ thể."
+  },
+  {
+   "ad_id": "980584741323517",
+   "real_service": "chương trình wellness/trường thọ JW Wellness (sống khỏe)",
+   "reason": "Ảnh: bác sĩ nói chuyện; chữ 'Tuyệt chiêu trẻ hóa, sống khỏe với JW WELLNESS'. Nội dung trẻ hóa toàn thân/sống thọ trăm tuổi (wellness/longevity), không phải căng da hay trẻ hóa DA MẶT."
+  },
+  {
+   "ad_id": "3589565041199663",
+   "real_service": "phẫu thuật cắt mỡ bọng mắt (thẩm mỹ mắt)",
+   "reason": "Ảnh: bác sĩ + cận cảnh đôi mắt có bọng mỡ, mũi tên đỏ; chữ 'Cắt mỡ bọng mắt cho U40-U70'. Phẫu thuật thẩm mỹ mắt, không phải trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "953181634447512",
+   "real_service": "giảm béo/hút mỡ body (eo, dáng)",
+   "reason": "Ảnh là bác sĩ JW ngồi tựa tường (ngữ cảnh demo công nghệ), hook/text rõ ràng nói HÚT MỠ KHÔNG PHẪU THUẬT, EO THON DÁNG GỌN, giảm 98% mỡ thừa bằng Laser Lipo — đây là dịch vụ giảm béo vùng cơ thể, không phải trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "1518577833306096",
+   "real_service": "trị thâm/sần vỏ cam vùng cơ thể (bikini/bụng dưới)",
+   "reason": "Ảnh THẬT cho thấy đầu laser đang điều trị vùng bụng dưới/bikini (thấy quần lót đen), kèm khăn body. Text nói 'thâm đen, sần vỏ cam' — là vùng cơ thể chứ không phải da mặt, dù service ghi facial_rejuvenation."
+  },
+  {
+   "ad_id": "2561549547635356",
+   "real_service": "trị thâm nách (vùng cơ thể)",
+   "reason": "Ảnh THẬT là người giơ tay chụp gương lộ vùng nách; hook/text nói 'thâm nách', 'vùng cánh sáng mịn' — dịch vụ trị thâm vùng nách cơ thể, không liên quan da mặt."
+  },
+  {
+   "ad_id": "2242487849625003",
+   "real_service": "trị thâm nách (vùng cơ thể)",
+   "reason": "Ảnh THẬT giống ad trên: người giơ tay chụp gương lộ nách; text 'thâm nách', 'vùng cánh sáng mịn' — trị thâm nách body, không phải da mặt."
+  },
+  {
+   "ad_id": "1688927669020288",
+   "real_service": "tắm trắng toàn thân (body)",
+   "reason": "Ảnh THẬT cho thấy kem trắng bôi khắp cổ, ngực, cánh tay (toàn thân), caption 'CẢ BODY NHA BÀ' và câu hỏi 'tắm trắng cả body'; text 'TẮM TRẮNG FULL BODY' — dịch vụ tắm trắng toàn thân, không phải da mặt."
+  },
+  {
+   "ad_id": "1688927669020288",
+   "real_service": "tắm trắng body (full body)",
+   "reason": "Ảnh chụp người đang được bôi kem trắng lên cổ/ngực/cánh tay/eo, caption 'CẢ BODY NHA BÀ' + text tắm trắng full body. Dịch vụ vùng cơ thể, không phải da mặt."
+  },
+  {
+   "ad_id": "1591222499207827",
+   "real_service": "trị viêm nang lông/mụn lưng - bắp tay (body)",
+   "reason": "Ảnh chụp rõ bắp tay và lưng bị viêm nang lông/mụn (vùng cơ thể), bác sĩ chỉ vào da tay. Không liên quan da mặt."
+  },
+  {
+   "ad_id": "4034062876899407",
+   "real_service": "trị viêm nang lông/mụn lưng - vai cánh tay (body)",
+   "reason": "Ảnh chụp vai, bắp tay và lưng có mụn/viêm nang lông (vùng cơ thể), đang soi da body. Không phải da mặt."
+  },
+  {
+   "ad_id": "1646019503336862",
+   "real_service": "tắm trắng body + triệt bikini",
+   "reason": "Ảnh chụp người được bôi kem trắng cổ/ngực/cánh tay/body, text tắm trắng bật 5 tone full body + triệt bikini. Dịch vụ vùng cơ thể."
+  },
+  {
+   "ad_id": "1406256401171917",
+   "real_service": "điều trị sẹo lồi vùng cổ tay/cánh tay (body)",
+   "reason": "Ảnh rõ ràng là CỔ TAY/CÁNH TAY có sẹo lồi (keloid), KHÔNG phải mặt; text '4 buổi hết sẹo lồi'. Đây là trị sẹo vùng cơ thể, ngoài scope trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "1701727891237683",
+   "real_service": "điều trị sẹo lồi vùng cổ tay/cánh tay (body)",
+   "reason": "Ảnh trùng với ad trên: CỔ TAY/CÁNH TAY có sẹo lồi keloid, không liên quan da mặt; trị sẹo lồi vùng cơ thể → ngoài scope."
+  },
+  {
+   "ad_id": "1591900448894045",
+   "real_service": "trị sẹo lồi (vùng cổ tay/cẳng tay - body)",
+   "reason": "Ảnh chụp cổ tay/cẳng tay có sẹo lồi (keloid), KHÔNG phải da mặt; nội dung trị sẹo lồi 4 buổi. Không thuộc trẻ hóa/căng da mặt."
+  },
+  {
+   "ad_id": "1904179243503955",
+   "real_service": "cấy mỡ tự thân fullface (làm đầy hốc hác)",
+   "reason": "Ảnh khuôn mặt có đánh dấu lượng ml + xy lanh chứa mỡ; đây là cấy mỡ tự thân làm đầy/độn mặt (thủ thuật xâm lấn), không phải HIFU/RF/căng da hay trẻ hóa nền da mặt."
+  },
+  {
+   "ad_id": "27307798732149401",
+   "real_service": "sửa mũi / phẫu thuật thẩm mỹ (rhinoplasty)",
+   "reason": "Thumbnail clickbait 'Đừng xem thẩm mỹ là phép thử'; text kể 5 lần sửa mũi thất vọng - nội dung phẫu thuật nâng/sửa mũi, không liên quan trẻ hóa căng da mặt."
+  },
+  {
+   "ad_id": "1727738988566594",
+   "real_service": "sửa mũi / phẫu thuật thẩm mỹ (rhinoplasty)",
+   "reason": "Cùng creative 'Đừng xem thẩm mỹ là phép thử' về câu chuyện 5 lần sửa mũi; là phẫu thuật mũi, không phải trẻ hóa/căng da mặt."
+  },
+  {
+   "ad_id": "2538385299898138",
+   "real_service": "sửa mũi / phẫu thuật thẩm mỹ (rhinoplasty)",
+   "reason": "Ảnh và text trùng bản 'sửa mũi' (5 lần sửa mũi thất vọng); nội dung phẫu thuật mũi, không thuộc trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "1383041080329020",
+   "real_service": "sửa mũi / phẫu thuật thẩm mỹ (rhinoplasty)",
+   "reason": "Cùng thumbnail clickbait và nội dung 5 lần sửa mũi; phẫu thuật mũi chứ không phải căng da/trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "1008942064943011",
+   "real_service": "sửa mũi / phẫu thuật thẩm mỹ (rhinoplasty)",
+   "reason": "Bản sao của ad 'Đừng xem thẩm mỹ là phép thử' về sửa mũi; là phẫu thuật mũi, không liên quan trẻ hóa căng da mặt."
+  },
+  {
+   "ad_id": "4351147705196146",
+   "real_service": "sửa mũi / phẫu thuật thẩm mỹ (rhinoplasty)",
+   "reason": "Cùng creative và text về 5 lần sửa mũi; nội dung phẫu thuật mũi, không phải trẻ hóa/căng da mặt."
+  },
+  {
+   "ad_id": "1747618929569009",
+   "real_service": "sửa mũi hỏng / chỉnh sửa phẫu thuật mũi",
+   "reason": "Ảnh là thumbnail khuôn mặt nhưng nội dung là cảnh báo 'dao kéo lỗi', 5 lần sửa mũi (rhinoplasty revision) - phẫu thuật mũi, không phải trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "26856565840650558",
+   "real_service": "cấy mỡ tự thân fullface (fat grafting)",
+   "reason": "Ảnh cho thấy mặt before/after + các xi-lanh chứa mỡ vàng; nội dung 'cấy mỡ tự thân fullface' - là thủ thuật làm đầy bằng mỡ tự thân (phẫu thuật/cấy mỡ), không phải căng da/trẻ hóa da mặt bằng công nghệ."
+  },
+  {
+   "ad_id": "1020737654250154",
+   "real_service": "sửa mũi hỏng / chỉnh sửa phẫu thuật mũi",
+   "reason": "Cùng creative thumbnail mặt 'đừng xem thẩm mỹ là phép thử', nội dung 5 lần sửa mũi - phẫu thuật mũi, không phải trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "838794368492892",
+   "real_service": "HIFU trẻ hóa DA TAY (vùng bàn tay)",
+   "reason": "Ảnh rõ ràng là BÀN TAY đang chiếu đèn đỏ + chữ 'SUPER HIFU TRẺ HÓA DA TAY' và 2 thẻ hình bàn tay. Là trẻ hóa da tay, không phải da mặt -> out of scope dù text có 'trẻ hóa'."
+  },
+  {
+   "ad_id": "1573210650842664",
+   "real_service": "HIFU trẻ hóa DA TAY (vùng bàn tay)",
+   "reason": "Ảnh rõ là BÀN TAY đang được điều trị bằng đầu máy đèn đỏ; text 'đừng để đôi tay tố cáo tuổi tác, HIFU đôi tay 0Đ'. Là trẻ hóa da tay, vùng cơ thể -> out of scope."
+  },
+  {
+   "ad_id": "1312026670463189",
+   "real_service": "trẻ hóa da TAY (HIFU da tay)",
+   "reason": "Ảnh: người mẫu xoa/khoe hai BÀN TAY, chữ trên ảnh 'Giảm Thô Ráp Khô Sần'; text 'TRẺ HÓA DA TAY SUPER HIFU'. Đây là trẻ hóa da TAY, không phải da mặt."
+  },
+  {
+   "ad_id": "2461576417643755",
+   "real_service": "trẻ hóa da TAY (HIFU da tay)",
+   "reason": "Ảnh: livestream đầu thiết bị HIFU đang chiếu lên BÀN TAY/ngón tay; comment 'tay nhăn', text 'TRẺ HÓA DA TAY' + 'trẻ hóa xóa nhăn da tay'. Da tay, không phải da mặt."
+  },
+  {
+   "ad_id": "2084952208902737",
+   "real_service": "trẻ hóa da TAY (HIFU da tay)",
+   "reason": "Ảnh: cận cảnh một BÀN TAY trên vải hồng, chữ 'Lão Hóa Da Tay'; text 'TRẺ HÓA DA TAY SUPER HIFU'. Da tay, không phải da mặt."
+  },
+  {
+   "ad_id": "1884185205610784",
+   "real_service": "phun môi (phun xăm thẩm mỹ)",
+   "reason": "Ảnh cận cảnh đôi MÔI, chữ 'PHUN MÔI CHUẨN Y KHOA', text liệt kê các gói phun môi. Đây là phun xăm môi, KHÔNG phải trẻ hóa/căng da mặt."
+  },
+  {
+   "ad_id": "1865584054192013",
+   "real_service": "thẩm mỹ môi / phun môi (MÔI TC)",
+   "reason": "Ảnh: cận cảnh đôi MÔI hồng bóng + chữ 'MÔI TC 35%'; đây là dịch vụ làm môi (phun/xăm môi), không phải trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "1975885276647845",
+   "real_service": "điêu khắc/phun chân mày nam",
+   "reason": "Ảnh: mặt nam với dụng cụ đo chân mày + chữ 'ĐIÊU KHẮC SỢI CHÂN MÀY NAM'; dịch vụ làm lông mày (phun xăm), không phải trẻ hóa/căng da mặt."
+  },
+  {
+   "ad_id": "1434175794870100",
+   "real_service": "phun mày + phun môi (combo)",
+   "reason": "Ảnh: mặt với chân mày đã phun và môi son đỏ; nội dung combo phun mày/môi/mí. Là phun xăm thẩm mỹ, không phải trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "4559498130959555",
+   "real_service": "phun mày + phun môi (combo)",
+   "reason": "Ảnh trùng với ad trên (mày đã phun, môi đỏ); combo phun mày/môi/mí. Phun xăm thẩm mỹ, không phải trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "912029648519637",
+   "real_service": "khử thâm môi (phun/điều trị môi)",
+   "reason": "Ảnh: cận mặt nam, tập trung vùng MÔI thâm; nội dung khử thâm môi + xử lý hạt bã nhờn ở môi. Là dịch vụ môi, không phải trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "1671499264071943",
+   "real_service": "điêu khắc sợi chân mày (hairstroke)",
+   "reason": "Ảnh: thao tác bút điêu khắc lên CHÂN MÀY + chữ 'ĐIÊU KHẮC SỢI HAIRSTROKES'; dịch vụ làm lông mày (phun xăm), không phải trẻ hóa da mặt dù service ghi collagen_stimulation."
+  },
+  {
+   "ad_id": "1568799097541008",
+   "real_service": "điêu khắc/phun xăm chân mày nam",
+   "reason": "Ảnh cận cảnh cặp chân mày + mắt nam giới, chữ 'ĐIÊU KHẮC SỢI CHÂN MÀY NAM - Mạnh mẽ, Nam tính'. Đây là phun xăm/điêu khắc lông mày, không phải trẻ hóa/căng da mặt."
+  },
+  {
+   "ad_id": "2144319196392925",
+   "real_service": "tắm trắng body",
+   "reason": "Ảnh người mẫu mặc áo hai dây + quần ngắn, phía sau là kỹ thuật viên đang ủ trắng toàn thân trên giường; text nói rõ 'làn da body trắng mịn' và 'tắm trắng Bio Light 6D'. Dịch vụ tắm trắng body, không phải da mặt."
+  },
+  {
+   "ad_id": "1512143457232985",
+   "real_service": "tắm trắng body (giường ánh sáng đỏ)",
+   "reason": "Ảnh chụp từ trên xuống thấy chân/đùi/thân nằm trong buồng đèn đỏ tắm trắng; chữ 'POV: Bạn đi tắm trắng tại TOP CLINIC'. Là tắm trắng toàn thân, không phải da mặt."
+  },
+  {
+   "ad_id": "1938275463533735",
+   "real_service": "tắm trắng body (giường ánh sáng đỏ)",
+   "reason": "Ảnh giống ad tắm trắng: thân/chân nằm trong buồng đèn đỏ, text 'POV: Bạn đi tắm trắng'. Dịch vụ tắm trắng toàn thân, không phải trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "1253635439990928",
+   "real_service": "tắm trắng body (giường ánh sáng đỏ)",
+   "reason": "Ảnh giống ad tắm trắng: thân/chân nằm trong buồng đèn đỏ, text 'POV: Bạn đi tắm trắng'. Dịch vụ tắm trắng toàn thân, không thuộc da mặt."
+  },
+  {
+   "ad_id": "1313443090441050",
+   "real_service": "tắm trắng body / toàn thân",
+   "reason": "Ảnh kỹ thuật viên bôi kem tắm trắng lên VAI, CÁNH TAY, CHÂN toàn thân khách (không phải da mặt). Dù text nói 'làn da trắng mịn' nhưng đây là tắm trắng body → out of scope."
+  },
+  {
+   "ad_id": "844099975069748",
+   "real_service": "tắm trắng body / toàn thân",
+   "reason": "Collage ảnh bôi/ủ kem tắm trắng lên CHÂN, TAY, BỤNG toàn thân; ưu đãi 'tắm trắng'. Dịch vụ body, không phải da mặt → out of scope."
+  },
+  {
+   "ad_id": "1627633801674307",
+   "real_service": "tắm trắng body / làm trắng da toàn thân",
+   "reason": "Ảnh chụp vùng nách/thân người nằm trên giường, kèm 3 bong bóng text 'tự ti khi đứng kế người trắng hơn', 'làn da ngăm đen bẩm sinh', 'mặc đồ gì cũng không vừa ý' + text quảng cáo tắm trắng BIO LIGHT 6D bật 2-3 tone. Đây là dịch vụ làm trắng body, không phải trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "1357442159200305",
+   "real_service": "giảm béo / săn cơ body (EMS body sculpting)",
+   "reason": "Ảnh: CEO Chang đứng cạnh máy 'TESLA Former' - thiết bị siết cơ/tạo dáng vùng cơ thể, phòng máy beauty tổng hợp. Text nói cả 'làn da và vóc dáng' nhưng thiết bị chủ đạo trong ảnh là máy săn body, không phải trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "1540575253822036",
+   "real_service": "giảm béo / săn cơ body (EMS body sculpting)",
+   "reason": "Ảnh trùng index 136: máy 'TESLA Former' siết cơ body là tâm điểm. Không có nội dung trẻ hóa da mặt cụ thể trong ảnh."
+  },
+  {
+   "ad_id": "1474944957676574",
+   "real_service": "lifestyle/branding (không phải dịch vụ da mặt)",
+   "reason": "Ảnh: cửa hàng CHANEL ở trung tâm thương mại (Dubai Mall), chụp đời sống sang chảnh của CEO. Không có khuôn mặt/da. Text trộn 'săn b0dy' + 'xóa nám' nhưng bằng chứng ảnh không về trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "1851554092174906",
+   "real_service": "lifestyle/branding (không phải dịch vụ da mặt)",
+   "reason": "Ảnh trùng index 138: cửa hàng CHANEL/Dubai Mall, ảnh lifestyle, không có da mặt. Không phải ad trẻ hóa da mặt."
+  },
+  {
+   "ad_id": "1264728339191771",
+   "real_service": "lifestyle/branding (không phải dịch vụ da mặt)",
+   "reason": "Ảnh trùng index 138-139: cửa hàng CHANEL/Dubai Mall, ảnh lifestyle thương hiệu, không thể hiện da mặt hay trẻ hóa mặt."
+  },
+  {
+   "ad_id": "1564209474680429",
+   "real_service": "giảm béo / siết dáng body (Carbolite)",
+   "reason": "Ảnh: Khánh Thi đang sờ/đo vùng bụng-eo, banner 'TÚT BODY THON GỌN, KHỎE KHOẮN' với công nghệ Carbolite siết body. Dịch vụ vùng cơ thể, không phải da mặt."
+  },
+  {
+   "ad_id": "1837619266916141",
+   "real_service": "giảm béo/săn chắc body (giảm cân)",
+   "reason": "Tuy thumbnail chỉ là khuôn mặt CEO Chang nói chuyện, nhưng nội dung text rõ ràng về 'dáng thon gọn', 'dọn 5 ký', 'săn chắc b0dy' — là giảm béo/định hình vùng CƠ THỂ, không phải trẻ hóa da mặt → out_scope."
+  },
+  {
+   "ad_id": "1280727324022731",
+   "real_service": "giảm béo/siết body (Carbolite)",
+   "reason": "Ảnh hai người, một người sờ bụng/eo người kia; tiêu đề 'KHÁNH THI LÀM CARBOLITE ĐỘ DÁNG - TÚT BODY THON GỌN' - dịch vụ siết body, không phải da mặt."
+  },
+  {
+   "ad_id": "3281801865327470",
+   "real_service": "giảm béo/siết body (Carbolite)",
+   "reason": "Ảnh trùng với ad 154: sờ bụng/eo, tiêu đề 'CARBOLITE ĐỘ DÁNG - TÚT BODY THON GỌN' - dịch vụ siết dáng body, không phải da mặt."
+  },
+  {
+   "ad_id": "939548108821720",
+   "real_service": "giảm béo / định hình body",
+   "reason": "Ảnh chụp toàn thân phụ nữ trong đầm khoe dáng; text dáng thon gọn, săn chắc body cho Việt kiều -> dịch vụ vùng CƠ THỂ, không phải da mặt."
+  },
+  {
+   "ad_id": "2426884694398712",
+   "real_service": "giảm béo / thon gọn body (Carbolite)",
+   "reason": "Ảnh tiêu đề 'CARBOLITE: bí kíp giữ dáng thon'; nội dung công nghệ thon gọn body -> dịch vụ CƠ THỂ, không liên quan da mặt."
+  },
+  {
+   "ad_id": "975215815015282",
+   "real_service": "định hình / thon gọn body (Carbolite)",
+   "reason": "Ảnh toàn thân khoe vóc dáng (chân, eo) trong đầm ngắn; text săn chắc, chuẩn form body Carbolite -> dịch vụ vùng CƠ THỂ."
+  },
+  {
+   "ad_id": "2464304564087535",
+   "real_service": "giảm béo / gọn body (Carbolite)",
+   "reason": "Ảnh khách đứng đo/khoe vùng eo-bụng trong buổi tư vấn giảm size; text 'gọn b0dy', Carbolite -> dịch vụ CƠ THỂ, không phải da mặt."
+  },
+  {
+   "ad_id": "1302190178561078",
+   "real_service": "phun mày / phun xăm thẩm mỹ",
+   "reason": "Ảnh là cảnh livestream với KOL, không thể hiện điều trị da mặt; text rõ về 'PHUN MÀY bị sưng đau' (phun xăm thẩm mỹ) — dịch vụ bị loại trừ, không phải trẻ hóa/căng da mặt."
+  },
+  {
+   "ad_id": "3092044264319178",
+   "real_service": "phun xăm môi (phun môi collagen)",
+   "reason": "Ảnh: 4 ô cận cảnh đôi MÔI sau phun xăm, chữ 'PHUN MÔI COLLAGEN 799K'. Đây là phun xăm thẩm mỹ môi, không phải trẻ hóa/căng da mặt — dù text có chữ 'collagen' → false."
+  },
+  {
+   "ad_id": "3239498686243060",
+   "real_service": "tắm trắng / trắng da toàn thân (White Proteinic DNA)",
+   "reason": "Text rõ ràng là 'TRẮNG DA CHUẨN Y KHOA WHITE PROTEINIC DNA', nâng 2-3 tone da trắng, hết da ngăm xỉn → dịch vụ trắng da/tắm trắng body, không phải trẻ hóa da mặt. Ảnh chỉ là nam nhân viên mở cửa phòng khám, không có nội dung da mặt."
+  },
+  {
+   "ad_id": "27410843391887889",
+   "real_service": "tắm trắng / trắng da toàn thân (White Proteinic DNA)",
+   "reason": "Ảnh chỉ là nền đen + logo Thiên Hà (không có nội dung da mặt). Text: 'Da trắng toàn diện không tỳ vết', 'Đã tắm trắng là phải tắm trắng cả đời?', trắng da White Proteinic DNA → tắm trắng body, ngoài scope dù hook có chữ trẻ hóa."
+  },
+  {
+   "ad_id": "1472637281285941",
+   "real_service": "làm trắng vùng nách/cánh tay (body)",
+   "reason": "Dù caption 'TRẺ HOÁ', ảnh là phụ nữ giơ tay khoe vùng nách và text rõ là 'TRẮNG SÁNG VÙNG CÁNH', trị thâm vùng nách → dịch vụ body, không phải da mặt."
+  }
+ ]
+}
