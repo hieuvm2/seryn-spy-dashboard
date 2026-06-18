@@ -334,10 +334,15 @@ const NON_SKIN_SERVICES = new Set([
 ]);
 // Từ khóa dịch vụ khác ngay trong text (loại cứng kể cả khi service_or_product đoán nhầm sang da).
 const NON_SKIN_TEXT_RE = /giảm béo|giảm mỡ|hút mỡ|nâng ngực|độn cằm|nâng mũi|cắt mí|gọt hàm|v-?line|triệt lông|niềng răng|bọc răng|trồng răng/i;
+// VÙNG CƠ THỂ (không phải da MẶT): loại cứng dù text có "trẻ hóa/collagen/căng da".
+// Bắt các ad kiểu "khử thâm/sần mông, cellulite, rạn da, vòng eo…" bị gắn nhầm là trẻ hóa da.
+const BODY_AREA_RE = /mông|đùi|bắp tay|bắp chân|cellulite|sần vỏ cam|rạn da|thâm mông|toàn thân|vùng kín|mỡ bụng|vòng eo|vòng 1|vòng 2|vòng 3|\bbụng\b|tắm trắng (toàn thân|body)/i;
 function inferServiceCategory(ad) {
   const svc = String(ad.service_or_product || "");
   const t = lc([ad.headline, ad.primary_text, ad.hook_text].join(" "));
-  if (NON_SKIN_SERVICES.has(svc) || NON_SKIN_TEXT_RE.test(t)) return "other"; // loại cứng dịch vụ khác
+  // 1) Loại cứng: dịch vụ khác (service/text) HOẶC nhắm vùng cơ thể (không phải da mặt).
+  if (NON_SKIN_SERVICES.has(svc) || NON_SKIN_TEXT_RE.test(t) || BODY_AREA_RE.test(t)) return "other";
+  // 2) Trẻ hóa da mặt.
   if (SKIN_REJU_SERVICES.has(svc)) return SERVICE_CATEGORY;
   if (/trẻ hóa|căng bóng|tái tạo da|hifu|thermage|ultherapy|\brf\b|skin booster|collagen|nâng cơ|exosome|mesotherapy/i.test(t)) return SERVICE_CATEGORY;
   return "other";
