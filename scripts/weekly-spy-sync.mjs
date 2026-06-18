@@ -24,6 +24,8 @@ import { google } from "googleapis";
 import { HEADERS as SHARED_HEADERS, RUN_TYPE, SERVICE_CATEGORY } from "./lib/schemas.mjs";
 import { analyzeHook } from "./lib/hookAnalysis.mjs";
 import { importDiscovered } from "./import-discovered-competitors.mjs";
+import { syncSheetToSupabase } from "./sync-sheet-to-supabase.mjs";
+import { supabaseConfigured } from "./lib/supabase.mjs";
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
@@ -1641,7 +1643,13 @@ async function main() {
   console.log(`Incremental: ${aiSaved}/${allAds.length} ad KHÔNG cần phân tích lại (ước tính tiết kiệm ${aiSaved} lượt AI nếu bật VISUAL_AI_PROVIDER).`);
   console.log(`Crawl: ${successPages}/${totalPages} page OK, ${failedPages} lỗi · run ${runId} (${crawlRunRow.status}).`);
   if (warnings.length) console.log(`Cảnh báo: ${warnings.length} (xem log [!] phía trên).`);
-  console.log(`→ Dashboard: bấm "Refresh Online Data" (hoặc reload).`);
+
+  // Đẩy datasets lên Supabase cho dashboard đọc (auto, nếu đã cấu hình SUPABASE_*).
+  if (supabaseConfigured()) {
+    try { console.log(`\n→ Đẩy dữ liệu lên Supabase…`); await syncSheetToSupabase(); }
+    catch (e) { warn(`Đẩy Supabase lỗi (Sheet vẫn OK): ${e?.message || e}`); }
+  }
+  console.log(`→ Dashboard: đọc từ Supabase (hoặc bấm "Refresh Online Data").`);
 }
 
 main().catch((e) => fail(e?.stack || e?.message || String(e)));

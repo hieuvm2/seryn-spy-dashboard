@@ -21,9 +21,11 @@
     "competitors:discover": "node scripts/competitor-discovery-on-demand.mjs",
     "competitors:import": "node scripts/import-discovered-competitors.mjs",
     "competitors:status": "node scripts/competitor-discovery-status.mjs",
-    "hooks:analyze": "node scripts/hook-intelligence-analysis.mjs"
+    "hooks:analyze": "node scripts/hook-intelligence-analysis.mjs",
+    "supabase:sync": "node scripts/sync-sheet-to-supabase.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "dotenv": "^17.2.3",

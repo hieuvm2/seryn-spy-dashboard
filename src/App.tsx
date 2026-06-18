@@ -20,6 +20,18 @@ import {
   clearSourceType,
 } from "./utils/spyData";
 import { fetchOnlineSpyData, getOnlineApiUrl, isOnlineConfigured } from "./utils/onlineData";
+import { fetchSupabaseSpyData, isSupabaseConfigured } from "./utils/supabaseData";
+
+/** Nguồn online: ưu tiên Supabase; fallback Google Sheets (Apps Script). */
+const USE_SUPABASE = isSupabaseConfigured();
+const ONLINE_SOURCE: DataSourceType = USE_SUPABASE ? "online-supabase" : "online-sheet";
+const ONLINE_NAME = USE_SUPABASE ? "Supabase" : "Google Sheets";
+function onlineAvailable(): boolean {
+  return USE_SUPABASE || !!getOnlineApiUrl();
+}
+async function fetchOnline(): Promise<SpyDashboardData> {
+  return USE_SUPABASE ? fetchSupabaseSpyData() : fetchOnlineSpyData(getOnlineApiUrl());
+}
 
 const VALID_VIEWS: ViewId[] = [
   "overview",
@@ -49,29 +61,28 @@ export default function App() {
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false); // drawer sidebar trên mobile
 
-  // ONLINE SHEET DATA — trạng thái đồng bộ Google Sheets.
-  const onlineConfigured = isOnlineConfigured();
+  // ONLINE DATA — ưu tiên Supabase (fallback Google Sheets).
+  const onlineConfigured = USE_SUPABASE || isOnlineConfigured();
   const [onlineStatus, setOnlineStatus] = useState<string>("");
   const [isOnlineLoading, setIsOnlineLoading] = useState(false);
 
-  // Khi khởi động: nếu có VITE_GOOGLE_SHEETS_API_URL -> tự fetch online.
+  // Khi khởi động: nếu có nguồn online -> tự fetch (Supabase ưu tiên).
   // Lỗi -> fallback localStorage (OFFLINE CACHE) -> sample. Không crash app.
   useEffect(() => {
-    const apiUrl = getOnlineApiUrl();
-    if (!apiUrl) return; // không có env -> giữ localStorage/sample như cũ
+    if (!onlineAvailable()) return; // không có env -> giữ localStorage/sample như cũ
     let cancelled = false;
     (async () => {
       setIsOnlineLoading(true);
-      setOnlineStatus("Syncing Google Sheets...");
+      setOnlineStatus(`Đang đồng bộ ${ONLINE_NAME}...`);
       try {
-        const next = await fetchOnlineSpyData(apiUrl);
+        const next = await fetchOnline();
         if (cancelled) return;
         setSpyData(next);
         saveSpyDataToLocalStorage(next);
         saveWeekToHistory(next);
-        setDataSource("online-sheet");
-        saveSourceType("online-sheet");
-        setOnlineStatus(`Đã đồng bộ Google Sheets · ${new Date().toLocaleTimeString("vi-VN")}`);
+        setDataSource(ONLINE_SOURCE);
+        saveSourceType(ONLINE_SOURCE);
+        setOnlineStatus(`Đã đồng bộ ${ONLINE_NAME} · ${new Date().toLocaleTimeString("vi-VN")}`);
       } catch (e: any) {
         if (cancelled) return;
         const cache = loadSpyDataFromLocalStorage();
@@ -79,7 +90,7 @@ export default function App() {
           setSpyData(cache);
           setDataSource("offline-cache");
         }
-        setOnlineStatus(`Không kết nối được Google Sheets (${e?.message || e}). Đang dùng dữ liệu ${cache ? "offline đã lưu" : "mẫu"}.`);
+        setOnlineStatus(`Không kết nối được ${ONLINE_NAME} (${e?.message || e}). Đang dùng dữ liệu ${cache ? "offline đã lưu" : "mẫu"}.`);
       } finally {
         if (!cancelled) setIsOnlineLoading(false);
       }
@@ -90,26 +101,25 @@ export default function App() {
 
   // Nút "Refresh Online Data" trong DataImportView.
   const handleRefreshOnline = async () => {
-    const apiUrl = getOnlineApiUrl();
-    if (!apiUrl) {
-      const msg = "Missing VITE_GOOGLE_SHEETS_API_URL";
+    if (!onlineAvailable()) {
+      const msg = "Chưa cấu hình nguồn online (VITE_SUPABASE_URL hoặc VITE_GOOGLE_SHEETS_API_URL).";
       setOnlineStatus(msg);
       return { ok: false, msg };
     }
     setIsOnlineLoading(true);
-    setOnlineStatus("Syncing Google Sheets...");
+    setOnlineStatus(`Đang đồng bộ ${ONLINE_NAME}...`);
     try {
-      const next = await fetchOnlineSpyData(apiUrl);
+      const next = await fetchOnline();
       setSpyData(next);
       saveSpyDataToLocalStorage(next);
       saveWeekToHistory(next);
-      setDataSource("online-sheet");
-      saveSourceType("online-sheet");
-      const msg = "Đã cập nhật dữ liệu từ Google Sheets";
+      setDataSource(ONLINE_SOURCE);
+      saveSourceType(ONLINE_SOURCE);
+      const msg = `Đã cập nhật dữ liệu từ ${ONLINE_NAME}`;
       setOnlineStatus(`${msg} · ${new Date().toLocaleTimeString("vi-VN")}`);
       return { ok: true, msg };
     } catch (e: any) {
-      const msg = `Không nạp được Google Sheets: ${e?.message || e}`;
+      const msg = `Không nạp được ${ONLINE_NAME}: ${e?.message || e}`;
       setOnlineStatus(msg);
       return { ok: false, msg };
     } finally {

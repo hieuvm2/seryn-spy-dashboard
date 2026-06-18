@@ -121,6 +121,7 @@ export const SOURCE_LABELS: Record<DataSourceType, string> = {
   demo: "DỮ LIỆU MẪU",
   "local-csv": "CSV THỦ CÔNG",
   "online-sheet": "GOOGLE SHEETS",
+  "online-supabase": "SUPABASE",
   "offline-cache": "BẢN OFFLINE",
 };
 

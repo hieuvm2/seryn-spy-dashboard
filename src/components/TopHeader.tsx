@@ -18,6 +18,7 @@ const SOURCE_STYLE: Record<DataSourceType, { cls: string; Icon: any }> = {
   demo: { cls: "bg-amber-50 border-amber-200 text-amber-700", Icon: FlaskConical },
   "local-csv": { cls: "bg-emerald-50 border-emerald-200 text-emerald-700", Icon: FileSpreadsheet },
   "online-sheet": { cls: "bg-indigo-50 border-indigo-200 text-indigo-700", Icon: Cloud },
+  "online-supabase": { cls: "bg-emerald-50 border-emerald-200 text-emerald-700", Icon: Cloud },
   "offline-cache": { cls: "bg-slate-100 border-slate-300 text-slate-600", Icon: CloudOff },
 };
 
