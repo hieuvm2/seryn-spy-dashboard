@@ -40,6 +40,9 @@ jobs:
           ADS_SOURCE_PROVIDER: ${{ secrets.ADS_SOURCE_PROVIDER }}
           ADS_SOURCE_API_URL: ${{ secrets.ADS_SOURCE_API_URL }}
           ADS_SOURCE_API_KEY: ${{ secrets.ADS_SOURCE_API_KEY }}
+          # Supabase: cuối pipeline tự đẩy datasets lên Supabase cho dashboard đọc.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           # crawl tuning (dùng Repository variables — vars — hoặc để trống dùng default)
           ADS_SOURCE_COUNTRY: ${{ vars.ADS_SOURCE_COUNTRY }}
           ADS_SOURCE_MAX_ADS: ${{ vars.ADS_SOURCE_MAX_ADS }}
