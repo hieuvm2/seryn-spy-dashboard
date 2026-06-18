@@ -20,7 +20,7 @@
    ============================================================ */
 import "dotenv/config";
 import { getSheetsClient, readTab, writeTab, appendTab } from "./lib/sheets.mjs";
-import { normalizeBrandName, isNumericPageId, extractFacebookPageIdFromUrl } from "./lib/competitorDiscoveryUtils.mjs";
+import { normalizeBrandName, isNumericPageId, extractFacebookPageIdFromUrl, isValidCompetitorBrand } from "./lib/competitorDiscoveryUtils.mjs";
 import { resolvePageIds, pageIdResolverAvailable } from "./lib/pageIdResolver.mjs";
 import { extractDomain } from "./lib/exaClient.mjs";
 import { TAB, HEADERS, RUN_TYPE, SERVICE_CATEGORY } from "./lib/schemas.mjs";
@@ -75,6 +75,8 @@ async function main() {
     };
 
     if (str(d.duplicate_of).trim() || str(d.status).toLowerCase() === "duplicate") { setImport("skipped_duplicate", "Trùng đối thủ đã có."); skipped++; continue; }
+    // Chặn tên rác/generic (vd "Giới thiệu", "Trẻ hóa da", "HIFU") — không resolve/import (tránh spy nhầm page + tốn credit).
+    if (!isValidCompetitorBrand(d.brand_name)) { setImport("skipped_invalid_brand", `Tên không phải brand đối thủ: "${str(d.brand_name)}".`); skipped++; continue; }
     // Confidence gate: candidate người dùng đã xác nhận (approved) thì bỏ qua gate auto;
     // chỉ candidate auto (ready_for_spy) mới cần overall_confidence >= ngưỡng.
     if (!approved && overall < MIN_IMPORT_CONFIDENCE) { setImport("skipped_low_confidence", `overall_confidence_score=${overall} < ${MIN_IMPORT_CONFIDENCE}.`); skipped++; continue; }

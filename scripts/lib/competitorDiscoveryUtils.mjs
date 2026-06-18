@@ -44,6 +44,27 @@ export function looksLikeJunkTitle(title) {
   return JUNK_TITLE_SIGNALS.some((w) => t.includes(w));
 }
 
+// Tên KHÔNG phải brand: tiêu đề generic (Giới thiệu/Trang chủ…) hoặc thuần thuật ngữ dịch vụ.
+// So khớp trên chuỗi ĐÃ chuẩn hóa (bỏ dấu) để tránh lỗi \b với ký tự tiếng Việt.
+const GENERIC_PHRASES = new Set(
+  ["trang chu", "gioi thieu", "home", "ve chung toi", "dich vu", "san pham", "bang gia",
+   "bao gia", "khuyen mai", "uu dai", "tin tuc", "blog", "lien he", "website", "trang chinh"],
+);
+const SERVICE_STOPWORDS = new Set(
+  "tre hoa da mat hifu nang co collagen laser cang chi skin booster ultherapy thermage rf exosome meso mesotherapy filler botox lifting cong nghe lieu trinh dich vu san pham nam mun pico co2 sera core fractional toan dien vung"
+    .split(" ").filter(Boolean),
+);
+/** brand_name có đáng tin là tên đối thủ không? Loại tiêu đề generic + tên thuần dịch vụ
+ *  (vd "Giới thiệu", "Trang chủ", "Trẻ hóa da", "HIFU", "Nâng Cơ Trẻ Hóa") để KHÔNG import/spy nhầm. */
+export function isValidCompetitorBrand(name) {
+  const n = str(name).trim();
+  if (n.length < 2 || looksLikeJunkTitle(n)) return false;
+  const normFull = normalizeBrandName(n);
+  if (!normFull || GENERIC_PHRASES.has(normFull)) return false;
+  const core = normFull.split(" ").filter((t) => t && !SERVICE_STOPWORDS.has(t));
+  return core.length > 0; // còn ít nhất 1 token riêng (không phải thuần dịch vụ/generic)
+}
+
 // Domain tổng hợp/blog/diễn đàn — không phải brand clinic.
 const AGGREGATOR_DOMAINS = /facebook|instagram|tiktok|youtube|google|wordpress|blogspot|medium|webtretho|tienphong|vnexpress|dantri|foody|shopee|lazada|tiki|news|bao|wiki/i;
 // Subdomain chung cần bỏ để lấy label brand thật.
