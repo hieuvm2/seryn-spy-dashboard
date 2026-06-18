@@ -327,9 +327,18 @@ const SKIN_REJU_SERVICES = new Set([
   "facial_rejuvenation", "anti_aging_consultation", "collagen_stimulation",
   "lifting_firming", "skin_analysis",
 ]);
+// Dịch vụ RÕ RÀNG KHÔNG phải trẻ hóa da mặt — loại cứng dù text có lẫn keyword da
+// (vd ad "giảm mỡ" có nhắc collagen). Tránh lọt giảm béo/nâng ngực/triệt lông/răng/phẫu thuật.
+const NON_SKIN_SERVICES = new Set([
+  "body_slimming", "hair_removal", "surgery", "dental_aesthetics", "facial_contouring", "filler_botox",
+]);
+// Từ khóa dịch vụ khác ngay trong text (loại cứng kể cả khi service_or_product đoán nhầm sang da).
+const NON_SKIN_TEXT_RE = /giảm béo|giảm mỡ|hút mỡ|nâng ngực|độn cằm|nâng mũi|cắt mí|gọt hàm|v-?line|triệt lông|niềng răng|bọc răng|trồng răng/i;
 function inferServiceCategory(ad) {
-  if (SKIN_REJU_SERVICES.has(String(ad.service_or_product || ""))) return SERVICE_CATEGORY;
+  const svc = String(ad.service_or_product || "");
   const t = lc([ad.headline, ad.primary_text, ad.hook_text].join(" "));
+  if (NON_SKIN_SERVICES.has(svc) || NON_SKIN_TEXT_RE.test(t)) return "other"; // loại cứng dịch vụ khác
+  if (SKIN_REJU_SERVICES.has(svc)) return SERVICE_CATEGORY;
   if (/trẻ hóa|căng bóng|tái tạo da|hifu|thermage|ultherapy|\brf\b|skin booster|collagen|nâng cơ|exosome|mesotherapy/i.test(t)) return SERVICE_CATEGORY;
   return "other";
 }

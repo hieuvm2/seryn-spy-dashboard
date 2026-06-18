@@ -146,35 +146,6 @@ export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboa
         </div>
       </div>
 
-      {/* Kế hoạch hành động + Tình trạng dữ liệu */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-3">Kế hoạch hành động</h3>
-          <div className="space-y-2">
-            {actions.length ? actions.map((a) => (
-              <div key={a.action_id} className="border border-slate-100 rounded-xl p-3">
-                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                  <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border bg-slate-50 text-slate-500">{String(a.priority || "")}</span>
-                  {a.related_brand && <button onClick={() => onSelectBrand?.(String(a.related_brand))} className="text-[10px] font-bold text-cyan-700 hover:underline">{a.related_brand} ↗</button>}
-                </div>
-                <p className="text-xs font-bold text-slate-800">{humanizeText(String(a.insight || ""))}</p>
-                {a.suggested_action && <p className="text-[11px] text-cyan-700 mt-0.5">→ {humanizeText(String(a.suggested_action))}</p>}
-              </div>
-            )) : <p className="text-xs text-slate-400">Chưa có action tuần này.</p>}
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-3">Tình trạng dữ liệu</h3>
-          <div className="space-y-1.5 text-xs">
-            <div className="flex justify-between py-1 border-b border-slate-100"><span className="text-slate-500 font-semibold uppercase text-[11px]">Lần crawl gần nhất</span><span className="text-slate-800 font-bold">{crawl?.finished_at || crawl?.started_at || "—"}</span></div>
-            <div className="flex justify-between py-1 border-b border-slate-100"><span className="text-slate-500 font-semibold uppercase text-[11px]">Page lỗi</span><span className={`font-bold ${failedPages > 0 ? "text-amber-600" : "text-emerald-600"}`}>{failedPages}</span></div>
-            <div className="flex justify-between py-1 border-b border-slate-100"><span className="text-slate-500 font-semibold uppercase text-[11px]">Carried forward</span><span className="text-slate-800 font-bold">{inc.carried}</span></div>
-            <div className="flex justify-between py-1"><span className="text-slate-500 font-semibold uppercase text-[11px]">Trạng thái crawl</span><span className="text-slate-800 font-bold">{crawl?.status || "—"}</span></div>
-          </div>
-          {failedPages > 0 && <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">{failedPages} page crawl lỗi — KHÔNG kết luận đối thủ tắt ads ở các page này.</p>}
-        </div>
-      </div>
     </motion.div>
   );
 }
