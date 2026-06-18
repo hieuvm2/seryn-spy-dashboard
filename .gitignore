@@ -36,3 +36,7 @@ data/market-research/market_research_output.json
 
 # Cho phép template env (không phải secret)
 !.env.example
+
+# Script tạm (readback/debug) — không commit
+_*.mjs
+_*.json
