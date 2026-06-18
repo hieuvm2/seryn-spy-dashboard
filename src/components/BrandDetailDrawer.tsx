@@ -52,13 +52,31 @@ function Chips({ value, tone = "slate" }: { value?: string; tone?: "slate" | "em
     </div>
   );
 }
-function Rate({ label, v }: { label: string; v: unknown }) {
-  const w = Math.round(num(v) * 100);
+/** Chuẩn hóa list rate (0–1, có thể chồng lấn) thành % cộng đúng 100 (largest-remainder). */
+function normalizeTo100(values: number[]): number[] {
+  const total = values.reduce((s, x) => s + x, 0);
+  if (total <= 0) return values.map(() => 0);
+  const exact = values.map((v) => (v / total) * 100);
+  const out = exact.map(Math.floor);
+  let left = 100 - out.reduce((s, x) => s + x, 0);
+  exact
+    .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+    .sort((a, b) => b.frac - a.frac)
+    .forEach(({ i }) => { if (left > 0) { out[i] += 1; left -= 1; } });
+  return out;
+}
+/** Nhóm thanh tỉ lệ — các % đã chuẩn hóa để tổng = 100%. */
+function RateGroup({ items }: { items: { label: string; v: unknown }[] }) {
+  const pcts = normalizeTo100(items.map((it) => num(it.v)));
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="w-28 shrink-0 text-slate-600 font-semibold">{label}</span>
-      <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden"><div className="h-full bg-cyan-500" style={{ width: `${w}%` }} /></div>
-      <span className="w-10 text-right text-slate-500 tabular-nums">{w}%</span>
+    <div className="space-y-1.5">
+      {items.map((it, i) => (
+        <div key={it.label} className="flex items-center gap-2 text-xs">
+          <span className="w-28 shrink-0 text-slate-600 font-semibold">{it.label}</span>
+          <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden"><div className="h-full bg-cyan-500" style={{ width: `${pcts[i]}%` }} /></div>
+          <span className="w-10 text-right text-slate-500 tabular-nums">{pcts[i]}%</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -156,11 +174,12 @@ export default function BrandDetailDrawer({
                   <Section icon={ImageIcon} title="Hình ảnh / Creative">
                     {p.visual ? (
                       <div className="space-y-1.5">
-                        <Rate label="Trước/Sau" v={p.visual.before_after_rate} />
-                        <Rate label="Bác sĩ" v={p.visual.doctor_rate} />
-                        <Rate label="UGC" v={p.visual.ugc_rate} />
-                        <Rate label="Banner ưu đãi" v={p.visual.offer_banner_rate} />
-                        <Rate label="Rủi ro cao" v={p.visual.high_risk_rate} />
+                        <RateGroup items={[
+                          { label: "Trước/Sau", v: p.visual.before_after_rate },
+                          { label: "Bác sĩ", v: p.visual.doctor_rate },
+                          { label: "UGC", v: p.visual.ugc_rate },
+                          { label: "Banner ưu đãi", v: p.visual.offer_banner_rate },
+                        ]} />
                         {!!p.visual.dominant_visual_angle && <p className="text-[11px] text-slate-500 mt-2">Góc visual chủ đạo: <b>{viLabel(String(p.visual.dominant_visual_angle))}</b></p>}
                         {!!p.visual.top_visual_formats && <p className="text-[11px] text-slate-500">Định dạng: {splitChips(p.visual.top_visual_formats).map(viLabel).join(", ")}</p>}
                       </div>
@@ -171,11 +190,12 @@ export default function BrandDetailDrawer({
                   <Section icon={Filter} title="Định dạng & phễu (trẻ hóa da)">
                     {skinN > 0 ? (
                       <div className="space-y-1.5">
-                        <Rate label="Ảnh" v={snap?.skin_rejuvenation_image_rate} />
-                        <Rate label="Video" v={snap?.skin_rejuvenation_video_rate} />
-                        <Rate label="Carousel" v={snap?.skin_rejuvenation_carousel_rate} />
-                        <Rate label="Messenger" v={snap?.skin_rejuvenation_messenger_rate} />
-                        <Rate label="Trang đích" v={snap?.skin_rejuvenation_landing_page_conversion_rate} />
+                        <RateGroup items={[
+                          { label: "Ảnh", v: snap?.skin_rejuvenation_image_rate },
+                          { label: "Video", v: snap?.skin_rejuvenation_video_rate },
+                          { label: "Carousel", v: snap?.skin_rejuvenation_carousel_rate },
+                          { label: "Messenger", v: snap?.skin_rejuvenation_messenger_rate },
+                        ]} />
                         <p className="text-[11px] text-slate-500 mt-2">Chủ đạo: <b>{viLabel(String(snap?.skin_rejuvenation_top_format || ""))}</b> → <b>{viLabel(String(snap?.skin_rejuvenation_top_inferred_objective || ""))}</b></p>
                       </div>
                     ) : <p className="text-xs text-slate-400">Chưa có dữ liệu format/funnel trẻ hóa da.</p>}
