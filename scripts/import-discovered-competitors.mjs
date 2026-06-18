@@ -19,6 +19,8 @@
    KHÔNG bịa page_id — resolve không ra thì giữ skipped_missing_page_id (cần review tay).
    ============================================================ */
 import "dotenv/config";
+import { fileURLToPath } from "node:url";
+import { resolve as resolvePath } from "node:path";
 import { getSheetsClient, readTab, writeTab, appendTab } from "./lib/sheets.mjs";
 import { normalizeBrandName, isNumericPageId, extractFacebookPageIdFromUrl, isValidCompetitorBrand } from "./lib/competitorDiscoveryUtils.mjs";
 import { resolvePageIds, pageIdResolverAvailable } from "./lib/pageIdResolver.mjs";
@@ -33,25 +35,25 @@ const MAX_PAGE_ID_RESOLVES = Number(process.env.MAX_PAGE_ID_RESOLVES_PER_RUN || 
 const str = (v) => (v === undefined || v === null ? "" : String(v));
 const slug = (s) => normalizeBrandName(s).replace(/\s+/g, "-").slice(0, 40);
 
-async function main() {
-  console.log("\nSERYN — Import discovered competitors -> Competitors (conf >= 0.80, numeric page_id)");
+export async function importDiscovered() {
+  console.log("\nSERYN — Import discovered competitors -> Competitors (approved tự vào watchlist)");
 
-  let sheetsCtx;
-  try { sheetsCtx = await getSheetsClient(); }
-  catch (e) { console.error("[X] " + (e?.message || e)); process.exit(1); }
+  const sheetsCtx = await getSheetsClient(); // throw -> caller xử lý
   const { sheets, titles } = sheetsCtx;
 
   const discovery = await readTab(sheets, TAB.discovery);
-  if (!discovery.length) { console.log("[SKIP] Tab 'Competitor Discovery' trống — chưa có gì để import."); process.exit(0); }
+  if (!discovery.length) { console.log("[SKIP] Tab 'Competitor Discovery' trống — chưa có gì để import."); return { created: 0, updated: 0, skipped: 0, resolvedPages: 0 }; }
   const competitors = await readTab(sheets, TAB.competitors);
 
-  // index competitor hiện có
+  // index competitor hiện có: theo page_id, theo id (cmp-<slug>), theo brand+domain.
   const pidIndex = new Map();
+  const idIndex = new Map();
   const keyIndex = new Map();
+  const domainOf = (r) => str(r.website_url ? extractDomain(r.website_url) : (r.website_domain || "")).toLowerCase().trim();
   for (const c of competitors) {
     str(c.page_ids).split("|").filter(Boolean).forEach((p) => isNumericPageId(p) && pidIndex.set(p.trim(), c));
-    const k = normalizeBrandName(c.brand_name) + "|" + str(c.website_url ? extractDomain(c.website_url) : "").toLowerCase();
-    keyIndex.set(k, c);
+    if (str(c.id)) idIndex.set(str(c.id), c);
+    keyIndex.set(normalizeBrandName(c.brand_name) + "|" + domainOf(c), c);
   }
 
   let created = 0, updated = 0, skipped = 0, touchedDiscovery = 0, resolvedPages = 0, resolveCalls = 0;
@@ -90,7 +92,9 @@ async function main() {
       const fromUrl = extractFacebookPageIdFromUrl(str(d.facebook_url));
       if (isNumericPageId(fromUrl)) { pageIds = [fromUrl]; d.facebook_page_id = fromUrl; }
     }
-    if (!pageIds.length && RESOLVE_PAGE_ID && pageIdResolverAvailable() && resolveCalls < MAX_PAGE_ID_RESOLVES) {
+    // Đã thử resolve & thất bại ở lần trước -> KHÔNG gọi lại (tránh tốn credit mỗi lần spy).
+    const triedResolveBefore = /no_matching_pages_found|failed_scrapecreators/i.test(str(d.resolution_status));
+    if (!pageIds.length && RESOLVE_PAGE_ID && pageIdResolverAvailable() && !triedResolveBefore && resolveCalls < MAX_PAGE_ID_RESOLVES) {
       resolveCalls++;
       const r = await resolvePageIds(d.brand_name, { geo: d.geo, domain: d.website_domain });
       if (r.pageIds && r.pageIds.length && r.best) {
@@ -115,6 +119,7 @@ async function main() {
     const pageIdsStr = pageIds.join("|");
 
     const existing = pidIndex.get(pid)
+      || idIndex.get(`cmp-${slug(d.brand_name)}`)
       || keyIndex.get(normalizeBrandName(d.brand_name) + "|" + str(d.website_domain).toLowerCase());
 
     if (existing) {
@@ -146,6 +151,7 @@ async function main() {
       };
       competitors.push(row);
       pageIds.forEach((p) => isNumericPageId(p) && pidIndex.set(p.trim(), row)); // index MỌI page_id (tránh tạo trùng ở candidate sau)
+      idIndex.set(str(row.id), row);
       setImport("imported", "Created new competitor.");
       created++;
     }
@@ -158,18 +164,23 @@ async function main() {
     await writeTab(sheets, titles, TAB.discovery, HEADERS.discovery, discovery);
   }
 
-  // Log run vào Crawl Runs (run_type=claude_manual_review).
-  const weekDate = currentMondayISO();
-  const rid = runId("imp", weekDate);
-  await appendTab(sheets, titles, TAB.crawlRuns, HEADERS.crawlRuns, [{
-    crawl_run_id: rid, run_id: rid, run_type: RUN_TYPE.claudeReview, started_at: nowISO(), finished_at: nowISO(),
-    week_date: weekDate, provider: "import", geo: "", service_category: SERVICE_CATEGORY,
-    new_items_count: created, changed_items_count: updated, failed_items_count: 0,
-    candidates_found: created + updated + skipped,
-    status: "ok", error_summary: skipped ? `${skipped} skipped` : "", cost_guard_status: "ok",
-  }]);
+  // Log run vào Crawl Runs CHỈ khi có thay đổi thật (tránh ghi log no-op mỗi lần spy).
+  if (created || updated || resolvedPages) {
+    const weekDate = currentMondayISO();
+    const rid = runId("imp", weekDate);
+    await appendTab(sheets, titles, TAB.crawlRuns, HEADERS.crawlRuns, [{
+      crawl_run_id: rid, run_id: rid, run_type: RUN_TYPE.claudeReview, started_at: nowISO(), finished_at: nowISO(),
+      week_date: weekDate, provider: "import", geo: "", service_category: SERVICE_CATEGORY,
+      new_items_count: created, changed_items_count: updated, failed_items_count: 0,
+      candidates_found: created + updated + skipped,
+      status: "ok", error_summary: skipped ? `${skipped} skipped` : "", cost_guard_status: "ok",
+    }]);
+  }
 
   console.log(`\n[DONE] created=${created} updated=${updated} skipped=${skipped} resolved_pages=${resolvedPages}/${resolveCalls} (discovery rows touched=${touchedDiscovery})`);
+  return { created, updated, skipped, resolvedPages };
 }
 
-main().catch((e) => { console.error("\n[X] " + (e?.stack || e?.message || e)); process.exit(1); });
+// Chỉ tự chạy khi gọi trực tiếp (node import-discovered-competitors.mjs), KHÔNG chạy khi được import.
+const isDirectRun = process.argv[1] && fileURLToPath(import.meta.url) === resolvePath(process.argv[1]);
+if (isDirectRun) importDiscovered().catch((e) => { console.error("\n[X] " + (e?.stack || e?.message || e)); process.exit(1); });

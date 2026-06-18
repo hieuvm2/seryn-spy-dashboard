@@ -8,6 +8,8 @@
    ============================================================ */
 import type { CompetitorDiscoveryCandidate } from "../types";
 import { isSheetsConfigured, apiPost } from "./sheetsApi";
+import { createCompetitor } from "./competitors";
+import { isValidCompetitorBrand } from "./brandName";
 
 const DRAFT_KEY = "seryn_discovery_overrides_v1";
 
@@ -74,8 +76,27 @@ export async function updateCandidate(
   }
 }
 
-export const approveCandidate = (c: CompetitorDiscoveryCandidate) =>
-  updateCandidate(c, { status: "approved", reviewed_at: new Date().toISOString() });
+/** Duyệt candidate -> approved + TỰ thêm vào watchlist Competitors ngay nếu đã có
+ *  page_id numeric (để hiện liền trong Cấu hình đối thủ & spy lần sau). Candidate
+ *  thiếu page_id sẽ được pipeline tự resolve + import ở lần spy kế tiếp. */
+export async function approveCandidate(c: CompetitorDiscoveryCandidate) {
+  const res = await updateCandidate(c, { status: "approved", reviewed_at: new Date().toISOString() });
+  try {
+    if (isNumericPageId(c.facebook_page_id) && isValidCompetitorBrand(str(c.brand_name))) {
+      createCompetitor({
+        brand: str(c.brand_name),
+        page_id: str(c.facebook_page_id),
+        page_url: str(c.facebook_url) || undefined,
+        category: str(c.business_type) || undefined,
+        active: true,
+        notes: "auto từ Phát hiện đối thủ" + (c.evidence_summary ? ": " + str(c.evidence_summary).slice(0, 80) : ""),
+      });
+    }
+  } catch (e) {
+    console.warn("Tự thêm vào watchlist thất bại (vẫn approved):", e);
+  }
+  return res;
+}
 export const rejectCandidate = (c: CompetitorDiscoveryCandidate) =>
   updateCandidate(c, { status: "rejected", reviewed_at: new Date().toISOString() });
 export const markDuplicate = (c: CompetitorDiscoveryCandidate) =>

@@ -8,6 +8,7 @@
    ============================================================ */
 import type { Competitor, CompetitorStatus } from "../types";
 import { isSheetsConfigured, apiGet, apiPost } from "./sheetsApi";
+import { normalizeBrandName } from "./brandName";
 
 const DRAFT_KEY = "seryn_competitors_v1";
 
@@ -22,9 +23,17 @@ function slug(s: string): string {
   return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
     .replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 }
-/** id ổn định theo brand để dashboard ↔ Sheet khớp khi upsert. */
+/** Hash xác định (không random) để fallback id ổn định khi slug rỗng. */
+function stableHash(s: string): string {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+/** id ổn định theo brand để dashboard ↔ Sheet ↔ pipeline khớp khi upsert.
+ *  Dùng normalizeBrandName GIỐNG pipeline (import-discovered) để tạo CÙNG id. */
 export function competitorId(brand: string): string {
-  return `cmp-${slug(brand) || Math.random().toString(36).slice(2, 8)}`;
+  const base = slug(normalizeBrandName(brand)) || slug(brand);
+  return `cmp-${base || ("x-" + stableHash(String(brand || "")))}`;
 }
 
 const str = (v: unknown) => (v === undefined || v === null ? "" : String(v));
@@ -181,18 +190,32 @@ function remoteUpsert(c: Competitor): void {
     .catch((e) => console.warn("Sync competitor thất bại — giữ draft local:", e));
 }
 
+/** Gộp page_id (pipe) khử trùng, giữ thứ tự. */
+function mergePageIds(existing: string, incoming: string): string {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const p of `${str(existing)}|${str(incoming)}`.split("|").map((x) => x.trim()).filter(Boolean)) {
+    if (!seen.has(p)) { seen.add(p); out.push(p); }
+  }
+  return out.join("|");
+}
+
 export function createCompetitor(input: Partial<Competitor>): { competitor: Competitor; synced: boolean } {
   const brand = str(input.brand).trim();
+  const id = input.id || competitorId(brand);
+  const newPid = str(input.page_id || (input.page_url ? extractPageIdFromUrl(str(input.page_url)) : "")).trim();
+  // Nếu đã có competitor cùng id -> MERGE (không ghi đè mất page_id/field cũ).
+  const prev = loadDrafts().find((x) => x.id === id);
   const c: Competitor = {
-    id: input.id || competitorId(brand),
-    brand,
-    page_name: input.page_name,
-    page_url: input.page_url ? normalizePageUrl(input.page_url) : undefined,
-    page_id: input.page_id || (input.page_url ? extractPageIdFromUrl(input.page_url) : "") || undefined,
-    category: input.category,
-    active: input.active ?? true,
-    notes: input.notes,
-    createdAt: new Date().toISOString(),
+    id,
+    brand: brand || str(prev?.brand),
+    page_name: input.page_name || prev?.page_name,
+    page_url: input.page_url ? normalizePageUrl(str(input.page_url)) : prev?.page_url,
+    page_id: (prev?.page_id ? mergePageIds(str(prev.page_id), newPid) : newPid) || undefined,
+    category: input.category || prev?.category,
+    active: input.active ?? prev?.active ?? true,
+    notes: input.notes || prev?.notes,
+    createdAt: prev?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
   c.last_status = statusFor(c);

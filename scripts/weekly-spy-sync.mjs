@@ -23,6 +23,7 @@ import crypto from "node:crypto";
 import { google } from "googleapis";
 import { HEADERS as SHARED_HEADERS, RUN_TYPE, SERVICE_CATEGORY } from "./lib/schemas.mjs";
 import { analyzeHook } from "./lib/hookAnalysis.mjs";
+import { importDiscovered } from "./import-discovered-competitors.mjs";
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
@@ -31,6 +32,8 @@ const PROVIDER = (process.env.ADS_SOURCE_PROVIDER || "mock").trim().toLowerCase(
    của danh sách đối thủ trong tab Competitors. KHÔNG spy dịch vụ khác (nâng ngực, hút mỡ,
    nâng mũi/cắt mí, răng, triệt lông, filler/botox thuần…). Đặt ADS_SCOPE=all để tắt lọc. */
 const ADS_SCOPE = (process.env.ADS_SCOPE || "skin_rejuvenation").trim().toLowerCase();
+// Tự import đối thủ đã duyệt (approved) vào watchlist TRƯỚC khi spy → duyệt xong là lần spy tới tự pull.
+const AUTO_IMPORT_APPROVED = String(process.env.AUTO_IMPORT_APPROVED ?? "true").trim().toLowerCase() !== "false";
 
 /* ---- versions (incremental cache) ---- */
 const ANALYSIS_VERSION = "v2";
@@ -1407,6 +1410,17 @@ async function main() {
   const cacheById = {}; for (const r of prevCache) cacheById[r.ad_id] = r;
   const archiveFirstSeen = {}; for (const r of prevArchive) if (!archiveFirstSeen[r.ad_id]) archiveFirstSeen[r.ad_id] = r.first_seen_date || r.week_date;
   const patternFirstSeen = {}; for (const r of prevPattern) patternFirstSeen[r.pattern_hash] = r.first_seen_date;
+
+  // Tự import đối thủ đã duyệt (Phát hiện đối thủ -> Competitors) trước khi spy.
+  if (AUTO_IMPORT_APPROVED) {
+    try {
+      console.log("→ Tự import đối thủ đã duyệt vào watchlist trước khi spy…");
+      const r = await importDiscovered();
+      if (r && (r.created || r.updated)) console.log(`   (đã thêm ${r.created} / cập nhật ${r.updated} đối thủ từ Phát hiện đối thủ)\n`);
+    } catch (e) {
+      warn(`Auto-import đối thủ đã duyệt lỗi (bỏ qua, vẫn spy watchlist hiện tại): ${e?.message || e}`);
+    }
+  }
 
   const competitors = await loadCompetitors(sheets);
   if (!competitors.length) fail("Không có brand active hợp lệ để xử lý (kiểm tra tab `Competitors`).");
