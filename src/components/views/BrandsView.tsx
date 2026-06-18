@@ -96,7 +96,7 @@ export default function BrandsView({
       <div className="flex flex-col gap-1.5 border-l-2 border-cyan-500 pl-4">
         <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">ĐỐI THỦ</span>
         <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Thống kê quảng cáo theo từng đối thủ</h2>
-        <p className="text-sm text-slate-600 font-medium">Nhấp vào một đối thủ để mở hồ sơ chi tiết (lượng quảng cáo · dịch vụ · giá/ưu đãi · nội dung · nhân rộng · thay đổi tuần · gợi ý cho SERYN).</p>
+        <p className="text-sm text-slate-600 font-medium">Nhấp vào một đối thủ để mở hồ sơ chi tiết (lượng quảng cáo · dịch vụ · nội dung · nhân rộng · phân tích content + ảnh quảng cáo).</p>
       </div>
 
       <div className="flex items-center gap-2">

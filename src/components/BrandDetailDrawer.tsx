@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  X, Activity, FileText, GitCompareArrows, Sparkles,
-  Image as ImageIcon, Filter, Globe, ShieldAlert, ExternalLink, Star,
+  X, Activity, FileText,
+  Image as ImageIcon, Filter, ShieldAlert, ExternalLink, Star,
 } from "lucide-react";
 import type { SpyDashboardData } from "../types";
 import { splitChips, orUnknown, viLabel, isMissing, isMeaningful, humanizeText } from "../utils/spyData";
@@ -73,6 +73,9 @@ export default function BrandDetailDrawer({
   const snap = p?.snapshot;
   const disc = p?.discovery;
   const skinN = num(snap?.skin_rejuvenation_ads_count);
+  // Link page đối thủ: mỗi page_id mở thẳng fanpage; fanpage url lấy URL hợp lệ đầu tiên.
+  const pageIds = splitChips(snap?.page_ids);
+  const fanpageUrl = (String(disc?.facebook_url || "").trim() || splitChips(snap?.page_urls)[0] || "").trim();
 
   return (
     <AnimatePresence>
@@ -95,9 +98,11 @@ export default function BrandDetailDrawer({
                 </h3>
                 {snap && <p className="text-xs text-slate-500 font-medium mt-0.5 max-w-2xl line-clamp-2">{humanizeText(orUnknown(snap.content_strategy_summary))}</p>}
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[11px] text-slate-500">
-                  {!!snap?.page_ids && <span>page_id: <span className="font-mono">{String(snap.page_ids)}</span></span>}
+                  {pageIds.map((pid, i) => (
+                    <a key={`pid-${i}`} href={`https://www.facebook.com/${pid}`} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline">page_id: <span className="font-mono">{pid}</span> ↗</a>
+                  ))}
                   {!!disc?.website_url && <a href={String(disc.website_url)} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline">website ↗</a>}
-                  {!!(disc?.facebook_url || snap?.page_urls) && <a href={String(disc?.facebook_url || snap?.page_urls)} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline">fanpage ↗</a>}
+                  {!!fanpageUrl && <a href={fanpageUrl} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline">fanpage ↗</a>}
                   {!!disc?.phone && <span>☎ {String(disc.phone)}</span>}
                   {!!disc?.address && <span className="truncate max-w-[16rem]">📍 {String(disc.address)}</span>}
                 </div>
@@ -176,55 +181,7 @@ export default function BrandDetailDrawer({
                     ) : <p className="text-xs text-slate-400">Chưa có dữ liệu format/funnel trẻ hóa da.</p>}
                   </Section>
 
-                  {/* 8. Weekly change */}
-                  <Section icon={GitCompareArrows} title="Thay đổi tuần">
-                    {p.change ? (
-                      <div className="space-y-2">
-                        <Field label="Thay đổi QC" value={orUnknown(p.change.active_ads_change)} />
-                        <Field label="Loại thay đổi" value={viLabel(p.change.strategic_change_type)} />
-                        {splitChips(p.change.new_services_detected).length > 0 && <div><p className="text-[11px] text-slate-400 font-semibold uppercase mb-1">Dịch vụ mới</p><Chips value={p.change.new_services_detected} tone="emerald" /></div>}
-                        {splitChips(p.change.new_content_angles).length > 0 && <div><p className="text-[11px] text-slate-400 font-semibold uppercase mb-1">Góc mới</p><Chips value={p.change.new_content_angles} tone="emerald" /></div>}
-                        {!!p.change.change_summary && <p className="text-xs text-slate-600 pt-1"><b>Tóm tắt:</b> {humanizeText(orUnknown(p.change.change_summary))}</p>}
-                      </div>
-                    ) : <p className="text-xs text-slate-400">Chưa có thay đổi ghi nhận.</p>}
-                  </Section>
-
-                  {/* 9. Market signals */}
-                  <Section icon={Globe} title="Tín hiệu thị trường liên quan">
-                    {p.marketSignals.length ? (
-                      <ul className="space-y-1.5">
-                        {p.marketSignals.map((m, i) => (
-                          <li key={i} className="text-[11px] text-slate-600">
-                            {m.source_url
-                              ? <a href={String(m.source_url)} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline font-semibold">{m.source_title || m.topic || m.source_url}</a>
-                              : <span className="font-semibold">{m.topic || m.summary}</span>}
-                            {!!m.summary && <span className="text-slate-500"> — {String(m.summary).slice(0, 100)}</span>}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : <p className="text-xs text-slate-400">Chưa có tín hiệu thị trường gắn brand này.</p>}
-                  </Section>
-
-                  {/* 10. SERYN recommendations (full) */}
-                  <Section icon={Sparkles} title="Gợi ý hành động cho SERYN" accent full>
-                    {snap?.seryn_opportunity && <p className="text-sm text-slate-700 leading-relaxed mb-3">{humanizeText(orUnknown(snap.seryn_opportunity))}</p>}
-                    {p.recommendations.length ? (
-                      <div className="grid md:grid-cols-2 gap-3">
-                        {p.recommendations.slice(0, 6).map((r, i) => (
-                          <div key={i} className="bg-white border border-slate-200 rounded-xl p-3 space-y-1.5 text-xs">
-                            {!!r.suggested_hook && <p className="font-bold text-slate-800 italic">“{humanizeText(String(r.suggested_hook))}”</p>}
-                            {!!r.suggested_content_angle && <p className="text-slate-600"><b>Góc:</b> {humanizeText(String(r.suggested_content_angle))}</p>}
-                            {!!r.suggested_offer_angle && <p className="text-slate-600"><b>Offer:</b> {humanizeText(String(r.suggested_offer_angle))}</p>}
-                            {!!r.main_message && <p className="text-slate-600">{humanizeText(String(r.main_message))}</p>}
-                            {!!r.claim_safe_version && <p className="text-emerald-700"><b>Bản an toàn:</b> {String(r.claim_safe_version)}</p>}
-                            {!!r.cta && <p className="text-cyan-700 font-semibold">CTA: {String(r.cta)}</p>}
-                          </div>
-                        ))}
-                      </div>
-                    ) : <p className="text-xs text-slate-400">Chưa có gợi ý nội dung gắn brand này — xem tổng hợp ở Tổng quan.</p>}
-                  </Section>
-
-                  {/* 11. Risk note (full) */}
+                  {/* Risk note (full) */}
                   <Section icon={ShieldAlert} title="Ghi chú rủi ro" full>
                     <p className="text-xs text-slate-600">
                       {num(p.visual?.high_risk_rate) >= 0.3 || num(p.visual?.before_after_rate) >= 0.4
