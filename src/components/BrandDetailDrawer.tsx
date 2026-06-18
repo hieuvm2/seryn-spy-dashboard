@@ -183,7 +183,6 @@ export default function BrandDetailDrawer({
                         <Field label="Thay đổi QC" value={orUnknown(p.change.active_ads_change)} />
                         <Field label="Loại thay đổi" value={viLabel(p.change.strategic_change_type)} />
                         {splitChips(p.change.new_services_detected).length > 0 && <div><p className="text-[11px] text-slate-400 font-semibold uppercase mb-1">Dịch vụ mới</p><Chips value={p.change.new_services_detected} tone="emerald" /></div>}
-                        {splitChips(p.change.new_offers_detected).length > 0 && <div><p className="text-[11px] text-slate-400 font-semibold uppercase mb-1">Ưu đãi mới</p><Chips value={p.change.new_offers_detected} tone="emerald" /></div>}
                         {splitChips(p.change.new_content_angles).length > 0 && <div><p className="text-[11px] text-slate-400 font-semibold uppercase mb-1">Góc mới</p><Chips value={p.change.new_content_angles} tone="emerald" /></div>}
                         {!!p.change.change_summary && <p className="text-xs text-slate-600 pt-1"><b>Tóm tắt:</b> {humanizeText(orUnknown(p.change.change_summary))}</p>}
                       </div>

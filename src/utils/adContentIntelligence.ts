@@ -348,15 +348,24 @@ export function buildSerynContentResponse(item: Partial<AdContentIntelligence>):
 }
 
 /* ---------- builders ---------- */
-function exampleAdsFor(brandAds: AdLevelAnalysis[], serviceCat: string, fmt: string, repId?: string): { ids: string[]; urls: string[] } {
-  const matched = brandAds.filter((a) =>
-    (repId && String(a.ad_id) === repId) || (serviceCat && a.service_or_product === serviceCat) || (fmt && a.content_format === fmt),
-  );
-  const pool = matched.length ? matched : brandAds;
+function exampleAdsFor(brandAds: AdLevelAnalysis[], serviceCat: string, fmt: string, repId?: string): { ids: string[]; urls: string[]; repUrl?: string } {
   const ids: string[] = [], urls: string[] = [];
-  if (repId) ids.push(repId);
-  for (const a of pool.slice(0, 5)) { if (a.ad_id && !ids.includes(String(a.ad_id))) ids.push(String(a.ad_id)); if (a.ad_snapshot_url) urls.push(String(a.ad_snapshot_url)); }
-  return { ids, urls };
+  // 1) Ad ĐẠI DIỆN của cụm (theo representative_ad_id) — ảnh + link "Mở QC" phải là ad NÀY (khớp hook hiển thị).
+  const repAd = repId ? brandAds.find((a) => String(a.ad_id) === repId) : undefined;
+  let repUrl: string | undefined;
+  if (repAd) {
+    ids.push(String(repAd.ad_id));
+    if (repAd.ad_snapshot_url) { repUrl = String(repAd.ad_snapshot_url); urls.push(repUrl); }
+  } else if (repId) {
+    ids.push(repId);
+  }
+  // 2) Ad cùng cụm (service/format) làm bằng chứng phụ — KHÔNG dùng cho thumbnail/link chính.
+  const more = brandAds.filter((a) => a !== repAd && ((serviceCat && a.service_or_product === serviceCat) || (fmt && a.content_format === fmt)));
+  for (const a of more.slice(0, 4)) {
+    if (a.ad_id && !ids.includes(String(a.ad_id))) ids.push(String(a.ad_id));
+    if (a.ad_snapshot_url && !urls.includes(String(a.ad_snapshot_url))) urls.push(String(a.ad_snapshot_url));
+  }
+  return { ids, urls, repUrl };
 }
 
 /** Map ad_id -> thumbnail (thumbnail/media/image/video preview) từ visualAnalysis.
@@ -453,7 +462,8 @@ export function buildAdContentIntelligenceForBrand(brandName: string, data: SpyD
       : (snap?.skin_rejuvenation_top_inferred_objective && snap.skin_rejuvenation_top_inferred_objective !== "unknown" ? snap.skin_rejuvenation_top_inferred_objective as AdContentIntelligence["inferredObjective"] : "unknown");
     const risk = riskOf(text, offer, beforeAfter && angle === "social_proof");
     const ex = exampleAdsFor(ads, s.service, s.format, s.repId);
-    const thumbnailUrl = [s.repId, ...ex.ids].map((id) => thumbIndex.get(String(id))).find(Boolean);
+    // CHỈ lấy ảnh của đúng ad đại diện (khớp hook hiển thị). Không có thì để placeholder — KHÔNG mượn ảnh ad khác.
+    const thumbnailUrl = s.repId ? thumbIndex.get(String(s.repId)) : undefined;
 
     const base: Partial<AdContentIntelligence> = {
       brandName, contentText: text,
