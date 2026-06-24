@@ -41,7 +41,8 @@ export type ReportModel = {
     failedPages: number;
   };
   execSummary: string;
-  brands: ReportBrandRow[];
+  brands: ReportBrandRow[];        // CHỈ brand đang chạy ad (active > 0)
+  inactiveBrands: number;          // số brand watchlist không chạy ad tuần này (ẩn khỏi bảng)
   patterns: { hooks: TopItem[]; offers: TopItem[]; formats: TopItem[]; services: TopItem[]; angles: TopItem[] };
   recommendations: Array<{ action: ReportRecAction; items: Array<{ brand: string; format: string; hook: string; reframe: string }> }>;
   scaledClusters: Array<{ brand: string; ads: number; format: string; hook: string; scaleLevel: number; action: string }>;
@@ -118,6 +119,7 @@ export function buildReportModel(data: SpyDashboardData, dataSource: DataSourceT
   const execSummary = composeExecSummary(data);
 
   const brands: ReportBrandRow[] = [...snap]
+    .filter((b) => normalizeNumber(b.total_active_ads) > 0)   // bỏ brand không chạy ad khỏi báo cáo PDF
     .sort((a, b) => normalizeNumber(b.total_active_ads) - normalizeNumber(a.total_active_ads))
     .map((b) => ({
       name: b.brand_name,
@@ -221,6 +223,7 @@ export function buildReportModel(data: SpyDashboardData, dataSource: DataSourceT
     },
     execSummary,
     brands,
+    inactiveBrands: snap.length - brands.length,
     patterns,
     recommendations,
     scaledClusters,

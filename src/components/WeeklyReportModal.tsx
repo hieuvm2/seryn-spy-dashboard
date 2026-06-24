@@ -131,6 +131,11 @@ export default function WeeklyReportModal({
                 ))}
               </tbody>
             </table>
+            {m.inactiveBrands > 0 && (
+              <p className="rpt-note">
+                Ẩn {m.inactiveBrands} đối thủ không chạy quảng cáo trẻ hóa da tuần này (active = 0).
+              </p>
+            )}
           </section>
 
           {/* ---- Pattern thị trường ---- */}
