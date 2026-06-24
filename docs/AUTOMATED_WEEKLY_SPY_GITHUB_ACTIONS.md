@@ -1,14 +1,14 @@
 # Tự động spy ads hằng tuần bằng GitHub Actions
 
 ```
-GitHub Actions (cron thứ 2)  ──►  npm run spy:weekly
+GitHub Actions (cron thứ 6)  ──►  npm run spy:weekly
    → đọc tab Competitors → pull ads (mock|custom) → phân tích
    → ghi 5 tab Google Sheets  ──►  Apps Script doGet  ──►  Dashboard Vercel
 ```
 
 - Workflow: `.github/workflows/weekly-spy.yml`
 - Script: `scripts/weekly-spy-sync.mjs` (`npm run spy:weekly`)
-- Lịch: **02:00 UTC thứ Hai** = ~**09:00 sáng thứ Hai giờ Việt Nam** (UTC+7). Cron: `0 2 * * 1`.
+- Lịch: **02:07 UTC thứ Sáu** = ~**09:07 sáng thứ Sáu giờ Việt Nam** (UTC+7). Cron: `7 2 * * 5`.
 - Provider hiện tại: **`mock`** (test pipeline). Đổi sang ads thật ở mục 9.
 
 > Không build lại dashboard. Không commit secret. Không đưa private key vào frontend.
@@ -52,7 +52,7 @@ Repo GitHub → **Settings → Secrets and variables → Actions → New reposit
 ## 5. Chạy thủ công GitHub Actions
 
 - Repo → tab **Actions** → chọn workflow **Weekly Spy Sync** → **Run workflow** → branch `main` → **Run workflow**.
-- Hoặc đợi cron tự chạy 02:00 UTC thứ Hai.
+- Hoặc đợi cron tự chạy 02:07 UTC thứ Sáu.
 
 ## 6. Xem log
 
