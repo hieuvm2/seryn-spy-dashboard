@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "./components/Sidebar";
 import TopHeader from "./components/TopHeader";
 import BrandDetailDrawer from "./components/BrandDetailDrawer";
+import WeeklyReportModal from "./components/WeeklyReportModal";
 import OverviewView from "./components/views/OverviewView";
 import BrandsView from "./components/views/BrandsView";
 import CompetitorSetupView from "./components/views/CompetitorSetupView";
@@ -60,6 +61,7 @@ export default function App() {
   const [activeSection, setActiveSection] = useState<ViewId>("overview");
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false); // drawer sidebar trên mobile
+  const [reportOpen, setReportOpen] = useState(false); // bản xem trước báo cáo PDF
 
   // ONLINE DATA — ưu tiên Supabase (fallback Google Sheets).
   const onlineConfigured = USE_SUPABASE || isOnlineConfigured();
@@ -189,6 +191,7 @@ export default function App() {
           isOnlineLoading={isOnlineLoading}
           onImportClick={() => goView("data-import")}
           onClear={handleClear}
+          onExportClick={() => setReportOpen(true)}
           onMenuClick={() => setSidebarOpen(true)}
         />
 
@@ -218,6 +221,13 @@ export default function App() {
         data={spyData}
         open={!!selectedBrand}
         onClose={() => setSelectedBrand(null)}
+      />
+
+      <WeeklyReportModal
+        open={reportOpen}
+        data={spyData}
+        dataSource={dataSource}
+        onClose={() => setReportOpen(false)}
       />
     </div>
   );

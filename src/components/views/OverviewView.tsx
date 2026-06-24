@@ -2,9 +2,10 @@ import React from "react";
 import { motion } from "motion/react";
 import { Flame, Layers, TrendingUp, TrendingDown, Building2, Activity, Star } from "lucide-react";
 import type { SpyDashboardData } from "../../types";
-import { normalizeNumber, countChips, scaleMeta, viLabel, humanizeText } from "../../utils/spyData";
+import { normalizeNumber, countChips, scaleMeta, viLabel } from "../../utils/spyData";
 import { useDirectCompetitors, isDirectCompetitor } from "../../utils/directCompetitors";
 import { latestWeek, dataQualityReport } from "../../utils/weeklyIntel";
+import { composeExecSummary } from "../../utils/reportData";
 import { latestCrawlRun, incrementalSummary } from "../../utils/incremental";
 
 function SectionTitle({ tag, title, desc }: { tag: string; title: string; desc?: string }) {
@@ -75,10 +76,7 @@ export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboa
   const failedPages = normalizeNumber(crawl?.failed_pages ?? summary?.total_crawl_failed_pages);
   const successPages = normalizeNumber(crawl?.success_pages);
   const actions = (data.actionPlan ?? []).filter((a) => !summary?.week_start || a.week_start === summary.week_start).slice(0, 6);
-  const execSummary = humanizeText(String(
-    summary?.executive_summary ||
-    `Đang theo dõi ${totalBrands} đối thủ với ${totalAds.toLocaleString("vi-VN")} quảng cáo đang chạy (${newAds} mới, ${stoppedAds} đã dừng tuần này). ${totalScaled} cụm nội dung đang được nhân rộng — tín hiệu từ dữ liệu ads, chưa xác nhận hiệu quả chuyển đổi.`,
-  ));
+  const execSummary = composeExecSummary(data);
 
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">

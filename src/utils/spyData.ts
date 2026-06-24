@@ -218,6 +218,11 @@ export function splitChips(value?: string): string[] {
     .filter(Boolean);
 }
 
+/** Chip đầu tiên trong chuỗi "a|b|c" (rỗng nếu không có). */
+export function firstChip(value?: string): string {
+  return splitChips(value)[0] ?? "";
+}
+
 /** True when a value should be treated as "no data". */
 export function isMissing(v: unknown): boolean {
   const t = String(v == null ? "" : v)

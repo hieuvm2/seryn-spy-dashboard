@@ -42,3 +42,138 @@ html {
 .text-\[10px\] { font-size: 0.7rem; line-height: 1.1rem; }
 .text-\[11px\] { font-size: 0.78rem; line-height: 1.15rem; }
 .text-\[13px\] { font-size: 0.86rem; line-height: 1.3rem; }
+
+/* ============================================================
+   BÁO CÁO PDF (WeeklyReportModal) — xem trước + in/lưu PDF
+   - Doc dùng px (độc lập với html 18px) -> preview == bản in.
+   - Print: ẩn #root, overlay chảy luồng thường -> in nhiều trang A4.
+   ============================================================ */
+.rpt-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(15, 34, 75, 0.55);
+  display: flex; flex-direction: column;
+}
+.rpt-toolbar {
+  flex: 0 0 auto; height: 56px;
+  background: #15224b; color: #fff;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+}
+.rpt-toolbar-title { font-weight: 800; font-size: 14px; letter-spacing: 0.02em; }
+.rpt-toolbar-actions { display: flex; gap: 10px; }
+.rpt-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-weight: 700; font-size: 13px; padding: 8px 14px;
+  border-radius: 10px; cursor: pointer; border: 1px solid transparent;
+}
+.rpt-btn-primary { background: #f47d6b; color: #fff; }
+.rpt-btn-primary:hover { background: #e85f4b; }
+.rpt-btn-ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,0.35); }
+.rpt-btn-ghost:hover { background: rgba(255,255,255,0.12); }
+
+.rpt-scroll { flex: 1 1 auto; overflow: auto; padding: 24px 16px 64px; }
+.rpt-doc {
+  max-width: 880px; margin: 0 auto; background: #fff;
+  border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+  padding: 40px 44px; color: #1f2937;
+  font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px; line-height: 1.5;
+}
+
+/* Header */
+.rpt-header { border-bottom: 3px solid #f47d6b; padding-bottom: 16px; margin-bottom: 20px; }
+.rpt-header-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.rpt-logo { width: 44px; height: 44px; object-fit: contain; }
+.rpt-brand-name { font-family: "Playfair Display", Georgia, serif; font-size: 26px; font-weight: 800; color: #15224b; letter-spacing: 0.12em; line-height: 1; }
+.rpt-brand-slogan { font-size: 10px; font-weight: 700; letter-spacing: 0.18em; color: #e85f4b; margin-top: 3px; }
+/* Tiêu đề tiếng Việt dùng Montserrat — Playfair thiếu hỗ trợ dấu chồng (ố, ầ…). */
+.rpt-title { font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif; font-size: 21px; font-weight: 800; color: #15224b; margin: 8px 0 6px; letter-spacing: -0.01em; }
+.rpt-meta { font-size: 11px; color: #6b7280; font-weight: 600; }
+
+/* KPI */
+.rpt-kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.rpt-kpi { background: #fef3ef; border: 1px solid #fde4dc; border-radius: 10px; padding: 12px 8px; text-align: center; }
+.rpt-kpi-value { font-size: 21px; font-weight: 800; color: #15224b; line-height: 1.1; }
+.rpt-kpi-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #6b7280; margin-top: 4px; }
+
+/* Section */
+.rpt-section { margin-top: 22px; }
+.rpt-h2 { font-size: 14px; font-weight: 800; color: #15224b; text-transform: uppercase; letter-spacing: 0.04em; border-left: 4px solid #f47d6b; padding-left: 10px; margin: 0 0 12px; }
+.rpt-exec { background: #f8fafc; border: 1px solid #eef2f7; border-radius: 10px; padding: 12px 14px; font-size: 13px; margin: 0; }
+.rpt-note { font-size: 10.5px; color: #9ca3af; font-style: italic; margin-top: 8px; }
+.rpt-muted { color: #9ca3af; font-size: 11px; font-weight: 600; }
+
+/* Table */
+.rpt-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.rpt-table th { background: #15224b; color: #fff; font-weight: 700; text-align: left; padding: 7px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
+.rpt-table th.num, .rpt-table td.num { text-align: right; }
+.rpt-table td { padding: 6px 8px; border-bottom: 1px solid #eef2f7; vertical-align: top; }
+.rpt-table tbody tr:nth-child(even) { background: #fafbfc; }
+.rpt-strong { font-weight: 700; color: #15224b; }
+.rpt-table .num.pos { color: #047857; font-weight: 700; }
+.rpt-table .num.neg { color: #b45309; font-weight: 700; }
+.rpt-action-cell { font-weight: 700; text-transform: capitalize; }
+
+/* Patterns */
+.rpt-pattern-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.rpt-pattern-title { font-size: 11px; font-weight: 800; color: #15224b; text-transform: uppercase; margin-bottom: 6px; }
+.rpt-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rpt-chip { background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 7px; padding: 3px 8px; font-size: 11px; font-weight: 600; }
+.rpt-chip b { color: #e85f4b; }
+
+/* Recommendations */
+.rpt-rec { border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; border: 1px solid #e5e7eb; border-left-width: 5px; }
+.rpt-rec-head { font-weight: 800; font-size: 12px; margin-bottom: 6px; color: #15224b; }
+.rpt-rec-list { margin: 0; padding-left: 18px; font-size: 12px; }
+.rpt-rec-list li { margin-bottom: 5px; }
+.rpt-rec-reframe { color: #c2492f; font-weight: 600; font-size: 11px; margin-top: 2px; }
+.rpt-rec-adapt { background: #eff6ff; border-left-color: #3b82f6; }
+.rpt-rec-counter { background: #fef3ef; border-left-color: #e85f4b; }
+.rpt-rec-avoid { background: #f8fafc; border-left-color: #94a3b8; }
+.rpt-rec-copy { background: #ecfdf5; border-left-color: #10b981; }
+.rpt-rec-monitor { background: #fffbeb; border-left-color: #f59e0b; }
+
+/* Changes / Actions / Swipes */
+.rpt-changes, .rpt-swipes { list-style: none; margin: 0; padding: 0; font-size: 12px; }
+.rpt-changes li, .rpt-swipes li { padding: 7px 0; border-bottom: 1px dashed #eef2f7; }
+.rpt-sev, .rpt-prio { display: inline-block; font-size: 9px; font-weight: 800; text-transform: uppercase; padding: 1px 6px; border-radius: 5px; margin-right: 6px; }
+.rpt-sev-high, .rpt-prio-high { background: #fee2e2; color: #b91c1c; }
+.rpt-sev-medium, .rpt-prio-medium { background: #fef3c7; color: #b45309; }
+.rpt-sev-low, .rpt-prio-low { background: #f1f5f9; color: #64748b; }
+.rpt-type { color: #e85f4b; font-weight: 700; }
+.rpt-rec-tag { color: #6b7280; font-weight: 700; font-size: 10.5px; }
+.rpt-swipe-offer { color: #e85f4b; font-weight: 700; }
+.rpt-actions { margin: 0; padding-left: 20px; font-size: 12px; }
+.rpt-actions li { margin-bottom: 7px; }
+.rpt-action-sub { color: #4b5563; font-size: 11px; margin-top: 2px; }
+
+/* Footer */
+.rpt-footer { margin-top: 26px; border-top: 2px solid #15224b; padding-top: 12px; }
+.rpt-footer-brand { font-family: "Playfair Display", Georgia, serif; font-weight: 800; color: #15224b; font-size: 13px; }
+.rpt-footer-note { font-size: 10px; color: #9ca3af; margin-top: 5px; line-height: 1.5; }
+
+@media (max-width: 640px) {
+  .rpt-doc { padding: 24px 18px; }
+  .rpt-kpis { grid-template-columns: repeat(3, 1fr); }
+  .rpt-pattern-grid { grid-template-columns: 1fr; }
+}
+
+/* ---- IN / LƯU PDF ---- */
+@media print {
+  @page { size: A4; margin: 12mm; }
+  #root { display: none !important; }
+  .no-print { display: none !important; }
+  .rpt-overlay {
+    position: static !important; background: none !important;
+    display: block !important; inset: auto !important;
+  }
+  .rpt-scroll { overflow: visible !important; padding: 0 !important; }
+  .rpt-doc {
+    max-width: none !important; margin: 0 !important;
+    box-shadow: none !important; border-radius: 0 !important; padding: 0 !important;
+  }
+  .rpt-doc, .rpt-doc * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .rpt-section, .rpt-table, .rpt-rec, .rpt-kpi, .rpt-avoid, tr { break-inside: avoid; }
+  .rpt-h2 { break-after: avoid; }
+  .rpt-header { break-after: avoid; }
+}
