@@ -103,16 +103,6 @@ export default function WeeklyReportModal({
             </div>
           </section>
 
-          {/* ---- Tóm tắt điều hành ---- */}
-          <section className="rpt-section rpt-avoid">
-            <h2 className="rpt-h2">Tóm tắt điều hành</h2>
-            <p className="rpt-exec">{m.execSummary}</p>
-            <p className="rpt-note">
-              Chất lượng dữ liệu: {m.kpis.dataQuality}/100{m.kpis.failedPages ? ` · ${m.kpis.failedPages} page crawl lỗi` : ""}.
-              Tín hiệu từ dữ liệu ads (số lượng + thời gian chạy), không phải kết quả ROAS/CPA.
-            </p>
-          </section>
-
           {/* ---- Bảng đối thủ ---- */}
           <section className="rpt-section">
             <h2 className="rpt-h2">Toàn cảnh đối thủ</h2>
