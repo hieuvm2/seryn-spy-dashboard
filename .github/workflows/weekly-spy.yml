@@ -59,9 +59,11 @@ jobs:
 
       # Tạo Weekly Intelligence Report (Weekly_Summary + Action_Plan + Swipe suggestions)
       # ngay sau khi crawl/phân tích xong. KHÔNG dùng Exa (Exa chỉ chạy thủ công).
+      # (report:weekly đã đổi sang historical generator → dùng report:weekly-intel
+      #  để GIỮ NGUYÊN team intelligence report như trước.)
       - name: Generate weekly intelligence report
         env:
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           ADS_SOURCE_PROVIDER: ${{ secrets.ADS_SOURCE_PROVIDER }}
-        run: npm run report:weekly
+        run: npm run report:weekly-intel

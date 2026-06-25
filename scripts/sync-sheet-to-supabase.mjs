@@ -33,6 +33,8 @@ const DATASET_TABS = {
   weeklySummary: "Weekly_Summary",
   actionPlan: "Action_Plan",
   swipeSuggestions: "Swipe_File_Suggestions",
+  weeklyReports: "Weekly Reports",
+  monthlyReports: "Monthly Reports",
 };
 
 /** Đọc Sheet -> đẩy lên Supabase. Trả {ok, fail, datasets, errors}. KHÔNG process.exit. */

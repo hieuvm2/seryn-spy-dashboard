@@ -194,4 +194,155 @@ export const sampleSpyDashboardData: SpyDashboardData = {
     { hook_cluster_id: "hc-demo-offer", week_date: WK, service_category: "skin_rejuvenation", cluster_name: "skin_rejuvenation · offer_promotion · melasma_dark_spots", hook_pattern: "offer_promotion + limited_offer + melasma_dark_spots + offer", hook_category: "offer_promotion", hook_subcategory: "melasma_dark_spots", hook_formula: "limited_offer", hook_angle: "offer_led", pain_point: "nám/thâm sạm", desired_outcome: "da sáng mịn rạng rỡ", offer_linked: "TRUE", proof_type: "price_proof", ads_count: 6, brands_using: "LG Clinic|Đông Á", example_ads: "LG-AD-007|DA-AD-003", example_hooks: "Trị nám chỉ 449K (Gốc 5.000K) || Phun mày sợi cao cấp chỉ 588K", avg_active_days: 28, top_offer_linked: "TRUE", top_proof_type: "price_proof", top_ad_format: "image", top_inferred_objective: "messenger", scale_signal: "strong_persistence_signal", confidence_score: 0.6, risk_score: 45, hook_strength_score: 58, insight: "strong_persistence_signal: 6 ad / 2 brand dùng hook offer_promotion/limited_offer quanh \"nám/thâm sạm\" · avg active 28 ngày · có rủi ro claim -> dùng bản an toàn. Tín hiệu hook đối thủ, chưa xác nhận hiệu quả.", recommended_seryn_action: "counter_positioning", needs_claude_hook_review: "TRUE", created_at: WK },
     { hook_cluster_id: "hc-demo-edu", week_date: WK, service_category: "skin_rejuvenation", cluster_name: "skin_rejuvenation · education · dull_skin", hook_pattern: "education + question_hook + dull_skin", hook_category: "education", hook_subcategory: "dull_skin", hook_formula: "question_hook", hook_angle: "education_led", pain_point: "da xỉn màu", desired_outcome: "da căng bóng", offer_linked: "FALSE", proof_type: "scientific_explanation", ads_count: 4, brands_using: "Oracle|Citrine", example_ads: "OR-AD-011|CT-AD-004", example_hooks: "Skin booster có hiệu quả không? || Vì sao da xỉn màu dù chăm sóc đều?", avg_active_days: 21, top_offer_linked: "FALSE", top_proof_type: "scientific_explanation", top_ad_format: "video", top_inferred_objective: "landing_page_conversion", scale_signal: "repeated_signal", confidence_score: 0.55, risk_score: 8, hook_strength_score: 63, insight: "repeated_signal: 4 ad / 2 brand dùng hook education/question_hook quanh \"da xỉn màu\" · avg active 21 ngày. Tín hiệu hook đối thủ, chưa xác nhận hiệu quả.", recommended_seryn_action: "adapt_angle", needs_claude_hook_review: "FALSE", created_at: WK },
   ],
+
+  /* ============================================================
+     HISTORICAL REPORTS DEMO — báo cáo tuần/tháng (lưu theo kỳ).
+     Tháng 6/2026 có các thứ Hai 01, 08, 15, 22 → 2 weekly + 1 monthly demo.
+     Nội dung đúng hướng spy ads, KHÔNG winner/ROAS, có cảnh báo dữ liệu.
+     ============================================================ */
+  weeklyReports: [
+    {
+      report_id: "weekly-2026-06-08_2026-06-14", report_type: "weekly",
+      period_start: "2026-06-08", period_end: "2026-06-14",
+      generated_at: "2026-06-15T00:10:00.000Z", timezone: "Asia/Ho_Chi_Minh",
+      title: "Báo cáo Spy Ads tuần 2026-06-08 → 2026-06-14",
+      executive_summary:
+        "Tuần 2026-06-08 → 2026-06-14: theo dõi 13 đối thủ, 421 ad trẻ hóa da đang chạy (+118 mới, −104 dừng) trên 19 page. " +
+        "Khối lượng cao nhất: Thu Cúc (140 ad). Tăng tốc mạnh nhất: Seoul Center (+48 ad mới). Tỉ lệ crawl page thành công: 92%. " +
+        "Đọc số liệu như tín hiệu ads công khai, không phải hiệu quả chuyển đổi.",
+      total_brands_tracked: 13, total_active_ads: 421, total_new_ads: 118, total_stopped_ads: 104,
+      total_pages_tracked: 19, crawl_success_rate: "92%",
+      top_movers: "Seoul Center ▲+44 | Đông Á ▲+15 | Kangnam ▼-6",
+      top_new_ads_brands: "Seoul Center (48 mới) | Thu Cúc (40 mới) | Kangnam (26 mới)",
+      top_stopped_ads_brands: "Thu Cúc (42 dừng) | Seoul Center (24 dừng) | LG Clinic (20 dừng)",
+      top_services: "facial_rejuvenation (9) | lifting_firming (6) | melasma_treatment (4)",
+      top_offers: "đồng giá 159K (5) | combo trải nghiệm 299K (3) | giảm sốc 50% (2)",
+      top_content_angles: "transformation (7) | medical_authority (5) | price_promotion (4)",
+      top_ad_formats: "doctor_explainer (6) | offer_promotion (5) | before_after (4)",
+      top_objectives: "messenger (210) | landing_page_conversion (58) | lead_form (31)",
+      key_competitor_moves:
+        "Seoul Center: chuyển mồi giá xuống đồng giá 159K, churn creative cao | " +
+        "Đông Á: bật ad lại qua page Bắc Ninh (+15) | " +
+        "JW Hàn Quốc: nội dung bác sĩ giải thích cấu trúc chạy dài ngày",
+      notable_content_patterns:
+        "Shynh House: HIFU Linear Z dưới góc nhìn y khoa (9 ad — nội dung chạy dài ngày) | " +
+        "Kangnam: trẻ hóa vùng mắt không phẫu thuật (5 ad — tín hiệu lặp lại) | " +
+        "doctor_explainer là format scale bền nhất trong nhóm theo dõi",
+      notable_visual_patterns:
+        "LG Clinic: offer banner neo giá gốc, offer rất nổi bật | " +
+        "JW Hàn Quốc: angle authority, format video bác sĩ giải thích",
+      risk_warnings:
+        "LG Clinic: rủi ro claim — offer banner neo giá gốc/giảm sâu | " +
+        "Seoul Center: thay đổi offer mạnh (đồng giá 159K) — theo dõi rủi ro đua giá",
+      seryn_implications:
+        "Counter sân giá sốc bằng định vị premium, không đồng giá | " +
+        "Adapt giáo dục trẻ hóa vùng mắt theo cấu trúc | " +
+        "Chiếm khoảng trống đánh giá nền tảng sinh học (gần như chưa brand nào sở hữu)",
+      recommended_actions:
+        "[high] Sản xuất video bác sĩ giải thích cấu trúc 60–90s cho tuần tới | " +
+        "[high] Ra carousel so sánh 'chẩn đoán đúng vs giá sốc' | " +
+        "[medium] Test reel trẻ hóa vùng mắt 30–45s",
+      source_week_dates: "2026-06-08", source_report_ids: "",
+      data_quality_note:
+        "1 page crawl lỗi trong kỳ. Đây là báo cáo dựa trên dữ liệu ads công khai và tín hiệu lặp lại, không phải dữ liệu CPA/ROAS/spend thật.",
+      created_by: "demo",
+    },
+    {
+      report_id: "weekly-2026-06-01_2026-06-07", report_type: "weekly",
+      period_start: "2026-06-01", period_end: "2026-06-07",
+      generated_at: "2026-06-08T00:10:00.000Z", timezone: "Asia/Ho_Chi_Minh",
+      title: "Báo cáo Spy Ads tuần 2026-06-01 → 2026-06-07",
+      executive_summary:
+        "Tuần 2026-06-01 → 2026-06-07: theo dõi 13 đối thủ, 398 ad trẻ hóa da đang chạy (+96 mới, −88 dừng) trên 18 page. " +
+        "Khối lượng cao nhất: Thu Cúc (142 ad). Tăng tốc mạnh nhất: Lavender By Chang (+22 ad mới). Tỉ lệ crawl page thành công: 89%. " +
+        "Đọc số liệu như tín hiệu ads công khai, không phải hiệu quả chuyển đổi.",
+      total_brands_tracked: 13, total_active_ads: 398, total_new_ads: 96, total_stopped_ads: 88,
+      total_pages_tracked: 18, crawl_success_rate: "89%",
+      top_movers: "Lavender By Chang ▲+18 | Kangnam ▲+8 | Thu Cúc ▼-4",
+      top_new_ads_brands: "Lavender By Chang (22 mới) | Thu Cúc (34 mới) | Seoul Center (20 mới)",
+      top_stopped_ads_brands: "Thu Cúc (38 dừng) | Seoul Center (18 dừng) | Kangnam (12 dừng)",
+      top_services: "facial_rejuvenation (8) | lifting_firming (5) | collagen_stimulation (3)",
+      top_offers: "combo trải nghiệm 299K (4) | tặng suất giá gốc (3) | giảm 50% (2)",
+      top_content_angles: "medical_authority (6) | transformation (6) | premium (3)",
+      top_ad_formats: "doctor_explainer (6) | kol_review (4) | before_after (3)",
+      top_objectives: "messenger (198) | landing_page_conversion (52) | phone_call (24)",
+      key_competitor_moves:
+        "Lavender By Chang: đẩy mạnh proof KOL hạng A + công nghệ cao cấp | " +
+        "Thu Cúc: xoay nhiều biến thể cùng concept phẫu thuật giá sốc | " +
+        "Kangnam: duy trì cụm trẻ hóa vùng mắt",
+      notable_content_patterns:
+        "Thu Cúc: HiFU/LiFU nâng cơ (7 ad — nội dung chạy dài ngày) | " +
+        "Nhóm bác sĩ-giáo dục tiếp tục là tín hiệu lặp lại nhiều brand",
+      notable_visual_patterns:
+        "Lavender By Chang: angle luxury, format kol_review | " +
+        "Kangnam: before/after cắt mí — scroll-stop cao, cần review compliance",
+      risk_warnings:
+        "Kangnam: rủi ro claim — visual trước/sau nhạy cảm compliance | " +
+        "Thị trường bão hòa offer giảm sâu — rủi ro đua giá",
+      seryn_implications:
+        "Counter bằng nền tảng sinh học + dữ liệu | " +
+        "Adapt câu chuyện khách hàng có lý giải y khoa, tránh hứa 'trẻ 10 tuổi' | " +
+        "Giữ định vị premium, không tham gia đồng giá",
+      recommended_actions:
+        "[high] Dựng tuyến nội dung 'đánh giá nền tảng sinh học' làm khác biệt cốt lõi | " +
+        "[medium] Chuẩn bị proof khách hàng kèm phân tích bác sĩ | " +
+        "[low] Theo dõi brand đang tối (Lux, SeoulSpa, Pensilia)",
+      source_week_dates: "2026-06-01", source_report_ids: "",
+      data_quality_note:
+        "2 page crawl lỗi trong kỳ. Đây là báo cáo dựa trên dữ liệu ads công khai và tín hiệu lặp lại, không phải dữ liệu CPA/ROAS/spend thật.",
+      created_by: "demo",
+    },
+  ],
+
+  monthlyReports: [
+    {
+      report_id: "monthly-2026-06", report_type: "monthly",
+      period_start: "2026-06-01", period_end: "2026-06-30",
+      generated_at: "2026-06-30T16:30:00.000Z", timezone: "Asia/Ho_Chi_Minh",
+      title: "Báo cáo tổng kết tháng 2026-06",
+      executive_summary:
+        "Tháng 2026-06: tổng hợp 4/4 báo cáo tuần. Theo dõi 13 đối thủ; cuối tháng ghi nhận 432 ad trẻ hóa da đang chạy " +
+        "(+438 mới, −402 dừng trong tháng). Đối thủ biến động đáng chú ý: Seoul Center và Thu Cúc duy trì cường độ ad cao. " +
+        "Số liệu phản ánh tín hiệu ads công khai, không phải hiệu quả chuyển đổi thực tế.",
+      total_brands_tracked: 13, total_active_ads: 432, total_new_ads: 438, total_stopped_ads: 402,
+      total_pages_tracked: 19, crawl_success_rate: "90%",
+      top_movers: "Seoul Center ▲+96 | Lavender By Chang ▲+40 | Đông Á ▲+15",
+      top_new_ads_brands: "Seoul Center (132 mới) | Thu Cúc (118 mới) | Kangnam (74 mới)",
+      top_stopped_ads_brands: "Thu Cúc (124 dừng) | Seoul Center (84 dừng) | LG Clinic (52 dừng)",
+      top_services: "facial_rejuvenation (34) | lifting_firming (22) | melasma_treatment (12)",
+      top_offers: "đồng giá 159K (14) | combo trải nghiệm 299K (11) | giảm sốc 50% (8)",
+      top_content_angles: "transformation (28) | medical_authority (24) | price_promotion (16)",
+      top_ad_formats: "doctor_explainer (26) | offer_promotion (20) | before_after (15)",
+      top_objectives: "messenger (812) | landing_page_conversion (210) | lead_form (96)",
+      key_competitor_moves:
+        "Seoul Center: chuyển sang đồng giá 159K, churn creative cao cả tháng | " +
+        "Thu Cúc: xoay biến thể concept phẫu thuật giá sốc liên tục | " +
+        "Lavender By Chang: tăng cường proof KOL + công nghệ cao cấp | " +
+        "Đông Á: tái kích hoạt ad qua page Bắc Ninh",
+      notable_content_patterns:
+        "doctor_explainer là format chạy dài ngày bền nhất trong nhóm theo dõi | " +
+        "Cụm HIFU/nâng cơ y khoa (Shynh, Thu Cúc) lặp lại nhiều tuần | " +
+        "Trẻ hóa vùng mắt không phẫu thuật là tín hiệu lặp lại đáng theo dõi",
+      notable_visual_patterns:
+        "Offer banner neo giá gốc phổ biến ở nhóm giá sốc (LG, Seoul Center) | " +
+        "Before/after vẫn được dùng nhiều — cần lưu ý rủi ro compliance",
+      risk_warnings:
+        "Bão hòa offer giảm sâu/đồng giá — rủi ro đua giá kéo dài | " +
+        "Visual trước/sau và neo giá gốc tiềm ẩn rủi ro claim quảng cáo",
+      seryn_implications:
+        "Giữ định vị premium, không tham gia đồng giá | " +
+        "Sở hữu tuyến 'đánh giá nền tảng sinh học' làm khác biệt cốt lõi | " +
+        "Counter giá sốc bằng chẩn đoán đúng và kết quả tự nhiên bền vững",
+      recommended_actions:
+        "[high] Chuẩn hóa series video bác sĩ giải thích cấu trúc cho tháng sau | " +
+        "[high] Xây landing 'phân tích gương mặt & nền tảng sinh học' | " +
+        "[medium] Bộ proof khách hàng có lý giải y khoa | " +
+        "[low] Theo dõi brand đang tối và đối thủ mới phát hiện",
+      source_week_dates: "2026-06-01→2026-06-07 | 2026-06-08→2026-06-14 | 2026-06-15→2026-06-21 | 2026-06-22→2026-06-28",
+      source_report_ids: "weekly-2026-06-01_2026-06-07|weekly-2026-06-08_2026-06-14",
+      data_quality_note:
+        "Đây là báo cáo dựa trên dữ liệu ads công khai và tín hiệu lặp lại, không phải dữ liệu CPA/ROAS/spend thật.",
+      created_by: "demo",
+    },
+  ],
 };

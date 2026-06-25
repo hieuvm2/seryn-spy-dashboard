@@ -1,0 +1,44 @@
+name: Generate Monthly Spy Report
+
+# Tạo BÁO CÁO TỔNG KẾT THÁNG vào NGÀY CUỐI THÁNG (không hardcode ngày 31).
+# Lên lịch các ngày 28–31; script tự kiểm tra last-day-of-month (--only-if-last-day)
+# và exit 0 nếu chưa phải ngày cuối tháng.
+#   cron "0 14 28-31 * *" = 14:00 UTC = 21:00 giờ Việt Nam (UTC+7) các ngày 28–31.
+on:
+  schedule:
+    - cron: "0 14 28-31 * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: monthly-spy-report
+  cancel-in-progress: false
+
+jobs:
+  monthly-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate monthly report (only if last day of month)
+        env:
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          # Mirror report lên Supabase (dashboard đọc Supabase làm nguồn chính).
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TZ: Asia/Ho_Chi_Minh
+        run: npm run report:monthly:last-day

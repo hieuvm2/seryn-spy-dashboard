@@ -5,6 +5,7 @@ import BrandDetailDrawer from "./components/BrandDetailDrawer";
 import WeeklyReportModal from "./components/WeeklyReportModal";
 import OverviewView from "./components/views/OverviewView";
 import BrandsView from "./components/views/BrandsView";
+import ReportsView from "./components/views/ReportsView";
 import CompetitorSetupView from "./components/views/CompetitorSetupView";
 import CompetitorDiscoveryView from "./components/views/CompetitorDiscoveryView";
 import DataImportView from "./components/views/DataImportView";
@@ -37,6 +38,7 @@ async function fetchOnline(): Promise<SpyDashboardData> {
 const VALID_VIEWS: ViewId[] = [
   "overview",
   "brands",
+  "reports",
   "competitor-discovery",
   "competitor-setup",
   "data-import",
@@ -198,6 +200,7 @@ export default function App() {
         <main className="p-4 sm:p-6 lg:p-8 flex-1 max-w-7xl w-full mx-auto pb-24">
           {activeSection === "overview" && <OverviewView data={spyData} onSelectBrand={setSelectedBrand} />}
           {activeSection === "brands" && <BrandsView data={spyData} onSelectBrand={setSelectedBrand} />}
+          {activeSection === "reports" && <ReportsView data={spyData} />}
           {activeSection === "competitor-setup" && <CompetitorSetupView />}
           {activeSection === "competitor-discovery" && <CompetitorDiscoveryView data={spyData} />}
           {activeSection === "data-import" && (

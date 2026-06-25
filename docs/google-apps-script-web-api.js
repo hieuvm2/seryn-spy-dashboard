@@ -55,6 +55,9 @@ const SHEET_MAP = {
   weeklySummary: "Weekly_Summary",
   actionPlan: "Action_Plan",
   swipeSuggestions: "Swipe_File_Suggestions",
+  // ---- Historical reports (lưu theo kỳ, không ghi đè) ----
+  weeklyReports: "Weekly Reports",
+  monthlyReports: "Monthly Reports",
 };
 
 /* Tab read/write (Swipe File, Creative Briefs, Competitors).
@@ -220,6 +223,9 @@ function doGet(e) {
       weeklySummary: sheetToObjects_(SHEET_MAP.weeklySummary),
       actionPlan: sheetToObjects_(SHEET_MAP.actionPlan),
       swipeSuggestions: sheetToObjects_(SHEET_MAP.swipeSuggestions),
+      // ---- Historical reports (tab thiếu -> [], không crash) ----
+      weeklyReports: sheetToObjects_(SHEET_MAP.weeklyReports),
+      monthlyReports: sheetToObjects_(SHEET_MAP.monthlyReports),
       meta: { source: "GOOGLE_SHEETS", generatedAt: new Date().toISOString() },
     };
     return makeJson_({ ok: true, data: data });

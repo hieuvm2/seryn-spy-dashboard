@@ -6,12 +6,65 @@
 export type ViewId =
   | "overview"
   | "brands"
+  | "reports"
   | "competitor-discovery"
   | "competitor-setup"
   | "data-import";
 
 /** Nguồn dữ liệu đang hiển thị. */
 export type DataSourceType = "demo" | "local-csv" | "online-sheet" | "online-supabase" | "offline-cache";
+
+/* ============================================================
+   HISTORICAL REPORTS — báo cáo tuần / tháng (lưu theo kỳ, không ghi đè)
+   2 tab Google Sheets: `Weekly Reports` + `Monthly Reports` dùng CHUNG schema.
+   List-fields (top_*, key_competitor_moves...) lưu dạng "key (count) | ..." hoặc
+   "item | item" — parse an toàn bằng cách split "|".
+   ============================================================ */
+export type SpyReportType = "weekly" | "monthly";
+
+export interface SpyReport {
+  report_id: string;
+  report_type: SpyReportType;
+
+  period_start: string;
+  period_end: string;
+  generated_at: string;
+  timezone: string;
+
+  title: string;
+  executive_summary: string;
+
+  total_brands_tracked: number;
+  total_active_ads: number;
+  total_new_ads: number;
+  total_stopped_ads: number;
+  total_pages_tracked: number;
+  crawl_success_rate?: number | string;
+
+  top_movers: string;
+  top_new_ads_brands: string;
+  top_stopped_ads_brands: string;
+
+  top_services: string;
+  top_offers: string;
+  top_content_angles: string;
+  top_ad_formats: string;
+  top_objectives: string;
+
+  key_competitor_moves: string;
+  notable_content_patterns: string;
+  notable_visual_patterns: string;
+  risk_warnings: string;
+
+  seryn_implications: string;
+  recommended_actions: string;
+
+  source_week_dates?: string;
+  source_report_ids?: string;
+
+  data_quality_note?: string;
+  created_by?: string;
+}
 
 export type BrandWeeklySnapshot = {
   week_date: string;
@@ -285,6 +338,9 @@ export type SpyDashboardData = {
   weeklySummary?: WeeklySummary[];
   actionPlan?: ActionPlanItem[];
   swipeSuggestions?: SwipeSuggestion[];
+  /* ---- Historical reports (lưu theo kỳ; thiếu tab -> [] không crash) ---- */
+  weeklyReports?: SpyReport[];
+  monthlyReports?: SpyReport[];
 };
 
 /** 5 bảng CSV gốc (dùng cho import thủ công / health-check). Các tab v2

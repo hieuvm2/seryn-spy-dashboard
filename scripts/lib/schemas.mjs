@@ -51,7 +51,13 @@ export const TAB = {
   weeklySummary: "Weekly_Summary",
   actionPlan: "Action_Plan",
   swipeSuggestions: "Swipe_File_Suggestions",
+  // Historical reports (spy ads) — lưu theo kỳ, KHÔNG ghi đè kỳ cũ.
+  weeklyReports: "Weekly Reports",
+  monthlyReports: "Monthly Reports",
 };
+
+/** report_type trong 2 tab `Weekly Reports` / `Monthly Reports`. */
+export const REPORT_TYPE = { weekly: "weekly", monthly: "monthly" };
 
 export const HEADERS = {
   /* ---- Tab MỚI 1: Market Intelligence (gộp source/trend/size/opportunity/queue) ---- */
@@ -153,4 +159,24 @@ export const HEADERS = {
     "swipe_id", "week_start", "ad_id", "brand_name", "ad_url", "media_url", "thumbnail_url",
     "hook", "offer", "angle", "format", "why_save", "how_to_adapt", "status", "saved_at",
   ],
+
+  /* ---- Historical Reports (Weekly Reports + Monthly Reports DÙNG CHUNG header) ----
+     Lưu theo kỳ, KHÔNG ghi đè kỳ cũ (upsert theo report_id). Field list dùng
+     dấu `|` (parse an toàn ở dashboard). KHÔNG bịa spend/CPA/ROAS. */
+  spyReports: [
+    "report_id", "report_type", "period_start", "period_end", "generated_at", "timezone",
+    "title", "executive_summary",
+    "total_brands_tracked", "total_active_ads", "total_new_ads", "total_stopped_ads",
+    "total_pages_tracked", "crawl_success_rate",
+    "top_movers", "top_new_ads_brands", "top_stopped_ads_brands",
+    "top_services", "top_offers", "top_content_angles", "top_ad_formats", "top_objectives",
+    "key_competitor_moves", "notable_content_patterns", "notable_visual_patterns", "risk_warnings",
+    "seryn_implications", "recommended_actions",
+    "source_week_dates", "source_report_ids",
+    "data_quality_note", "created_by",
+  ],
 };
+
+// `Weekly Reports` và `Monthly Reports` chia sẻ cùng schema (SpyReport).
+HEADERS.weeklyReports = HEADERS.spyReports;
+HEADERS.monthlyReports = HEADERS.spyReports;

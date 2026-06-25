@@ -30,6 +30,7 @@ import type {
   WeeklySummary,
   ActionPlanItem,
   SwipeSuggestion,
+  SpyReport,
 } from "../types";
 import { apiGet, getApiUrl, isSheetsConfigured } from "./sheetsApi";
 
@@ -90,5 +91,8 @@ export async function fetchOnlineSpyData(apiUrl?: string): Promise<SpyDashboardD
     weeklySummary: asRows<WeeklySummary>(d.weeklySummary),
     actionPlan: asRows<ActionPlanItem>(d.actionPlan),
     swipeSuggestions: asRows<SwipeSuggestion>(d.swipeSuggestions),
+    // ---- Historical reports (tab có thể chưa tồn tại -> [], không crash) ----
+    weeklyReports: asRows<SpyReport>(d.weeklyReports),
+    monthlyReports: asRows<SpyReport>(d.monthlyReports),
   };
 }
