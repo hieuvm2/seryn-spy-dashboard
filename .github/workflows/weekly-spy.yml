@@ -20,6 +20,10 @@ jobs:
   spy-weekly:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # FIX "Premature close" ở oauth2 token: ép IPv4-first + tắt Happy Eyeballs
+    # (runner GitHub có IPv6 nửa-mở). Áp dụng cho MỌI step trong job.
+    env:
+      NODE_OPTIONS: "--dns-result-order=ipv4first --no-network-family-autoselection"
     steps:
       - name: Checkout
         uses: actions/checkout@v4

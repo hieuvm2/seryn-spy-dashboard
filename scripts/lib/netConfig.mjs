@@ -21,4 +21,8 @@ import dns from "node:dns";
 if (String(process.env.SERYN_NET_TUNING || "").trim().toLowerCase() !== "off") {
   try { dns.setDefaultResultOrder?.("ipv4first"); } catch { /* node cũ -> bỏ qua */ }
   try { net.setDefaultAutoSelectFamily?.(false); } catch { /* node cũ -> bỏ qua */ }
+  // Log để xác nhận commit này THỰC SỰ chạy trên CI (netConfig đã load).
+  let asf = "n/a";
+  try { asf = String(net.getDefaultAutoSelectFamily?.()); } catch { /* ignore */ }
+  console.log(`[netConfig] net tuning applied: dns=ipv4first, autoSelectFamily=${asf}`);
 }

@@ -20,6 +20,9 @@ jobs:
   monthly-report:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # FIX "Premature close" ở oauth2 token: ép IPv4-first + tắt Happy Eyeballs.
+    env:
+      NODE_OPTIONS: "--dns-result-order=ipv4first --no-network-family-autoselection"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
