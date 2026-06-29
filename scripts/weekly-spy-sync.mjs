@@ -18,6 +18,7 @@
    "likely scaled based on duration and repetition".
    ============================================================ */
 import "dotenv/config";
+import "./lib/netConfig.mjs"; // ép IPv4-first + tắt autoSelectFamily TRƯỚC khi gọi Google
 import fs from "node:fs";
 import crypto from "node:crypto";
 import { google } from "googleapis";

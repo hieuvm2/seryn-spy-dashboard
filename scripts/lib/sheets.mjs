@@ -16,6 +16,7 @@
      appendTab(sheets, titles, name, headers, rows)  (giữ lịch sử)
      upsertTab(sheets, titles, name, headers, rows, keyFn)  (upsert theo key)
    ============================================================ */
+import "./netConfig.mjs"; // ép IPv4-first + tắt autoSelectFamily TRƯỚC mọi kết nối
 import fs from "node:fs";
 import { google } from "googleapis";
 
