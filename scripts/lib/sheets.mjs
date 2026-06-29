@@ -16,7 +16,7 @@
      appendTab(sheets, titles, name, headers, rows)  (giữ lịch sử)
      upsertTab(sheets, titles, name, headers, rows, keyFn)  (upsert theo key)
    ============================================================ */
-import "./netConfig.mjs"; // ép IPv4-first + tắt autoSelectFamily TRƯỚC mọi kết nối
+import { logAuthDiag } from "./netConfig.mjs"; // ép IPv4 TRƯỚC mọi kết nối (side-effect) + diag
 import fs from "node:fs";
 import { google } from "googleapis";
 
@@ -78,7 +78,7 @@ export async function getSheetsClient() {
   const sheets = google.sheets({ version: "v4", auth });
   let meta;
   try { meta = await withRetry(() => sheets.spreadsheets.get({ spreadsheetId: SHEET_ID }), { label: "mở Google Sheet" }); }
-  catch (e) { throw new Error(`Không mở được Google Sheet (đã Share Editor cho service account chưa?): ${e?.message || e}`); }
+  catch (e) { await logAuthDiag(e); throw new Error(`Không mở được Google Sheet (đã Share Editor cho service account chưa?): ${e?.message || e}`); }
   const titles = (meta.data.sheets || []).map((s) => s.properties.title);
   return { sheets, titles, sheetId: SHEET_ID };
 }

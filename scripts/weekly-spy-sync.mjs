@@ -18,7 +18,7 @@
    "likely scaled based on duration and repetition".
    ============================================================ */
 import "dotenv/config";
-import "./lib/netConfig.mjs"; // ép IPv4-first + tắt autoSelectFamily TRƯỚC khi gọi Google
+import { logAuthDiag } from "./lib/netConfig.mjs"; // ép IPv4 TRƯỚC khi gọi Google (side-effect) + diag
 import fs from "node:fs";
 import crypto from "node:crypto";
 import { google } from "googleapis";
@@ -1427,7 +1427,7 @@ async function main() {
   // "Premature close" ở OAuth token — hay gặp trên GitHub Actions).
   let meta;
   try { meta = await withRetry(() => sheets.spreadsheets.get({ spreadsheetId: SHEET_ID }), { label: "mở Google Sheet" }); }
-  catch (e) { fail(`Không mở được Google Sheet (đã Share Editor cho service account chưa?): ${e?.message || e}`); }
+  catch (e) { await logAuthDiag(e); fail(`Không mở được Google Sheet (đã Share Editor cho service account chưa?): ${e?.message || e}`); }
   const titles = (meta.data.sheets || []).map((s) => s.properties.title);
 
   // đọc dữ liệu cũ TRƯỚC khi ghi đè (cho weekly change + cache incremental)
