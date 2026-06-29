@@ -22,6 +22,7 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import { google } from "googleapis";
 import { HEADERS as SHARED_HEADERS, RUN_TYPE, SERVICE_CATEGORY } from "./lib/schemas.mjs";
+import { withRetry } from "./lib/sheets.mjs";
 import { analyzeHook } from "./lib/hookAnalysis.mjs";
 import { importDiscovered } from "./import-discovered-competitors.mjs";
 import { syncSheetToSupabase } from "./sync-sheet-to-supabase.mjs";
@@ -114,8 +115,8 @@ function buildAuth() {
 async function readTabObjects(sheets, name) {
   let res;
   try {
-    res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${name}'` });
-  } catch { return []; } // tab chưa tồn tại
+    res = await withRetry(() => sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${name}'` }), { label: `đọc tab ${name}` });
+  } catch { return []; } // tab chưa tồn tại (range 400, không transient)
   const values = res.data.values || [];
   if (values.length < 2) return [];
   const headers = values[0].map((h) => String(h || "").trim());
@@ -136,17 +137,18 @@ async function writeTab(sheets, titles, name, headers, rows) {
     });
     titles.push(name);
   }
-  await sheets.spreadsheets.values.clear({ spreadsheetId: SHEET_ID, range: `'${name}'` });
+  // clear + update đều idempotent -> retry an toàn cho lỗi mạng tạm thời.
+  await withRetry(() => sheets.spreadsheets.values.clear({ spreadsheetId: SHEET_ID, range: `'${name}'` }), { label: `clear ${name}` });
   const matrix = [headers, ...rows.map((r) => headers.map((h) => {
     const v = r[h];
     return v === undefined || v === null ? "" : String(v);
   }))];
-  await sheets.spreadsheets.values.update({
+  await withRetry(() => sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
     range: `'${name}'!A1`,
     valueInputOption: "RAW",
     requestBody: { values: matrix },
-  });
+  }), { label: `ghi ${name}` });
   console.log(`  [OK] ${name}: ghi ${rows.length} dòng dữ liệu`);
 }
 
@@ -1420,9 +1422,10 @@ async function main() {
   const auth = buildAuth();
   const sheets = google.sheets({ version: "v4", auth });
 
-  // xác thực mở được Sheet + lấy danh sách tab
+  // xác thực mở được Sheet + lấy danh sách tab (retry lỗi mạng tạm thời như
+  // "Premature close" ở OAuth token — hay gặp trên GitHub Actions).
   let meta;
-  try { meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID }); }
+  try { meta = await withRetry(() => sheets.spreadsheets.get({ spreadsheetId: SHEET_ID }), { label: "mở Google Sheet" }); }
   catch (e) { fail(`Không mở được Google Sheet (đã Share Editor cho service account chưa?): ${e?.message || e}`); }
   const titles = (meta.data.sheets || []).map((s) => s.properties.title);
 

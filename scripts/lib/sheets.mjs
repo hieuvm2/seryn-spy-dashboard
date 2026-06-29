@@ -25,6 +25,31 @@ export function getSheetId() {
   return (process.env.GOOGLE_SHEET_ID || "").trim();
 }
 
+/** Lỗi mạng/transport tạm thời (đáng retry) — gồm "Premature close" ở OAuth token. */
+function isTransientErr(e) {
+  const m = String(e?.message || e || "").toLowerCase();
+  return /premature close|econnreset|socket hang up|etimedout|eai_again|enotfound|fetch failed|terminated|network|timeout|\b(429|500|502|503|504)\b|oauth2\/v4\/token/.test(m);
+}
+
+/**
+ * Retry 1 call với exponential backoff cho lỗi mạng tạm thời (vd token endpoint
+ * "Premature close" hay gặp trên GitHub Actions). Lỗi không-transient -> throw ngay.
+ */
+export async function withRetry(fn, { tries = 4, baseMs = 800, label = "thao tác" } = {}) {
+  let lastErr;
+  for (let i = 0; i < tries; i++) {
+    try { return await fn(); }
+    catch (e) {
+      lastErr = e;
+      if (i === tries - 1 || !isTransientErr(e)) throw e;
+      const wait = baseMs * 2 ** i;
+      console.warn(`  [retry] ${label}: lỗi tạm thời "${e?.message || e}". Thử lại sau ${wait}ms (${i + 1}/${tries - 1}).`);
+      await new Promise((r) => setTimeout(r, wait));
+    }
+  }
+  throw lastErr;
+}
+
 export function buildAuth() {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   if (raw && raw.trim()) {
@@ -51,7 +76,7 @@ export async function getSheetsClient() {
   const auth = buildAuth();
   const sheets = google.sheets({ version: "v4", auth });
   let meta;
-  try { meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID }); }
+  try { meta = await withRetry(() => sheets.spreadsheets.get({ spreadsheetId: SHEET_ID }), { label: "mở Google Sheet" }); }
   catch (e) { throw new Error(`Không mở được Google Sheet (đã Share Editor cho service account chưa?): ${e?.message || e}`); }
   const titles = (meta.data.sheets || []).map((s) => s.properties.title);
   return { sheets, titles, sheetId: SHEET_ID };
@@ -62,8 +87,8 @@ export async function readTab(sheets, name) {
   const SHEET_ID = getSheetId();
   let res;
   try {
-    res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${name}'` });
-  } catch { return []; }
+    res = await withRetry(() => sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${name}'` }), { label: `đọc tab ${name}` });
+  } catch { return []; } // tab thiếu (range 400, không transient) -> []
   const values = res.data.values || [];
   if (values.length < 2) return [];
   const headers = values[0].map((h) => String(h || "").trim());
@@ -99,12 +124,13 @@ const cellStr = (v) => (v === undefined || v === null ? "" : String(v));
 export async function writeTab(sheets, titles, name, headers, rows) {
   const SHEET_ID = getSheetId();
   await ensureTab(sheets, titles, name, headers);
-  await sheets.spreadsheets.values.clear({ spreadsheetId: SHEET_ID, range: `'${name}'` });
+  // clear + update đều idempotent (ghi lại đúng range) -> retry an toàn.
+  await withRetry(() => sheets.spreadsheets.values.clear({ spreadsheetId: SHEET_ID, range: `'${name}'` }), { label: `clear ${name}` });
   const matrix = [headers, ...rows.map((r) => headers.map((h) => cellStr(r[h])))];
-  await sheets.spreadsheets.values.update({
+  await withRetry(() => sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID, range: `'${name}'!A1`, valueInputOption: "RAW",
     requestBody: { values: matrix },
-  });
+  }), { label: `ghi ${name}` });
   console.log(`  [OK] ${name}: ghi ${rows.length} dòng`);
 }
 
