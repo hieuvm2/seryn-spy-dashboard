@@ -35,6 +35,7 @@ const DATASET_TABS = {
   swipeSuggestions: "Swipe_File_Suggestions",
   weeklyReports: "Weekly Reports",
   monthlyReports: "Monthly Reports",
+  ownBrandPages: "Own Brand Pages",
 };
 
 /** Đọc Sheet -> đẩy lên Supabase. Trả {ok, fail, datasets, errors}. KHÔNG process.exit. */

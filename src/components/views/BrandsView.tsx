@@ -5,6 +5,9 @@ import type { SpyDashboardData } from "../../types";
 import { normalizeNumber, splitChips, orUnknown, viLabel, isMissing } from "../../utils/spyData";
 import { useDirectCompetitors, isDirectCompetitor } from "../../utils/directCompetitors";
 import { buildAdContentIntelligenceForBrand, ANGLE_VI } from "../../utils/adContentIntelligence";
+import { isOwnBrand } from "../../utils/ownBrand";
+import { buildSerynSnapshot } from "../../utils/serynBenchmark";
+import { SerynSnapshotCard, SerynVsCompetitorSection } from "../SerynBenchmark";
 
 const SCALE_SHORT: Record<string, string> = {
   "Weak Signal": "Tín hiệu yếu", "Repeated Content": "Content lặp lại",
@@ -66,9 +69,15 @@ export default function BrandsView({
     return m;
   }, [data]);
 
+  // Loại SERYN (own brand) khỏi danh sách đối thủ.
+  const competitorSnap = useMemo(
+    () => data.brandWeeklySnapshot.filter((r) => !isOwnBrand(r.brand_name, data.ownBrandPages ?? [])),
+    [data],
+  );
+
   const rows = useMemo(() => {
     // Ưu tiên đối thủ trực tiếp lên đầu, rồi theo số QC đang chạy.
-    let list = [...data.brandWeeklySnapshot].sort((a, b) => {
+    let list = [...competitorSnap].sort((a, b) => {
       const da = isDirectCompetitor(a.brand_name, direct) ? 1 : 0;
       const db = isDirectCompetitor(b.brand_name, direct) ? 1 : 0;
       if (da !== db) return db - da;
@@ -89,7 +98,9 @@ export default function BrandsView({
     if (!q.trim()) return list;
     const k = q.toLowerCase();
     return list.filter((r) => Object.values(r).some((v) => String(v).toLowerCase().includes(k)));
-  }, [data, q, filter, changeByBrand, direct]);
+  }, [competitorSnap, q, filter, changeByBrand, direct]);
+
+  const serynName = buildSerynSnapshot(data).ownBrandName;
 
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -98,6 +109,9 @@ export default function BrandsView({
         <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Thống kê quảng cáo theo từng đối thủ</h2>
         <p className="text-sm text-slate-600 font-medium">Nhấp vào một đối thủ để mở hồ sơ chi tiết (lượng quảng cáo · dịch vụ · nội dung · nhân rộng · phân tích content + ảnh quảng cáo).</p>
       </div>
+
+      {/* SERYN Snapshot (own brand) — KHÔNG nằm trong bảng đối thủ */}
+      <SerynSnapshotCard data={data} onOpen={() => onSelectBrand(serynName)} />
 
       <div className="flex items-center gap-2">
         <div className="relative flex-1 max-w-md">
@@ -109,7 +123,7 @@ export default function BrandsView({
             className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-300"
           />
         </div>
-        <span className="text-xs text-slate-500 font-semibold font-mono">{rows.length} / {data.brandWeeklySnapshot.length} đối thủ</span>
+        <span className="text-xs text-slate-500 font-semibold font-mono">{rows.length} / {competitorSnap.length} đối thủ</span>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -192,6 +206,9 @@ export default function BrandsView({
           </table>
         </div>
       </div>
+
+      {/* So sánh SERYN vs Đối thủ */}
+      <SerynVsCompetitorSection data={data} />
     </motion.div>
   );
 }

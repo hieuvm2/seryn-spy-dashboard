@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Upload, Database, Trash2, Download, CheckCircle2, FileSpreadsheet, RefreshCw, Activity, History, AlertTriangle, Cloud } from "lucide-react";
+import { Upload, Database, Trash2, Download, CheckCircle2, FileSpreadsheet, RefreshCw, Activity, History, AlertTriangle, Cloud, Sparkles } from "lucide-react";
 import type { SpyDashboardData, SpyTableName, DataSourceType } from "../../types";
+import { ownPageCrawlStats } from "../../utils/ownBrand";
+import { buildSerynSnapshot } from "../../utils/serynBenchmark";
 import {
   parseCSV,
   detectTable,
@@ -172,6 +174,9 @@ export default function DataImportView({
         )}
       </div>
 
+      {/* Own Brand (SERYN) status */}
+      <OwnBrandStatus data={data} />
+
       <div className="flex flex-wrap gap-3">
         <button onClick={onLoadSample} className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-bold border border-slate-200 transition cursor-pointer">
           <Database className="w-4 h-4 text-cyan-600" /> Nạp dữ liệu mẫu
@@ -281,5 +286,44 @@ export default function DataImportView({
 
       <p className="text-[11px] text-slate-400 font-mono">Khóa lưu trong trình duyệt: <span className="text-slate-600 font-bold">seryn_spy_dashboard_data_v2</span></p>
     </motion.div>
+  );
+}
+
+/** Trạng thái Own Brand Pages + SERYN crawl (Phần 9). Không crash khi thiếu tab. */
+function OwnBrandStatus({ data }: { data: SpyDashboardData }) {
+  const stats = ownPageCrawlStats(data);
+  const s = buildSerynSnapshot(data);
+  const hasTab = (data.ownBrandPages ?? []).length > 0;
+  return (
+    <div className="bg-white border border-emerald-200 rounded-2xl p-5 shadow-sm">
+      <div className="flex items-center gap-2 mb-3">
+        <Sparkles className="w-4 h-4 text-emerald-600" />
+        <h3 className="text-sm font-extrabold text-slate-800">Own Brand — SERYN</h3>
+        <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border bg-emerald-50 border-emerald-200 text-emerald-700">OWN</span>
+      </div>
+      {!hasTab && (
+        <div className="flex items-start gap-2 rounded-xl px-4 py-3 text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200 mb-3">
+          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+          Chưa tìm thấy tab <code className="bg-white/60 px-1 rounded">Own Brand Pages</code>. Hãy tạo tab này trong Google Sheets để thêm page SERYN (crawl + benchmark).
+        </div>
+      )}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        {[
+          { l: "Own Brand Pages", v: stats.total },
+          { l: "SERYN ads", v: s.activeAds },
+          { l: "Crawl bật", v: stats.crawlable },
+          { l: "Thiếu page_id", v: stats.missingId, warn: stats.missingId > 0 },
+          { l: "Crawl tắt", v: stats.disabled },
+        ].map((k) => (
+          <div key={k.l} className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+            <p className="text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold mb-1">{k.l}</p>
+            <p className={`text-xl font-extrabold ${k.warn ? "text-amber-600" : "text-slate-800"}`}>{k.v}</p>
+          </div>
+        ))}
+      </div>
+      <p className="text-[11px] text-slate-400 mt-2">
+        {s.hasData ? "SERYN có dữ liệu ads công khai — benchmark đã bật." : "Chưa có dữ liệu ads SERYN — thêm page có page_id numeric + crawl để bật benchmark."} Tín hiệu ads công khai, không phải ROAS/CPA.
+      </p>
+    </div>
   );
 }

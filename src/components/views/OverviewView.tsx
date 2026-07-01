@@ -7,6 +7,8 @@ import { useDirectCompetitors, isDirectCompetitor } from "../../utils/directComp
 import { latestWeek, dataQualityReport } from "../../utils/weeklyIntel";
 import { composeExecSummary } from "../../utils/reportData";
 import { latestCrawlRun, incrementalSummary } from "../../utils/incremental";
+import { isOwnBrand } from "../../utils/ownBrand";
+import { SerynBenchmarkCompact } from "../SerynBenchmark";
 
 function SectionTitle({ tag, title, desc }: { tag: string; title: string; desc?: string }) {
   return (
@@ -48,7 +50,8 @@ function ChipList({ items }: { items: { label: string; n: number }[] }) {
 
 export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboardData; onSelectBrand?: (brand: string) => void }) {
   const direct = useDirectCompetitors();
-  const snap = data.brandWeeklySnapshot;
+  // Loại SERYN (own brand) khỏi thống kê ĐỐI THỦ (SERYN có block benchmark riêng).
+  const snap = data.brandWeeklySnapshot.filter((b) => !isOwnBrand(b.brand_name, data.ownBrandPages ?? []));
   const totalBrands = snap.length;
   const activeBrands = snap.filter((b) => normalizeNumber(b.total_active_ads) > 0).length;
   const totalAds = snap.reduce((a, b) => a + normalizeNumber(b.total_active_ads), 0);
@@ -90,6 +93,9 @@ export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboa
         <Kpi label="QC mới tuần này" value={newAds} icon={TrendingUp} accent="bg-emerald-50 text-emerald-600" />
         <Kpi label="QC đã dừng" value={stoppedAds} icon={TrendingDown} accent="bg-amber-50 text-amber-600" />
       </div>
+
+      {/* SERYN vs Đối thủ (ngắn) — chi tiết ở tab Đối thủ */}
+      <SerynBenchmarkCompact data={data} onOpen={() => { window.location.hash = "brands"; }} />
 
       {/* Báo cáo tuần (gộp từ Weekly Intelligence) */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">

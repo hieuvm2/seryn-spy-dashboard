@@ -54,10 +54,15 @@ export const TAB = {
   // Historical reports (spy ads) — lưu theo kỳ, KHÔNG ghi đè kỳ cũ.
   weeklyReports: "Weekly Reports",
   monthlyReports: "Monthly Reports",
+  // Own Brand Pages — page của CHÍNH SERYN (own brand), crawl chung pipeline.
+  ownBrandPages: "Own Brand Pages",
 };
 
 /** report_type trong 2 tab `Weekly Reports` / `Monthly Reports`. */
 export const REPORT_TYPE = { weekly: "weekly", monthly: "monthly" };
+
+/** brand_type: phân biệt page của SERYN (own) vs đối thủ (competitor). */
+export const BRAND_TYPE = { own: "own", competitor: "competitor" };
 
 export const HEADERS = {
   /* ---- Tab MỚI 1: Market Intelligence (gộp source/trend/size/opportunity/queue) ---- */
@@ -178,5 +183,14 @@ export const HEADERS = {
 };
 
 // `Weekly Reports` và `Monthly Reports` chia sẻ cùng schema (SpyReport).
+// `seryn_benchmark` = 1 cột text (block so sánh SERYN vs đối thủ), thêm ở cuối
+// để tương thích ngược (các report cũ thiếu cột này -> "").
+HEADERS.spyReports = [...HEADERS.spyReports, "seryn_benchmark"];
 HEADERS.weeklyReports = HEADERS.spyReports;
 HEADERS.monthlyReports = HEADERS.spyReports;
+
+/* ---- Own Brand Pages (page của SERYN) ---- */
+HEADERS.ownBrandPages = [
+  "brand_name", "page_name", "page_id", "page_url", "platform", "market",
+  "service_focus", "is_active", "crawl_enabled", "notes", "created_at", "updated_at",
+];

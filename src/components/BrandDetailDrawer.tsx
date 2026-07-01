@@ -8,6 +8,9 @@ import type { SpyDashboardData } from "../types";
 import { splitChips, orUnknown, viLabel, isMissing, isMeaningful, humanizeText } from "../utils/spyData";
 import { getBrandProfile } from "../utils/brandIntelligence";
 import { isDirectCompetitor } from "../utils/directCompetitors";
+import { isOwnBrand } from "../utils/ownBrand";
+import { buildSerynVsCompetitorComparison, buildSerynSnapshot } from "../utils/serynBenchmark";
+import { Sparkles } from "lucide-react";
 import {
   buildAdContentIntelligenceForBrand, ANGLE_VI,
   type AdContentIntelligence,
@@ -86,6 +89,7 @@ export default function BrandDetailDrawer({
   brandName, data, open, onClose,
 }: { brandName: string | null; data: SpyDashboardData; open: boolean; onClose: () => void }) {
 
+  const isOwn = brandName ? isOwnBrand(brandName, data.ownBrandPages ?? []) : false;
   const p = brandName ? getBrandProfile(brandName, data) : null;
   const content = brandName ? buildAdContentIntelligenceForBrand(brandName, data, 10) : [];
   const snap = p?.snapshot;
@@ -109,10 +113,12 @@ export default function BrandDetailDrawer({
             {/* Sticky header */}
             <div className="px-6 py-4 bg-white border-b border-slate-200 shrink-0 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">HỒ SƠ ĐỐI THỦ</p>
+                <p className={`text-[10px] uppercase font-mono tracking-widest font-bold ${isOwn ? "text-emerald-600" : "text-cyan-600"}`}>{isOwn ? "SERYN PROFILE" : "HỒ SƠ ĐỐI THỦ"}</p>
                 <h3 className="text-lg font-extrabold text-slate-900 truncate flex items-center gap-2">
                   {brandName}
-                  {isDirectCompetitor(brandName) && <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0"><Star className="w-3 h-3 fill-amber-400 text-amber-500" /> Trực tiếp</span>}
+                  {isOwn
+                    ? <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0"><Sparkles className="w-3 h-3" /> Own Brand</span>
+                    : isDirectCompetitor(brandName) && <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0"><Star className="w-3 h-3 fill-amber-400 text-amber-500" /> Trực tiếp</span>}
                 </h3>
                 {snap && <p className="text-xs text-slate-500 font-medium mt-0.5 max-w-2xl line-clamp-2">{humanizeText(orUnknown(snap.content_strategy_summary))}</p>}
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[11px] text-slate-500">
@@ -201,14 +207,20 @@ export default function BrandDetailDrawer({
                     ) : <p className="text-xs text-slate-400">Chưa có dữ liệu format/funnel trẻ hóa da.</p>}
                   </Section>
 
-                  {/* Risk note (full) */}
-                  <Section icon={ShieldAlert} title="Ghi chú rủi ro" full>
-                    <p className="text-xs text-slate-600">
-                      {num(p.visual?.high_risk_rate) >= 0.3 || num(p.visual?.before_after_rate) >= 0.4
-                        ? "Brand này dùng nhiều before/after hoặc creative rủi ro claim — KHÔNG copy nguyên xi; SERYN chỉ tham khảo cấu trúc và phản ứng (counter positioning), giữ câu chữ an toàn."
-                        : "Tham khảo cấu trúc / góc tiếp cận của brand này, không sao chép nguyên văn. Mọi nội dung SERYN giữ tông điềm tĩnh, 'kết quả tùy cơ địa'."}
-                    </p>
-                  </Section>
+                  {/* Own brand -> đánh giá nội dung SERYN; competitor -> ghi chú rủi ro */}
+                  {isOwn ? (
+                    <Section icon={Sparkles} title="Đánh giá nội dung hiện tại của SERYN" accent full>
+                      <SerynSelfEval data={data} />
+                    </Section>
+                  ) : (
+                    <Section icon={ShieldAlert} title="Ghi chú rủi ro" full>
+                      <p className="text-xs text-slate-600">
+                        {num(p.visual?.high_risk_rate) >= 0.3 || num(p.visual?.before_after_rate) >= 0.4
+                          ? "Brand này dùng nhiều before/after hoặc creative rủi ro claim — KHÔNG copy nguyên xi; SERYN chỉ tham khảo cấu trúc và phản ứng (counter positioning), giữ câu chữ an toàn."
+                          : "Tham khảo cấu trúc / góc tiếp cận của brand này, không sao chép nguyên văn. Mọi nội dung SERYN giữ tông điềm tĩnh, 'kết quả tùy cơ địa'."}
+                      </p>
+                    </Section>
+                  )}
                 </div>
               )}
             </div>
@@ -216,6 +228,36 @@ export default function BrandDetailDrawer({
         </>
       )}
     </AnimatePresence>
+  );
+}
+
+/* ---------- Đánh giá nội dung hiện tại của SERYN (own brand) ---------- */
+function SerynSelfEval({ data }: { data: SpyDashboardData }) {
+  const s = buildSerynSnapshot(data);
+  const cmp = buildSerynVsCompetitorComparison(data);
+  const Row = ({ q, children }: { q: string; children: React.ReactNode }) => (
+    <div className="py-1.5 border-b border-slate-100 last:border-0">
+      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">{q}</p>
+      <div className="text-[13px] text-slate-700 mt-0.5">{children}</div>
+    </div>
+  );
+  if (!s.hasData) return <p className="text-xs text-slate-500">Chưa có dữ liệu ads công khai của SERYN. Thêm page vào tab <span className="font-mono">Own Brand Pages</span> và crawl để bật đánh giá.</p>;
+  return (
+    <div className="space-y-1">
+      <Row q="SERYN đang tập trung vào angle nào?">{s.topContentAngles.map(viLabel).join(", ") || "—"}</Row>
+      <Row q="SERYN đang thiếu angle nào so với thị trường?">{cmp.missingContentAngles.map(viLabel).join(", ") || "Không thiếu angle nổi bật nào."}</Row>
+      <Row q="SERYN có đang lặp offer/content quá nhiều không?">{s.topOffers.length <= 1 ? "Ít offer lặp — đang giữ định vị không đua giá." : `Có ${s.topOffers.length} offer — kiểm tra tránh lặp/đua giá: ${s.topOffers.slice(0, 3).join(", ")}.`}</Row>
+      <Row q="SERYN có format nào đang yếu không?">{cmp.formatGapNote}</Row>
+      <Row q="SERYN có đang dùng claim rủi ro không?">{cmp.riskGapNote}</Row>
+      <Row q="Nên test gì tiếp theo?">
+        {cmp.recommendedTests.length ? (
+          <ul className="list-disc pl-4 space-y-0.5">
+            {cmp.recommendedTests.slice(0, 3).map((t, i) => <li key={i}><b>[{t.priority}]</b> {t.recommendation}</li>)}
+          </ul>
+        ) : "Chưa đủ dữ liệu để đề xuất test."}
+      </Row>
+      <p className="text-[11px] text-slate-400 italic mt-1">Tín hiệu ads công khai, không phải ROAS/CPA.</p>
+    </div>
   );
 }
 

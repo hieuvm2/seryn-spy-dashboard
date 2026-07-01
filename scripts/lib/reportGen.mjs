@@ -94,6 +94,54 @@ const inRange = (wd, start, end) => {
   const s = String(wd || "").slice(0, 10);
   return s && s >= start && s <= end;
 };
+
+/* ---------- SERYN own-brand benchmark ---------- */
+function normName(s) {
+  return String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+function isOwnName(name, ownNames = []) {
+  const n = normName(name);
+  if (!n) return false;
+  if (n.includes("seryn")) return true;
+  return (ownNames || []).some((o) => o && (n === o || n.includes(o)));
+}
+
+/**
+ * Block text "SERYN vs Đối thủ" (parse bằng split("|") ở dashboard).
+ * Trung tính (không "thua/kém"), không CPA/ROAS.
+ */
+export function serynBenchmarkBlock(snapshot, ownNames = []) {
+  const own = (snapshot || []).filter((r) => isOwnName(r.brand_name, ownNames));
+  const comp = (snapshot || []).filter((r) => !isOwnName(r.brand_name, ownNames));
+  if (!own.length || own.reduce((a, r) => a + num(r.total_active_ads), 0) === 0) {
+    return "Chưa có dữ liệu ads công khai của SERYN trong kỳ để so sánh (thêm page vào tab Own Brand Pages + crawl).";
+  }
+  const serynAds = own.reduce((a, r) => a + num(r.total_active_ads), 0);
+  const compWithAds = comp.filter((r) => num(r.total_active_ads) > 0);
+  const compAvg = compWithAds.length ? Math.round(comp.reduce((a, r) => a + num(r.total_active_ads), 0) / compWithAds.length) : 0;
+  const top = [...comp].sort((a, b) => num(b.total_active_ads) - num(a.total_active_ads))[0];
+  const keys = (rows, f) => countChips(rows, f).map((x) => x.key);
+  const lc = (arr) => arr.map((x) => x.toLowerCase());
+  const serynAngles = keys(own, "main_angles"), compAngles = keys(comp, "main_angles");
+  const missingAngles = compAngles.filter((a) => !lc(serynAngles).includes(a.toLowerCase()));
+  const serynFormats = keys(own, "main_content_formats"), compFormats = keys(comp, "main_content_formats");
+  const missingFormats = compFormats.filter((f) => !lc(serynFormats).includes(f.toLowerCase()));
+  const missingServices = keys(comp, "services_running").filter((s) => !lc(keys(own, "services_running")).includes(s.toLowerCase()));
+  const parts = [
+    `SERYN active ads: ${serynAds}`,
+    `Trung bình đối thủ active ads: ${compAvg}`,
+    top ? `Đối thủ chạy mạnh nhất: ${clean(top.brand_name)} (${num(top.total_active_ads)})` : "",
+    `Angle SERYN đang dùng: ${serynAngles.slice(0, 4).join(", ") || "—"}`,
+    `Angle đối thủ lặp lại nhưng SERYN chưa dùng: ${missingAngles.slice(0, 4).join(", ") || "(không khác biệt lớn)"}`,
+    `Format SERYN đang thiếu: ${missingFormats.slice(0, 3).join(", ") || "(không lệch lớn)"}`,
+    `Dịch vụ đối thủ đẩy mạnh SERYN chưa push: ${missingServices.slice(0, 4).join(", ") || "—"}`,
+    `Offer đối thủ đang đẩy mạnh: ${keys(comp, "offers_detected").slice(0, 4).join(", ") || "—"}`,
+    serynAds < compAvg ? "SERYN đang thấp hơn trung bình đối thủ về volume ads." : "SERYN ở mức ngang/cao hơn trung bình đối thủ về volume ads.",
+    "Rủi ro nếu copy đối thủ: giữ câu chữ an toàn ('kết quả tùy cơ địa'), tránh before/after cường điệu & neo giá gốc.",
+    `Test đề xuất: ${missingAngles.length ? `test có kiểm soát góc "${missingAngles[0]}" theo tông y khoa` : "củng cố tuyến nội dung giáo dục"}; giữ định vị premium, không đua giá.`,
+  ];
+  return joinList(parts, 12);
+}
 const pct = (n) => (Number.isFinite(n) ? `${Math.round(n * 100)}%` : "");
 
 /* ============================================================
@@ -302,6 +350,7 @@ export function buildWeeklyReport(ctx) {
     source_report_ids: "",
     data_quality_note: joinList(dqParts, 6, " "),
     created_by: ctx.meta.createdBy || "generate-weekly-report",
+    seryn_benchmark: serynBenchmarkBlock(snapshot, ctx.ownNames),
   };
   return { row, notes };
 }
@@ -343,6 +392,8 @@ export function renderReportMarkdown(row) {
       ``,
       `10. KẾ HOẠCH HÀNH ĐỘNG THÁNG SAU\n${list(row.recommended_actions)}`,
       ``,
+      `BENCHMARK SERYN VS THỊ TRƯỜNG TRONG THÁNG\n${list(row.seryn_benchmark)}`,
+      ``,
       `Nguồn tổng hợp: ${row.source_week_dates || "—"}`,
       ``,
       `Lưu ý: ${DATA_DISCLAIMER}`,
@@ -375,6 +426,8 @@ export function renderReportMarkdown(row) {
     `8. HÀM Ý CHO SERYN\n${list(row.seryn_implications)}`,
     ``,
     `9. HÀNH ĐỘNG ĐỀ XUẤT TUẦN TỚI\n${list(row.recommended_actions)}`,
+    ``,
+    `SERYN VS ĐỐI THỦ TRONG TUẦN\n${list(row.seryn_benchmark)}`,
     ``,
     `Lưu ý: ${DATA_DISCLAIMER}`,
   ].join("\n");
@@ -526,6 +579,7 @@ export function buildMonthlyReport(ctx) {
     source_report_ids: wrSorted.map((r) => r.report_id).filter(Boolean).join("|"),
     data_quality_note: joinList(dqParts, 5, " "),
     created_by: ctx.meta.createdBy || "generate-monthly-report",
+    seryn_benchmark: serynBenchmarkBlock(snapshotMonth, ctx.ownNames),
   };
   return { row, notes };
 }

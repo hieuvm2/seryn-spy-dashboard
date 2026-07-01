@@ -15,6 +15,27 @@ export type ViewId =
 export type DataSourceType = "demo" | "local-csv" | "online-sheet" | "online-supabase" | "offline-cache";
 
 /* ============================================================
+   OWN BRAND (SERYN) — page của chính SERYN để crawl + benchmark.
+   Phân biệt với đối thủ: brand_type = "own" | "competitor".
+   ============================================================ */
+export type BrandType = "own" | "competitor";
+
+export interface OwnBrandPage {
+  brand_name: string;
+  page_name: string;
+  page_id: string;
+  page_url: string;
+  platform?: string;
+  market?: string;
+  service_focus?: string;
+  is_active: boolean | string;
+  crawl_enabled: boolean | string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/* ============================================================
    HISTORICAL REPORTS — báo cáo tuần / tháng (lưu theo kỳ, không ghi đè)
    2 tab Google Sheets: `Weekly Reports` + `Monthly Reports` dùng CHUNG schema.
    List-fields (top_*, key_competitor_moves...) lưu dạng "key (count) | ..." hoặc
@@ -64,6 +85,9 @@ export interface SpyReport {
 
   data_quality_note?: string;
   created_by?: string;
+
+  /** Block text so sánh SERYN vs đối thủ (own brand benchmark). Optional. */
+  seryn_benchmark?: string;
 }
 
 export type BrandWeeklySnapshot = {
@@ -110,6 +134,9 @@ export type BrandWeeklySnapshot = {
   skin_rejuvenation_top_inferred_objective?: string;
   skin_rejuvenation_format_objective_pattern?: string;
   skin_rejuvenation_confidence_score?: number | string;
+  /* ---- own vs competitor (optional, thêm ở cuối — tương thích ngược) ---- */
+  brand_type?: BrandType | string;
+  source_page_type?: string;
 };
 
 export type AdLevelAnalysis = {
@@ -187,6 +214,9 @@ export type AdLevelAnalysis = {
   hook_risk_score?: number | string;
   hook_confidence_score?: number | string;
   hook_evidence?: string;
+  /* ---- own vs competitor (optional) ---- */
+  brand_type?: BrandType | string;
+  source_page_type?: string;
 };
 
 export type ScaledContentAnalysis = {
@@ -341,6 +371,8 @@ export type SpyDashboardData = {
   /* ---- Historical reports (lưu theo kỳ; thiếu tab -> [] không crash) ---- */
   weeklyReports?: SpyReport[];
   monthlyReports?: SpyReport[];
+  /* ---- Own Brand Pages (page SERYN; thiếu tab -> [] không crash) ---- */
+  ownBrandPages?: OwnBrandPage[];
 };
 
 /** 5 bảng CSV gốc (dùng cho import thủ công / health-check). Các tab v2

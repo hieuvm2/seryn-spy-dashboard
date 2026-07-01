@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { Users, Plus, Search, CheckCircle2, AlertTriangle, Power, FlaskConical, Cloud, CloudOff, Trash2 } from "lucide-react";
-import type { Competitor } from "../../types";
+import { Users, Plus, Search, CheckCircle2, AlertTriangle, Power, FlaskConical, Cloud, CloudOff, Trash2, Sparkles } from "lucide-react";
+import type { Competitor, SpyDashboardData } from "../../types";
+import { ownPageCrawlStats, isTruthyFlag } from "../../utils/ownBrand";
 import {
   loadCompetitorsAsync,
   createCompetitor,
@@ -26,7 +27,7 @@ const STATUS_TONE: Record<string, string> = {
 
 const emptyForm = { brand: "", page_url: "", page_id: "", category: "", active: true, notes: "" };
 
-export default function CompetitorSetupView() {
+export default function CompetitorSetupView({ data }: { data: SpyDashboardData }) {
   const [list, setList] = useState<Competitor[]>([]);
   const [warning, setWarning] = useState<string | null>(null);
   const [note, setNote] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -177,6 +178,61 @@ export default function CompetitorSetupView() {
           })}
         </div>
       )}
+
+      {/* ===== Page của SERYN (own brand) — read-only ===== */}
+      <SerynPagesSection data={data} />
     </motion.div>
+  );
+}
+
+/** Danh sách page SERYN (tab Own Brand Pages). Read-only + hướng dẫn thêm. */
+function SerynPagesSection({ data }: { data: SpyDashboardData }) {
+  const pages = data.ownBrandPages ?? [];
+  const stats = ownPageCrawlStats(data);
+  return (
+    <div className="space-y-3 pt-4 border-t border-slate-200">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex flex-col gap-1.5 border-l-2 border-emerald-500 pl-4">
+          <span className="text-[10px] uppercase font-mono tracking-widest text-emerald-600 font-bold flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> OWN BRAND — SERYN</span>
+          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Page của SERYN</h2>
+          <p className="text-sm text-slate-600 font-medium">Danh sách page SERYN được crawl chung pipeline để benchmark. Đọc từ tab <code className="bg-slate-100 px-1 rounded">Own Brand Pages</code> trên Google Sheets.</p>
+        </div>
+        <div className="flex gap-2 text-center">
+          {[{ l: "Page", v: stats.total }, { l: "Crawl bật", v: stats.crawlable }, { l: "Thiếu page_id", v: stats.missingId }].map((k) => (
+            <div key={k.l} className="bg-white border border-slate-200 rounded-xl px-3 py-2"><p className="text-[10px] uppercase font-bold text-slate-400">{k.l}</p><p className="text-lg font-extrabold text-slate-800">{k.v}</p></div>
+          ))}
+        </div>
+      </div>
+
+      {!pages.length ? (
+        <div className="bg-white border border-dashed border-emerald-300 rounded-2xl p-8 text-center space-y-2">
+          <Sparkles className="w-8 h-8 text-emerald-300 mx-auto" />
+          <p className="text-sm font-bold text-slate-700">Chưa có page SERYN nào.</p>
+          <p className="text-xs text-slate-500 font-medium max-w-xl mx-auto">Nếu muốn hệ thống so sánh SERYN với đối thủ, hãy thêm <b>page_id</b> của các page SERYN vào tab <code className="bg-slate-100 px-1 rounded">Own Brand Pages</code> (Google Sheets) với <code className="bg-slate-100 px-1 rounded">is_active=TRUE</code> và <code className="bg-slate-100 px-1 rounded">crawl_enabled=TRUE</code>.</p>
+        </div>
+      ) : (
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm divide-y divide-slate-100">
+          {pages.map((p, i) => {
+            const on = isTruthyFlag(p.is_active) && isTruthyFlag(p.crawl_enabled) && String(p.page_id || "").trim();
+            return (
+              <div key={`${p.page_id}-${i}`} className="p-4 flex flex-col md:flex-row md:items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-extrabold text-slate-800">{p.page_name || "(no name)"}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${on ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>{on ? "crawl on" : "crawl off"}</span>
+                    {p.market && <span className="text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">{p.market}</span>}
+                    {p.service_focus && <span className="text-[10px] font-semibold text-cyan-700 bg-cyan-50 border border-cyan-100 px-2 py-0.5 rounded">{p.service_focus}</span>}
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-mono truncate">page_id: {p.page_id || "—"}{p.page_url ? ` · ${p.page_url}` : ""}</p>
+                  {p.notes && <p className="text-[11px] text-slate-500 truncate">{p.notes}</p>}
+                </div>
+                {p.page_id && <a href={`https://www.facebook.com/${p.page_id}`} target="_blank" rel="noreferrer" className="text-xs font-bold text-cyan-700 hover:underline shrink-0">Mở page ↗</a>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <p className="text-[11px] text-slate-400">Chưa hỗ trợ thêm/sửa page SERYN trực tiếp trên dashboard — chỉnh trong tab <code className="bg-slate-100 px-1 rounded">Own Brand Pages</code> (Google Sheets) rồi Refresh.</p>
+    </div>
   );
 }

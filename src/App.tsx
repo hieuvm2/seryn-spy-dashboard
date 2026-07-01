@@ -201,7 +201,7 @@ export default function App() {
           {activeSection === "overview" && <OverviewView data={spyData} onSelectBrand={setSelectedBrand} />}
           {activeSection === "brands" && <BrandsView data={spyData} onSelectBrand={setSelectedBrand} />}
           {activeSection === "reports" && <ReportsView data={spyData} />}
-          {activeSection === "competitor-setup" && <CompetitorSetupView />}
+          {activeSection === "competitor-setup" && <CompetitorSetupView data={spyData} />}
           {activeSection === "competitor-discovery" && <CompetitorDiscoveryView data={spyData} />}
           {activeSection === "data-import" && (
             <DataImportView

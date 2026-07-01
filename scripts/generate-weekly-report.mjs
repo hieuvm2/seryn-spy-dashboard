@@ -72,10 +72,13 @@ async function main() {
     actionPlan: await readTab(sheets, "Action_Plan"),
     contentRecs: await readTab(sheets, "SERYN Content Recommendations"),
   };
+  // Own Brand Pages -> tên brand SERYN để tách own vs competitor khi benchmark.
+  const ownNames = (await readTab(sheets, TAB.ownBrandPages)).map((r) => String(r.brand_name || "").toLowerCase().trim()).filter(Boolean);
 
   const reportId = getReportId("weekly", period.period_start, period.period_end);
   const { row, notes } = buildWeeklyReport({
     tabs,
+    ownNames,
     period,
     meta: { generatedAt: new Date().toISOString(), timezone: opts.tz, reportId, createdBy: "generate-weekly-report" },
   });

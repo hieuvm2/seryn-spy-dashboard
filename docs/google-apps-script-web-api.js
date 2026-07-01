@@ -58,6 +58,8 @@ const SHEET_MAP = {
   // ---- Historical reports (lưu theo kỳ, không ghi đè) ----
   weeklyReports: "Weekly Reports",
   monthlyReports: "Monthly Reports",
+  // ---- Own Brand Pages (page của SERYN) ----
+  ownBrandPages: "Own Brand Pages",
 };
 
 /* Tab read/write (Swipe File, Creative Briefs, Competitors).
@@ -226,6 +228,8 @@ function doGet(e) {
       // ---- Historical reports (tab thiếu -> [], không crash) ----
       weeklyReports: sheetToObjects_(SHEET_MAP.weeklyReports),
       monthlyReports: sheetToObjects_(SHEET_MAP.monthlyReports),
+      // ---- Own Brand Pages (page SERYN; tab thiếu -> []) ----
+      ownBrandPages: sheetToObjects_(SHEET_MAP.ownBrandPages),
       meta: { source: "GOOGLE_SHEETS", generatedAt: new Date().toISOString() },
     };
     return makeJson_({ ok: true, data: data });

@@ -10,6 +10,19 @@ const WK = "2026-06-09";
 export const sampleSpyDashboardData: SpyDashboardData = {
   brandWeeklySnapshot: [
     {
+      /* ---- OWN BRAND (SERYN) — không phải đối thủ, phục vụ benchmark ---- */
+      week_date: WK, brand_name: "SERYN", brand_type: "own", page_ids: "100558049051139", total_active_ads: 12, total_ads_collected: 12, num_pages_running: 2,
+      services_running: "facial_rejuvenation|skin_analysis|lifting_firming", prices_detected: "unknown", offers_detected: "đánh giá nền tảng sinh học",
+      main_content_formats: "doctor_explainer|educational_post", main_hooks: "doctor_authority|education_led", main_angles: "medical_authority|education",
+      main_proof_points: "doctor_expert|scientific_explanation", main_ctas: "Nhắn tin|Đặt lịch phân tích gương mặt",
+      scaled_content_count: 1, new_ads_count: 4, stopped_ads_count: 2,
+      skin_rejuvenation_image_rate: 0.33, skin_rejuvenation_video_rate: 0.58, skin_rejuvenation_carousel_rate: 0.09,
+      skin_rejuvenation_messenger_rate: 0.75, skin_rejuvenation_lead_form_rate: 0.08, skin_rejuvenation_landing_page_conversion_rate: 0.17, skin_rejuvenation_phone_call_rate: 0,
+      skin_rejuvenation_top_format: "video", skin_rejuvenation_top_inferred_objective: "messenger", skin_rejuvenation_ads_count: 12,
+      content_strategy_summary: "Giáo dục trẻ hóa từ nền tảng sinh học, bác sĩ giải thích cấu trúc.", weekly_change_summary: "+4 ad giáo dục, giữ tông điềm tĩnh.",
+      seryn_opportunity: "Own brand — theo dõi & benchmark với thị trường.",
+    },
+    {
       week_date: WK, brand_name: "Kangnam", page_ids: "359285057508884", total_active_ads: 50, total_ads_collected: 50, num_pages_running: 1,
       services_running: "facial_rejuvenation|filler_botox|hair_removal", prices_detected: "unknown", offers_detected: "trợ giá theo buổi",
       main_content_formats: "doctor_explainer|kol_review|before_after", main_hooks: "doctor_authority|transformation_led", main_angles: "transformation|medical_authority",
@@ -246,6 +259,14 @@ export const sampleSpyDashboardData: SpyDashboardData = {
       data_quality_note:
         "1 page crawl lỗi trong kỳ. Đây là báo cáo dựa trên dữ liệu ads công khai và tín hiệu lặp lại, không phải dữ liệu CPA/ROAS/spend thật.",
       created_by: "demo",
+      seryn_benchmark:
+        "SERYN active ads: 12 | Trung bình đối thủ: ~40 | Đối thủ chạy mạnh nhất: Thu Cúc (144) | " +
+        "Angle SERYN đang dùng: medical_authority, education | " +
+        "Angle đối thủ lặp lại nhưng SERYN chưa dùng: transformation, price_promotion | " +
+        "Offer đối thủ đang đẩy mạnh: đồng giá 159K, combo trải nghiệm 299K (SERYN chưa đua giá) | " +
+        "Format: mix SERYN không lệch lớn (video-heavy) | " +
+        "Rủi ro nếu copy: đối thủ nhiều before/after & neo giá gốc — giữ câu chữ an toàn, 'kết quả tùy cơ địa' | " +
+        "Test đề xuất: góc transformation theo tông y khoa; giữ premium không đua giá.",
     },
     {
       report_id: "weekly-2026-06-01_2026-06-07", report_type: "weekly",
@@ -291,6 +312,14 @@ export const sampleSpyDashboardData: SpyDashboardData = {
       data_quality_note:
         "2 page crawl lỗi trong kỳ. Đây là báo cáo dựa trên dữ liệu ads công khai và tín hiệu lặp lại, không phải dữ liệu CPA/ROAS/spend thật.",
       created_by: "demo",
+      seryn_benchmark:
+        "SERYN active ads: 12 | Trung bình đối thủ: ~40 | Đối thủ chạy mạnh nhất: Thu Cúc (144) | " +
+        "Angle SERYN đang dùng: medical_authority, education | " +
+        "Angle đối thủ lặp lại nhưng SERYN chưa dùng: transformation, price_promotion | " +
+        "Offer đối thủ đang đẩy mạnh: đồng giá 159K, combo trải nghiệm 299K (SERYN chưa đua giá) | " +
+        "Format: mix SERYN không lệch lớn (video-heavy) | " +
+        "Rủi ro nếu copy: đối thủ nhiều before/after & neo giá gốc — giữ câu chữ an toàn, 'kết quả tùy cơ địa' | " +
+        "Test đề xuất: góc transformation theo tông y khoa; giữ premium không đua giá.",
     },
   ],
 
@@ -343,6 +372,30 @@ export const sampleSpyDashboardData: SpyDashboardData = {
       data_quality_note:
         "Đây là báo cáo dựa trên dữ liệu ads công khai và tín hiệu lặp lại, không phải dữ liệu CPA/ROAS/spend thật.",
       created_by: "demo",
+      seryn_benchmark:
+        "SERYN active ads: 12 | Trung bình đối thủ: ~40 | Đối thủ chạy mạnh nhất: Thu Cúc (144) | " +
+        "Angle SERYN đang dùng: medical_authority, education | " +
+        "Angle đối thủ lặp lại nhưng SERYN chưa dùng: transformation, price_promotion | " +
+        "Offer đối thủ đang đẩy mạnh: đồng giá 159K, combo trải nghiệm 299K (SERYN chưa đua giá) | " +
+        "Format: mix SERYN không lệch lớn (video-heavy) | " +
+        "Rủi ro nếu copy: đối thủ nhiều before/after & neo giá gốc — giữ câu chữ an toàn, 'kết quả tùy cơ địa' | " +
+        "Test đề xuất: góc transformation theo tông y khoa; giữ premium không đua giá.",
     },
+  ],
+
+  /* ============================================================
+     OWN BRAND PAGES — 10 page của SERYN (demo). page_id numeric để crawl.
+     ============================================================ */
+  ownBrandPages: [
+    { brand_name: "SERYN", page_name: "Phòng khám Seryn Việt Nam", page_id: "100558049051139", page_url: "https://www.facebook.com/phongkhamserynvietnam/", platform: "facebook", market: "Hà Nội", service_focus: "trẻ hóa da|nâng cơ|clinic tổng", is_active: true, crawl_enabled: true, notes: "Page chính", created_at: WK, updated_at: WK },
+    { brand_name: "SERYN", page_name: "Lại Minh Hiếu - Chuyên gia sắc đẹp Seryn Việt Nam", page_id: "102248398862424", page_url: "https://www.facebook.com/profile.php?id=100092620323079", platform: "facebook", market: "toàn quốc", service_focus: "trẻ hóa da", is_active: true, crawl_enabled: true, notes: "", created_at: WK, updated_at: WK },
+    { brand_name: "SERYN", page_name: "Lại Minh Hiếu - Seryn Clinic Việt Nam", page_id: "108910554850173", page_url: "https://www.facebook.com/profile.php?id=100091434092299", platform: "facebook", market: "toàn quốc", service_focus: "trẻ hóa da", is_active: true, crawl_enabled: true, notes: "", created_at: WK, updated_at: WK },
+    { brand_name: "SERYN", page_name: "Lại Minh Hiếu - Phòng khám Seryn", page_id: "191037889667981", page_url: "https://www.facebook.com/profile.php?id=61551569680928", platform: "facebook", market: "toàn quốc", service_focus: "trẻ hóa da", is_active: true, crawl_enabled: true, notes: "", created_at: WK, updated_at: WK },
+    { brand_name: "SERYN", page_name: "Chuyên gia sắc đẹp Lại Minh Hiếu - Seryn Clinic", page_id: "110304951354635", page_url: "https://www.facebook.com/profile.php?id=61550115911294", platform: "facebook", market: "toàn quốc", service_focus: "trẻ hóa da", is_active: true, crawl_enabled: true, notes: "", created_at: WK, updated_at: WK },
+    { brand_name: "SERYN", page_name: "Minh Hiếu - Phòng khám Seryn", page_id: "110055188068776", page_url: "https://www.facebook.com/profile.php?id=100094971317327", platform: "facebook", market: "toàn quốc", service_focus: "trẻ hóa da", is_active: true, crawl_enabled: true, notes: "", created_at: WK, updated_at: WK },
+    { brand_name: "SERYN", page_name: "Phòng khám đa khoa Seryn Việt Nam", page_id: "101136148947610", page_url: "https://www.facebook.com/profile.php?id=100094474805993", platform: "facebook", market: "toàn quốc", service_focus: "clinic tổng", is_active: true, crawl_enabled: true, notes: "", created_at: WK, updated_at: WK },
+    { brand_name: "SERYN", page_name: "Phòng khám đa khoa - Seryn Việt Nam", page_id: "102183905593576", page_url: "https://www.facebook.com/profile.php?id=100094550904349", platform: "facebook", market: "toàn quốc", service_focus: "clinic tổng", is_active: true, crawl_enabled: true, notes: "", created_at: WK, updated_at: WK },
+    { brand_name: "SERYN", page_name: "BS. CKI Vũ Trung Hiếu - Phòng khám Seryn", page_id: "100973408964712", page_url: "https://www.facebook.com/bacsivutrunghieu.seryn/", platform: "facebook", market: "toàn quốc", service_focus: "trẻ hóa da", is_active: true, crawl_enabled: true, notes: "", created_at: WK, updated_at: WK },
+    { brand_name: "SERYN", page_name: "Phòng khám Seryn Việt Nam - Chuyên gia trẻ hóa Minh Hiếu", page_id: "140368131524726", page_url: "https://www.facebook.com/profile.php?id=100091539075712", platform: "facebook", market: "toàn quốc", service_focus: "trẻ hóa da", is_active: true, crawl_enabled: true, notes: "", created_at: WK, updated_at: WK },
   ],
 };

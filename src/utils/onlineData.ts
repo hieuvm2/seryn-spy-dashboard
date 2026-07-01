@@ -31,6 +31,7 @@ import type {
   ActionPlanItem,
   SwipeSuggestion,
   SpyReport,
+  OwnBrandPage,
 } from "../types";
 import { apiGet, getApiUrl, isSheetsConfigured } from "./sheetsApi";
 
@@ -94,5 +95,7 @@ export async function fetchOnlineSpyData(apiUrl?: string): Promise<SpyDashboardD
     // ---- Historical reports (tab có thể chưa tồn tại -> [], không crash) ----
     weeklyReports: asRows<SpyReport>(d.weeklyReports),
     monthlyReports: asRows<SpyReport>(d.monthlyReports),
+    // ---- Own Brand Pages (page SERYN; thiếu tab -> []) ----
+    ownBrandPages: asRows<OwnBrandPage>(d.ownBrandPages),
   };
 }

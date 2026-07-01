@@ -79,11 +79,13 @@ async function main() {
     scaled: await readTab(sheets, "Scaled Content Analysis"),
     contentRecs: await readTab(sheets, "SERYN Content Recommendations"),
   };
+  const ownNames = (await readTab(sheets, TAB.ownBrandPages)).map((r) => String(r.brand_name || "").toLowerCase().trim()).filter(Boolean);
 
   const reportId = getReportId("monthly", period.period_start, period.period_end);
   const { row } = buildMonthlyReport({
     weeklyReports,
     tabs,
+    ownNames,
     period,
     meta: { generatedAt: new Date().toISOString(), timezone: opts.tz, reportId, createdBy: "generate-monthly-report" },
   });

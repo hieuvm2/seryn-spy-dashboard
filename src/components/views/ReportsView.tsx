@@ -76,6 +76,8 @@ function composeFullReport(r: SpyReport): string {
     "",
     sec("9. HÀNH ĐỘNG ĐỀ XUẤT", r.recommended_actions),
     "",
+    sec("SERYN VS ĐỐI THỦ", r.seryn_benchmark),
+    "",
     `Lưu ý: ${r.data_quality_note || "Đây là báo cáo dựa trên dữ liệu ads công khai và tín hiệu lặp lại, không phải dữ liệu CPA/ROAS/spend thật."}`,
   ].join("\n");
 }
@@ -335,6 +337,9 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
       <Section icon={ShieldAlert} title="Rủi ro claim" body={r.risk_warnings} accent="amber" />
       <Section icon={Target} title="Hàm ý cho SERYN" body={r.seryn_implications} accent="cyan" />
       <Section icon={ListChecks} title="Hành động đề xuất" body={r.recommended_actions} accent="emerald" />
+      {!!String(r.seryn_benchmark ?? "").trim() && (
+        <Section icon={Sparkles} title="SERYN vs Đối thủ" body={r.seryn_benchmark} accent="cyan" />
+      )}
 
       {/* Data quality note */}
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 flex gap-2.5">

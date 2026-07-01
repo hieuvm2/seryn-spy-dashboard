@@ -224,8 +224,33 @@ async function loadCompetitors(sheets) {
     if (!isTrue(r.active)) continue; // chỉ active=TRUE
     const pageIds = String(r.page_ids || "").split("|").map((s) => s.trim()).filter(Boolean);
     if (!pageIds.length) { warn(`Brand "${brand}" thiếu page_ids — skip (không bịa page_id).`); continue; }
-    out.push({ brand_name: brand, page_ids: pageIds, page_urls: String(r.page_urls || "").trim(), notes: String(r.notes || "") });
+    out.push({ brand_name: brand, page_ids: pageIds, page_urls: String(r.page_urls || "").trim(), notes: String(r.notes || ""), brand_type: "competitor" });
   }
+  return out;
+}
+
+/* ============================================================
+   OWN BRAND PAGES (SERYN) — crawl chung pipeline, brand_type="own".
+   Gộp mọi page SERYN theo brand_name (mặc định "SERYN") -> 1 brand nhiều page_id.
+   Chỉ lấy page is_active=TRUE, crawl_enabled=TRUE, có page_id numeric.
+   ============================================================ */
+async function loadOwnBrandPages(sheets) {
+  const rows = await readTabObjects(sheets, "Own Brand Pages");
+  if (!rows.length) return [];
+  const byBrand = new Map();
+  for (const r of rows) {
+    const brand = String(r.brand_name || "SERYN").trim() || "SERYN";
+    if (!isTrue(r.is_active)) continue;
+    if (!isTrue(r.crawl_enabled)) continue; // KHÔNG crawl nếu crawl_enabled=FALSE
+    const pid = String(r.page_id || "").trim();
+    if (!/^\d{6,}$/.test(pid)) { warn(`Own Brand page "${r.page_name || brand}" thiếu page_id numeric — skip.`); continue; }
+    if (!byBrand.has(brand)) byBrand.set(brand, { brand_name: brand, page_ids: [], page_urls: [], notes: "own brand (SERYN)", brand_type: "own" });
+    const b = byBrand.get(brand);
+    if (!b.page_ids.includes(pid)) b.page_ids.push(pid);
+    if (r.page_url) b.page_urls.push(String(r.page_url).trim());
+  }
+  const out = [...byBrand.values()].map((b) => ({ ...b, page_urls: [...new Set(b.page_urls)].join("|") }));
+  if (out.length) console.log(`  [own] ${out.length} own brand, ${out.reduce((a, b) => a + b.page_ids.length, 0)} page SERYN sẽ được crawl.`);
   return out;
 }
 
@@ -673,6 +698,7 @@ function analyzeAd(raw, brand, weekDate, prevAdIds, opts = {}) {
   const base = {
     week_date: weekDate,
     brand_name: brand.brand_name,
+    brand_type: brand.brand_type || "competitor",
     page_id: raw.page_id || "",
     page_name: raw.page_name || brand.brand_name,
     ad_id: adId,
@@ -778,8 +804,8 @@ function applyScale(ads) {
    AGGREGATE — Snapshot / Scaled / Recommendations
    ============================================================ */
 const HEADERS = {
-  ad: "week_date,brand_name,page_id,page_name,ad_id,ad_snapshot_url,status,start_date,days_active,media_type,platforms,headline,primary_text,hook_text,hook_type,service_or_product,price_detected,offer_detected,content_format,content_angle,proof_point,cta,funnel_stage,is_new_this_week,was_seen_previous_week,is_likely_scaled,scale_level,scale_reason,notes,content_hash,visual_hash,analysis_status,reused_from_cache,analysis_version,last_analyzed_at,ad_format,ad_format_confidence,has_video,has_image,has_carousel,media_asset_quality,inferred_objective,objective_confidence,objective_evidence,destination_type,destination_url,service_category,hook_raw_text,hook_normalized,hook_category,hook_subcategory,hook_formula,hook_emotional_trigger,hook_pain_point,hook_desired_outcome,hook_promise,hook_proof_type,hook_offer_linked,hook_target_audience,hook_funnel_stage,hook_angle,hook_strength_score,hook_clarity_score,hook_specificity_score,hook_urgency_score,hook_trust_score,hook_risk_score,hook_confidence_score,hook_evidence".split(","),
-  snapshot: "week_date,brand_name,page_urls,page_ids,total_active_ads,total_ads_collected,num_pages_running,services_running,prices_detected,offers_detected,main_content_formats,main_hooks,main_angles,main_proof_points,main_ctas,scaled_content_count,new_ads_count,stopped_ads_count,content_strategy_summary,weekly_change_summary,seryn_opportunity,skin_rejuvenation_ads_count,skin_rejuvenation_image_ads,skin_rejuvenation_video_ads,skin_rejuvenation_carousel_ads,skin_rejuvenation_image_rate,skin_rejuvenation_video_rate,skin_rejuvenation_carousel_rate,skin_rejuvenation_messenger_ads,skin_rejuvenation_landing_page_conversion_ads,skin_rejuvenation_lead_form_ads,skin_rejuvenation_phone_call_ads,skin_rejuvenation_unknown_objective_ads,skin_rejuvenation_messenger_rate,skin_rejuvenation_landing_page_conversion_rate,skin_rejuvenation_lead_form_rate,skin_rejuvenation_phone_call_rate,skin_rejuvenation_unknown_objective_rate,skin_rejuvenation_top_format,skin_rejuvenation_top_inferred_objective,skin_rejuvenation_format_objective_pattern,skin_rejuvenation_confidence_score".split(","),
+  ad: "week_date,brand_name,page_id,page_name,ad_id,ad_snapshot_url,status,start_date,days_active,media_type,platforms,headline,primary_text,hook_text,hook_type,service_or_product,price_detected,offer_detected,content_format,content_angle,proof_point,cta,funnel_stage,is_new_this_week,was_seen_previous_week,is_likely_scaled,scale_level,scale_reason,notes,content_hash,visual_hash,analysis_status,reused_from_cache,analysis_version,last_analyzed_at,ad_format,ad_format_confidence,has_video,has_image,has_carousel,media_asset_quality,inferred_objective,objective_confidence,objective_evidence,destination_type,destination_url,service_category,hook_raw_text,hook_normalized,hook_category,hook_subcategory,hook_formula,hook_emotional_trigger,hook_pain_point,hook_desired_outcome,hook_promise,hook_proof_type,hook_offer_linked,hook_target_audience,hook_funnel_stage,hook_angle,hook_strength_score,hook_clarity_score,hook_specificity_score,hook_urgency_score,hook_trust_score,hook_risk_score,hook_confidence_score,hook_evidence,brand_type".split(","),
+  snapshot: "week_date,brand_name,page_urls,page_ids,total_active_ads,total_ads_collected,num_pages_running,services_running,prices_detected,offers_detected,main_content_formats,main_hooks,main_angles,main_proof_points,main_ctas,scaled_content_count,new_ads_count,stopped_ads_count,content_strategy_summary,weekly_change_summary,seryn_opportunity,skin_rejuvenation_ads_count,skin_rejuvenation_image_ads,skin_rejuvenation_video_ads,skin_rejuvenation_carousel_ads,skin_rejuvenation_image_rate,skin_rejuvenation_video_rate,skin_rejuvenation_carousel_rate,skin_rejuvenation_messenger_ads,skin_rejuvenation_landing_page_conversion_ads,skin_rejuvenation_lead_form_ads,skin_rejuvenation_phone_call_ads,skin_rejuvenation_unknown_objective_ads,skin_rejuvenation_messenger_rate,skin_rejuvenation_landing_page_conversion_rate,skin_rejuvenation_lead_form_rate,skin_rejuvenation_phone_call_rate,skin_rejuvenation_unknown_objective_rate,skin_rejuvenation_top_format,skin_rejuvenation_top_inferred_objective,skin_rejuvenation_format_objective_pattern,skin_rejuvenation_confidence_score,brand_type".split(","),
   scaled: "week_date,brand_name,content_cluster_id,representative_ad_id,representative_hook,service_or_product,price_detected,offer_detected,content_format,content_angle,proof_point,number_of_similar_ads,longest_days_active,average_days_active,scale_level,why_it_is_scaling,competitor_strategy_interpretation,seryn_should_copy_adapt_counter_avoid,seryn_reframe".split(","),
   change: "week_date,brand_name,active_ads_change,new_ads_count,stopped_ads_count,new_services_detected,removed_services,new_offers_detected,removed_offers,new_content_angles,removed_content_angles,scaled_content_new,scaled_content_still_running,strategic_change_type,change_summary,seryn_implication".split(","),
   // SERYN Content Recommendations — header SUPERSET dùng chung (weekly + opportunity Exa).
@@ -809,6 +835,7 @@ function buildSnapshot(brand, ads, scaledClusters, weekDate) {
   return {
     week_date: weekDate,
     brand_name: brand.brand_name,
+    brand_type: brand.brand_type || "competitor",
     page_urls: brand.page_urls,
     page_ids: brand.page_ids.join("|"),
     total_active_ads: active.length,
@@ -1458,7 +1485,10 @@ async function main() {
 
   const competitors = await loadCompetitors(sheets);
   if (!competitors.length) fail("Không có brand active hợp lệ để xử lý (kiểm tra tab `Competitors`).");
-  console.log(`Brands active: ${competitors.length}\n`);
+  // Own Brand Pages (SERYN) — crawl chung pipeline, KHÔNG trộn vào danh sách đối thủ.
+  const ownBrands = await loadOwnBrandPages(sheets);
+  const crawlQueue = [...competitors, ...ownBrands]; // đối thủ + own brand
+  console.log(`Brands active: ${competitors.length} đối thủ + ${ownBrands.length} own brand (SERYN)\n`);
 
   /* ---- crawl run state ---- */
   const runId = crawlRunId(weekDate);
@@ -1489,7 +1519,7 @@ async function main() {
   }
 
   const allAds = [], snapshots = [], allScaled = [];
-  for (const brand of competitors) {
+  for (const brand of crawlQueue) {
     const { ads: raw, errored, pagesOk = 0, pagesFail = 0, pageLogs = [] } = await pullAds(brand);
     totalPages += pagesOk + pagesFail; successPages += pagesOk; failedPages += pagesFail;
     const crawlOk = !errored;

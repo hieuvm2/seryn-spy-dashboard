@@ -15,7 +15,7 @@ import type {
   WeeklyStrategyChange, SerynContentRecommendation, VisualAnalysis, BrandVisualSummary,
   VisualPattern, WeeklyChangeInsight, CrawlRun, MarketIntelligenceItem,
   CompetitorDiscoveryCandidate, HookCluster, WeeklySummary, ActionPlanItem, SwipeSuggestion,
-  SpyReport,
+  SpyReport, OwnBrandPage,
 } from "../types";
 
 const URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() || "";
@@ -62,5 +62,6 @@ export async function fetchSupabaseSpyData(): Promise<SpyDashboardData> {
     swipeSuggestions: asRows<SwipeSuggestion>(d.swipeSuggestions),
     weeklyReports: asRows<SpyReport>(d.weeklyReports),
     monthlyReports: asRows<SpyReport>(d.monthlyReports),
+    ownBrandPages: asRows<OwnBrandPage>(d.ownBrandPages),
   };
 }
