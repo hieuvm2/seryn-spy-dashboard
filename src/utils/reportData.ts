@@ -1,13 +1,40 @@
 /* ============================================================
-   Weekly PDF report — dựng model dữ liệu từ SpyDashboardData.
+   Weekly report — dựng model dữ liệu từ SpyDashboardData
+   (+ helpers đọc Weekly Summary: parseTopList / dataQualityReport / latestWeek).
    Tách riêng khỏi component để dễ test + tái dùng logic đã có.
    Mọi field "an toàn": thiếu dữ liệu -> mảng rỗng/0, không crash.
    ============================================================ */
-import type { SpyDashboardData, DataSourceType } from "../types";
+import type {
+  SpyDashboardData, DataSourceType, WeeklySummary, TopCountItem, DataQualityReport,
+} from "../types";
 import {
-  normalizeNumber, countChips, firstChip, viLabel, SOURCE_LABELS,
+  normalizeNumber, countChips, firstChip, SOURCE_LABELS,
 } from "./spyData";
-import { latestWeek, dataQualityReport, parseTopList } from "./weeklyIntel";
+import { viLabel } from "./labelsVi";
+
+const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+
+/** Parse JSON list-field ({key,count}[]) an toàn — không crash khi rỗng/hỏng. */
+export function parseTopList(raw: unknown): TopCountItem[] {
+  if (Array.isArray(raw)) return raw as TopCountItem[];
+  if (typeof raw !== "string" || !raw.trim()) return [];
+  try {
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? v.filter((x) => x && typeof x.key === "string") : [];
+  } catch { return []; }
+}
+
+export function dataQualityReport(summary?: WeeklySummary): DataQualityReport {
+  const score = num(summary?.data_quality_score);
+  const failedPages = num(summary?.total_crawl_failed_pages);
+  const level: DataQualityReport["level"] = score >= 80 ? "good" : score >= 60 ? "warning" : "low";
+  return { score, failedPages, level };
+}
+
+/** week_start mới nhất trong danh sách summary. */
+export function latestWeek(summaries: WeeklySummary[]): WeeklySummary | undefined {
+  return [...summaries].sort((a, b) => String(a.week_start).localeCompare(String(b.week_start))).slice(-1)[0];
+}
 
 export type ReportRecAction = "adapt" | "counter" | "avoid" | "copy" | "monitor";
 

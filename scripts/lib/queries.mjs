@@ -48,15 +48,6 @@ export function buildCompetitorQueries(_services, geo, maxQueries) {
   return geoize(COMPETITOR_QUERIES, geo).slice(0, maxQueries);
 }
 
-/** Query resolve website/fanpage cho 1 brand cụ thể (vẫn quanh trẻ hóa da). */
-export function buildBrandResolveQueries(brand, geo) {
-  return [
-    `${brand} website`,
-    `${brand} Facebook fanpage`,
-    `${brand} trẻ hóa da ${geo || "Vietnam"}`,
-  ];
-}
-
 /** Nếu geo không phải Vietnam/Hà Nội mặc định, chèn geo vào query không có địa danh. */
 function geoize(list, geo) {
   const g = String(geo || "").trim();

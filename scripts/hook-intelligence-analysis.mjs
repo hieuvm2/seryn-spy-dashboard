@@ -192,7 +192,7 @@ async function main() {
 
   // ---- Weekly Change Insights (hook) ----
   const insightRows = buildHookChangeInsights(clusterRows, weekDate);
-  if (insightRows.length) await appendTab(sheets, titles, TAB.changeInsights, HEADERS_CHANGE, insightRows);
+  if (insightRows.length) await appendTab(sheets, titles, TAB.changeInsights, HEADERS.changeInsight, insightRows);
 
   // ---- Crawl Runs log ----
   await appendTab(sheets, titles, TAB.crawlRuns, HEADERS.crawlRuns, [{
@@ -208,9 +208,6 @@ async function main() {
   console.log(`\n[DONE] ${run_id} — clusters=${clusterRows.length} content_recs=${recRows.length} change_insights=${insightRows.length} needs_claude_review=${needReview}`);
   if (needReview) console.log(`→ ${needReview} cluster cần Claude review (xem docs/claude-hook-review-prompt.md).`);
 }
-
-/* Header Weekly Change Insights (khớp weekly-spy-sync). */
-const HEADERS_CHANGE = "id,brand,week_start,previous_week_start,change_type,severity,confidence_score,summary,evidence,affected_ads,previous_value,current_value,recommended_action".split(",");
 
 function recommendAction({ signal, risk, angle, cat, confidence }) {
   if (risk >= 60) return "avoid_due_to_risk";

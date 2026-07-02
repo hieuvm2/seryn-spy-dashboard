@@ -8,7 +8,7 @@ import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Printer, X } from "lucide-react";
 import type { SpyDashboardData, DataSourceType } from "../types";
-import { viLabel } from "../utils/spyData";
+import { viLabel } from "../utils/labelsVi";
 import { buildReportModel, type ReportRecAction } from "../utils/reportData";
 
 const ACTION_LABEL: Record<ReportRecAction, string> = {

@@ -1,230 +1,128 @@
 # SERYN Weekly Spy Dashboard
 
-Dashboard **React + Vite + TypeScript** hiển thị **kết quả spy ads đối thủ theo tuần** cho SERYN Clinic.
-SPA tĩnh thuần (không backend): đọc dữ liệu từ **Google Sheets** (online) hoặc **CSV** (local),
-fallback **localStorage** / dữ liệu mẫu.
+Hệ thống **spy quảng cáo Meta/Facebook của đối thủ** cho SERYN Clinic (phạm vi khóa cứng:
+**ad căng da / trẻ hóa da mặt**, `service_category=skin_rejuvenation`). Gồm 2 phần trong 1 repo:
 
-> ⚙️ **Cấu trúc repo:** Ứng dụng nằm ở **gốc repository này** (`package.json`, `src/`, `index.html`
-> ở root). Không có thư mục con `web-react/`. Mọi lệnh dưới đây chạy ở **gốc repo**.
+- **Pipeline Node (`scripts/`)** — crawl Meta Ads Library (ScrapeCreators), phân tích, ghi Google Sheets,
+  mirror Supabase; chạy tự động bằng GitHub Actions.
+- **Dashboard (`src/`)** — SPA React + Vite + TypeScript (không backend), đọc Supabase (chính) /
+  Apps Script (fallback) / CSV local, deploy Vercel.
+
+```
+GitHub Actions (weekly-spy.yml, thứ Sáu 9h VN)
+  └─ npm run spy:weekly  ──► crawl 13 đối thủ + page SERYN ──► lọc skin_rejuvenation
+                             ──► phân tích incremental (cache) ──► ghi ~15 tab Google Sheets
+                             ──► đẩy Supabase (bảng spy_data)
+  └─ npm run report:weekly-intel ──► Weekly_Summary / Action_Plan / Swipe_File_Suggestions
+
+Dashboard (Vercel) ──► đọc SUPABASE ──► fallback GOOGLE SHEETS (Apps Script doGet)
+                       ──► fallback BẢN OFFLINE (localStorage) ──► DỮ LIỆU MẪU
+```
 
 ---
 
-## Local Development
+## Quickstart
 
 ```bash
-npm install        # cài dependencies
-npm run dev        # chạy dev server → http://localhost:5173
-npm run build      # build production → thư mục dist/
-npm run lint       # kiểm tra type (tsc --noEmit)
-npm run preview    # xem thử bản build tại http://localhost:4173
+npm install
+npm run dev        # dev server → http://localhost:5173
+npm run build      # build production → dist/
+npm run lint       # type-check (tsc --noEmit)
 ```
 
-| Script | Lệnh | Mục đích |
-|---|---|---|
-| `dev` | `vite` | Dev server + HMR |
-| `build` | `vite build` | Build tĩnh ra `dist/` |
-| `preview` | `vite preview` | Xem thử bản build |
-| `lint` | `tsc --noEmit` | Type-check |
-| `spy:sync` | `node scripts/run-weekly-spy-and-sync.mjs` | Ghi 5 CSV `outputs/` → Google Sheets (service account) |
-| `market:run` | `node scripts/market-research-on-demand.mjs` | **Exa** Market Research (manual/on-demand) |
-| `market:validate` | `node scripts/validate-market-research-output.mjs` | Validate output Claude deep-analysis |
-| `market:import` | `node scripts/import-market-research-output.mjs` | Import output Claude → Opportunity Briefs |
-| `market:status` | `node scripts/market-research-status.mjs` | Tóm tắt trạng thái Market Research |
-| `competitors:discover` | `node scripts/competitor-discovery-on-demand.mjs` | **Exa** Competitor Discovery (manual) |
-| `competitors:import` | `node scripts/import-discovered-competitors.mjs` | Import candidate đã approve → tab `Competitors` |
-| `competitors:status` | `node scripts/competitor-discovery-status.mjs` | Tóm tắt trạng thái Discovery |
+> Ứng dụng nằm ở **gốc repository** (`package.json`, `src/`, `index.html` ở root).
 
----
+## 6 view của dashboard
 
-## Các view
-
-Tổng quan · Đối thủ (click mở drawer) · Nội dung nhân rộng · Top Hooks ·
-**Visual Intelligence** · Swipe File · Creative Briefs · **Thay đổi tuần (intelligence feed)** ·
-Gợi ý cho SERYN · **Competitor Setup** · **Market Research** · **Competitor Discovery** · Nhập dữ liệu.
-
-## Nâng cấp v2 (Visual / Competitor / Weekly Changes)
-
-- **Visual Intelligence** — phân tích creative (ảnh/video) theo 5 lớp (asset · OCR/overlay · visual ·
-  risk · pattern): format, before/after, bác sĩ, UGC, offer, điểm clinical/luxury/UGC, rủi ro compliance,
-  pattern đang scale. MVP dùng **heuristic** (`VISUAL_ANALYSIS_PROVIDER=heuristic`); thiếu tab thì
-  dashboard tự suy luận từ `Ad Level Analysis`. Cho phép manual review (localStorage).
-- **Competitor Setup** — thêm/sửa/bật-tắt đối thủ ngay trong dashboard (validate, test crawl). Ghi tab
-  `Competitors` qua Apps Script nếu cấu hình; chưa thì lưu **localStorage draft** + cảnh báo.
-- **Thay đổi tuần** — nâng thành *intelligence feed*: change_type / severity / confidence / evidence /
-  recommended_action (scaling, đổi offer/hook, dịch chuyển dịch vụ/visual, page mới/ngừng…). Wording
-  an toàn (signal, không "winning"). Thiếu tab enriched thì map từ tab cũ.
-
-Tab Google Sheets + cột mới: xem [`docs/SCHEMA_V2_VISUAL_COMPETITORS_CHANGES.md`](docs/SCHEMA_V2_VISUAL_COMPETITORS_CHANGES.md).
-Sau khi cập nhật, **phải Deploy lại Apps Script** (`docs/google-apps-script-web-api.js`) → New version.
-
-## Nâng cấp v3 — Incremental pipeline (cache + provenance)
-
-`spy:weekly` giờ là **incremental**: chỉ phân tích ad **mới** hoặc ad có `content_hash`/`visual_hash`
-**thay đổi**; ad cũ không đổi → **reuse** từ tab `Ad Analysis Cache` (giảm chi phí AI, tăng tốc, ổn định).
-- Cột mới trên Ad Level/Visual: `content_hash, visual_hash, analysis_status, reused_from_cache, analysis_version, last_analyzed_at`.
-- Tab mới: `Ad Analysis Cache`, `Crawl Runs`, `Page Crawl Logs`, `Raw Ads Archive`, `Historical Weekly Snapshots`, `Pattern Cache` (đều optional).
-- **Check-before-analysis:** tính hash TRƯỚC → cache hit (hash + prompt/provider version khớp) thì KHÔNG gọi AI, tái dùng kết quả.
-- **Cache merge:** giữ cache của ad đã dừng (`keptOld`), dedup `ad_id|content_hash|visual_hash`, giữ `first_seen_date`/`last_seen_date`.
-- **Page Crawl Logs:** log mỗi page (status, ads_fetched, error) cho mọi provider; `Raw Ads Archive` ghi cho mọi provider (custom/mock không rỗng).
-- **Chống kết luận sai:** chỉ kết luận `scaled_down`/`page_inactive` khi crawl page/brand đó THÀNH CÔNG; crawl lỗi → cảnh báo + `carried_forward`.
-- **Creative assets:** map thêm `image_urls`, `video_preview_url`, `carousel_image_urls` từ ScrapeCreators/custom.
-- Dashboard: badge New/Cached/Changed/Carried/No media trên creative; banner data-quality + "AI calls saved" trong Thay đổi tuần.
-- Env mới (GitHub Actions qua Repository `vars`, key qua `secrets`): `ADS_SOURCE_COUNTRY`, `ADS_SOURCE_MAX_ADS`, `VISUAL_AI_PROVIDER`, `VISUAL_AI_API_KEY`, `MAX_AI_ANALYSIS_PER_RUN`, `AI_BATCH_SIZE`, `AI_RETRY_LIMIT`, `TEXT_ANALYSIS_PROMPT_VERSION`, `VISUAL_ANALYSIS_PROMPT_VERSION`.
-
----
-
-## Exa Market Research & Competitor Discovery (MANUAL / ON-DEMAND)
-
-Module **Exa.ai** chạy **thủ công** để nghiên cứu thị trường và phát hiện đối thủ mới.
-Hai dashboard view mới: **Market Research** và **Competitor Discovery** (chỉ đọc Google Sheets).
-
-### Exa DÙNG để làm gì
-- Research thị trường, tìm **trend**, tìm report / news / blog / review / landing page.
-- Phân tích tín hiệu tăng/giảm theo service category; **digital share of voice** của đối thủ.
-- Ước lượng **directional market size** (TAM/SAM/SOM low/mid/high + assumptions + missing_data).
-- Tạo **SERYN Opportunity Briefs** + **Market Research Queue** cho Claude phân tích sâu.
-- Tìm **brand/clinic/spa đối thủ mới** → website + fanpage candidate → page_id (nếu có numeric).
-- Tạo danh sách candidate để **review/approve → import vào tab `Competitors`**.
-
-### Exa KHÔNG dùng để làm gì
-- **Không** thay ScrapeCreators (vẫn là nguồn ads thật). **Không** lấy Meta Ads trực tiếp.
-- **Không** phân tích ảnh creative. **Không** thay Claude Visual Review.
-- **Không** chạy tự động hằng tuần. **Không** gắn vào weekly spy cron. **Không** gọi từ frontend.
-
-### Setup GitHub Secrets
-- Tạo secret **`EXA_API_KEY`** (Settings → Secrets and variables → Actions → New repository secret).
-- Dùng lại `GOOGLE_SHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON` (đã có cho weekly spy).
-- **KHÔNG** commit key vào repo. **KHÔNG** dùng `VITE_EXA_API_KEY`. Chỉ script server-side đọc
-  `process.env.EXA_API_KEY`. Thiếu key → script **skip exit 0** (không làm fail hệ thống).
-
-### Chạy Market Research (thủ công)
-1. GitHub → tab **Actions** → workflow **Market Research Manual** → **Run workflow**.
-2. Nhập `market` / `geo` / `service_category` (`all` hoặc 1 category) / `max_queries` / `max_results` / `deep_search`.
-3. Mở dashboard → view **Market Research** (Overview · Trend Radar · Market Size · Digital SoV · Source Explorer · Opportunity Briefs · Assumptions).
-4. (tùy chọn) Claude đọc tab `Market Research Queue` → xuất `data/market-research/market_research_output.json`
-   → `npm run market:validate` → `npm run market:import` (upsert Opportunity Briefs).
-
-### Chạy Competitor Discovery (thủ công)
-1. GitHub → **Actions** → **Competitor Discovery Manual** → **Run workflow** (nhập market/geo/service_category, `auto_import` mặc định `false`).
-2. Mở dashboard → view **Competitor Discovery** → review **Candidate Table**.
-3. Bổ sung **page_id** nếu thiếu (click cột page_id), **Approve** / **Reject** / **Mark duplicate**.
-4. Chạy `npm run competitors:import` (hoặc bật `auto_import=true`) → import candidate hợp lệ vào tab `Competitors`.
-5. **Lần weekly spy tiếp theo**, ScrapeCreators tự crawl ads từ competitor mới (vẫn chỉ đọc tab `Competitors`).
-
-### Review/Import & ScrapeCreators
-- Chỉ candidate **`status=approved`** hoặc **`ready_for_spy=true`** (brand + **numeric page_id** + confidence ≥ 0.65, không duplicate) mới được import.
-- Upsert theo `page_id`; nếu chưa có page_id → upsert theo `normalized_brand_name + website_domain` với `active=false`. **Không** xóa competitor cũ, **không** tạo duplicate.
-- Competitor import từ Exa: `source=exa_discovery`, `discovery_id`, `notes` chứa evidence ngắn.
-
-### Tránh duplicate / sai page
-- Dedupe theo `page_id`, facebook_url chuẩn hóa, website_domain, `normalized_brand_name + geo`.
-- **Vanity URL** (`facebook.com/brand`) **KHÔNG** phải page_id → để `needs_page_id`, chưa cho crawl.
-- **Không bịa page_id.** Nên để `auto_import=false` lúc đầu và review thủ công.
-
-### Kiểm soát chi phí Exa
-- `max_queries` mặc định **10**, `max_results` mặc định **10**, clamp tối đa **20**.
-- `deep_search` mặc định **false** (bật → ghi warning vào `Market Research Runs.cost_guard_status`).
-- Exa **chỉ** chạy manual `workflow_dispatch` — không có `schedule`, không gắn weekly cron.
-
-### Đọc Market Size Estimates đúng cách
-- Là **directional estimate**, không phải số liệu audited. Luôn xem **low/mid/high** + `confidence_score`
-  + `assumptions` + `missing_data`. Confidence thấp khi thiếu `detected_market_numbers` / `detected_prices`.
-
-### Tab Google Sheets mới
-Market Research: `Market Research Runs`, `Market Sources`, `Trend Signals`, `Competitor Market Activity`,
-`Market Size Estimates`, `SERYN Opportunity Briefs`, `Market Research Queue`.
-Competitor Discovery: `Competitor Discovery Runs`, `Competitor Discovery`, `Competitor Website Intelligence`,
-`Competitor Fanpage Candidates`, `Competitor Import Log`. Tab `Competitors` mở rộng cột
-(`website_url`, `service_focus`, `geo`, `source`, `discovery_id`, `status`, `created_at`, `updated_at` — backward compatible).
-Tab thiếu → script tự tạo / Apps Script trả `[]` (không crash). Sau khi cập nhật **Deploy lại Apps Script** → New version.
-
----
-
-## Hai nguồn dữ liệu — Local CSV vs Google Sheets online
-
-| | **LOCAL CSV / FOLDER** | **GOOGLE SHEETS ONLINE** |
-|---|---|---|
-| Cách nạp | Tab *Nhập dữ liệu* → upload 5 CSV hoặc chọn cả thư mục `outputs/` (Chrome/Edge) | Tự fetch khi mở app, hoặc nút **Refresh Online Data** |
-| Lưu ở đâu | **localStorage** của *từng trình duyệt/máy* | Một **Google Sheet** chung (mọi người mở cùng link Vercel xem **chung 1 bộ dữ liệu**) |
-| Khi nào dùng | Bạn chạy agent ở máy cá nhân, muốn xem nhanh; không cần chia sẻ | Team dùng chung, deploy Vercel; dữ liệu tập trung |
-| Cấu hình | Không cần | `VITE_GOOGLE_SHEETS_API_URL` (+ `VITE_GOOGLE_SHEETS_API_KEY` nếu bật bảo vệ) |
-
-- **Local CSV import** = nhập tay từng file CSV vào trình duyệt → chỉ máy đó thấy.
-- **Google Sheets online sync** = dashboard đọc Google Sheets qua Apps Script Web App → mọi người
-  xem chung. Khi online lỗi, app tự fallback về localStorage (**OFFLINE CACHE**) rồi dữ liệu mẫu — không crash.
-- **Swipe File** & **Creative Briefs** cũng đồng bộ Google Sheets khi cấu hình API (xem
-  `README_GOOGLE_SHEETS_ONLINE_DATA.md`); nếu chưa cấu hình thì vẫn lưu localStorage như cũ.
-
----
-
-## Environment Variables
-
-Tạo `.env` (hoặc `.env.local`) ở gốc repo — **không commit** (đã có trong `.gitignore`).
-Xem mẫu đầy đủ ở [`.env.example`](.env.example).
-
-| Biến | Bắt buộc | Dùng cho | Ghi chú |
-|---|---|---|---|
-| `VITE_GOOGLE_SHEETS_API_URL` | Khi muốn online | Frontend ĐỌC/GHI online | URL `.../exec` của Apps Script Web App. **Không phải secret.** |
-| `VITE_GOOGLE_SHEETS_API_KEY` | Khuyến nghị (prod) | Frontend nối `?key=...` | Phải khớp Script Property `API_SECRET_KEY`. |
-| `GOOGLE_SHEET_ID` | Khi chạy `spy:sync` | Script `spy:sync` | ID Google Sheet đích. |
-| `GOOGLE_SERVICE_ACCOUNT_FILE` | Khi chạy `spy:sync` | Script `spy:sync` | Đường dẫn JSON service account (ngoài repo). |
-| `OUTPUTS_DIR` | Tùy chọn | Script `spy:sync` | Thư mục 5 CSV của agent. Mặc định `<repo>/outputs`. |
-
-> ⚠️ Chỉ biến tiền tố `VITE_` được inject vào frontend (build-time). Trên Vercel, sửa env xong
-> phải **Redeploy**. **Không** đưa service account / private key vào frontend.
-
----
-
-## Google Sheets Setup (tóm tắt)
-
-1. Tạo 1 Google Sheet với **5 tab dashboard** + **2 tab nội dung** (tên chính xác):
-   `Brand Weekly Snapshot`, `Ad Level Analysis`, `Scaled Content Analysis`,
-   `Weekly Strategy Change`, `SERYN Content Recommendations`, `Swipe File`, `Creative Briefs`.
-2. **Extensions → Apps Script** → dán [`docs/google-apps-script-web-api.js`](docs/google-apps-script-web-api.js).
-3. (Khuyến nghị) **Project Settings → Script properties** → thêm `API_SECRET_KEY = <bí mật>`.
-4. **Deploy → New deployment → Web app** (Execute as *Me*, Who has access *Anyone*) → copy URL `.../exec`.
-5. Đặt `VITE_GOOGLE_SHEETS_API_URL` (+ `VITE_GOOGLE_SHEETS_API_KEY`) trên Vercel → **Redeploy**.
-
-Chi tiết: [`README_GOOGLE_SHEETS_ONLINE_DATA.md`](README_GOOGLE_SHEETS_ONLINE_DATA.md) (đọc online + bảo vệ key + 2 tab mới)
-và [`docs/GOOGLE_SHEETS_LOCAL_SYNC.md`](docs/GOOGLE_SHEETS_LOCAL_SYNC.md) (ghi bằng `spy:sync`).
-
----
-
-## Deploy lên Vercel
-
-Cấu hình Import Project trên Vercel:
-
-| Mục | Giá trị |
+| View (hash) | Nội dung |
 |---|---|
-| **Root Directory** | `.` |
-| **Framework Preset** | Vite |
-| **Build Command** | `npm run build` |
-| **Output Directory** | `dist` |
-| **Install Command** | `npm install` |
+| `#overview` | KPI tuần, executive summary, data quality, SERYN own-brand benchmark |
+| `#brands` | Bảng đối thủ + drawer hồ sơ từng brand (ads, scaled content, visual, hook, market signals, so sánh SERYN) |
+| `#reports` | Báo cáo tuần/tháng lịch sử (tab `Weekly Reports` / `Monthly Reports`) + xuất PDF |
+| `#competitor-discovery` | Candidate đối thủ do Exa phát hiện — approve/reject → tự vào watchlist |
+| `#competitor-setup` | Quản lý watchlist tab `Competitors` (thêm/sửa/xóa, test cấu hình) |
+| `#data-import` | Nguồn dữ liệu: refresh online, import CSV thủ công, sample data, health check |
 
-Thêm Environment Variables (mục trên) → **Deploy**. Mỗi `git push` Vercel tự build lại.
-Hướng dẫn đầy đủ: [`README_DEPLOY_VERCEL.md`](README_DEPLOY_VERCEL.md).
+## npm scripts
 
----
+| Nhóm | Script | Việc |
+|---|---|---|
+| Dev | `dev` / `build` / `preview` / `lint` | Vite dev/build/preview + type-check |
+| Weekly pipeline | `spy:weekly` | Crawl + phân tích + ghi Sheets + đẩy Supabase (chạy bởi CI) |
+| | `spy:sync` | Copy 5 CSV `outputs/` của agent → 5 tab lõi (local, service account) |
+| | `supabase:sync` | Đọc tab Sheets → upsert bảng `spy_data` Supabase |
+| Reports | `report:weekly-intel` | Weekly intelligence (Weekly_Summary/Action_Plan/Swipe) — bước 2 của CI |
+| | `report:weekly` / `report:monthly` / `report:monthly:last-day` | Báo cáo lịch sử theo kỳ → tab Weekly/Monthly Reports |
+| | `test:weekly-intel` | Unit test offline cho `lib/weeklyIntel.mjs` |
+| Exa (manual-only) | `market:run` / `market:validate` / `market:import` / `market:status` | Market research trẻ hóa da → tab `Market Intelligence` |
+| Competitors | `competitors:discover` / `competitors:import` / `competitors:status` | Exa discovery → approve → import (tự resolve page_id) |
+| | `competitors:add` | Thêm đối thủ thủ công từ file JSON (`node scripts/add-competitors.mjs [file] --write`) |
+| Own brand | `seed:own-brand` | Seed tab `Own Brand Pages` (page của chính SERYN) |
+| Khác | `hooks:analyze` | Hook clustering (manual) → tab `Hook Intelligence` |
+| | `visual:fetch` / `visual:write` | Review visual thủ công theo cụm creative (xem docs/SHEETS_SCHEMA.md §3) |
 
-## Cấu trúc
+## GitHub Actions (5 workflows)
+
+| Workflow | Lịch | Chạy |
+|---|---|---|
+| `weekly-spy.yml` | Thứ Sáu ~9h07 VN | `spy:weekly` → `report:weekly-intel` |
+| `weekly-report.yml` | Thứ Hai | `report:weekly` (báo cáo tuần lịch sử) |
+| `monthly-report.yml` | Ngày 28–31 | `report:monthly:last-day` (chỉ chạy đúng ngày cuối tháng) |
+| `market-research-manual.yml` | manual (dispatch) | `market:run` — Exa KHÔNG gắn cron |
+| `competitor-discovery-manual.yml` | manual (dispatch) | `competitors:discover` (+ `competitors:import` nếu bật auto_import) |
+
+**Secrets cần có:** `GOOGLE_SHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `ADS_SOURCE_PROVIDER`
+(`scrapecreators` cho production), `ADS_SOURCE_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+`EXA_API_KEY` (cho 2 workflow manual). Chi tiết: [`docs/AUTOMATED_WEEKLY_SPY_GITHUB_ACTIONS.md`](docs/AUTOMATED_WEEKLY_SPY_GITHUB_ACTIONS.md).
+
+## Environment variables
+
+Template đầy đủ kèm giải thích: [`.env.example`](.env.example). Tóm tắt:
+
+| Biến | Đặt ở | Vai trò |
+|---|---|---|
+| `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | Vercel | Dashboard đọc Supabase (nguồn **chính**) |
+| `VITE_GOOGLE_SHEETS_API_URL` (+`_KEY`) | Vercel | Dashboard đọc Apps Script (fallback) |
+| `GOOGLE_SHEET_ID` + `GOOGLE_SERVICE_ACCOUNT_JSON`/`_FILE` | CI secret / `.env` local | Pipeline ghi Sheets |
+| `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` | CI secret / `.env` local | Pipeline đẩy Supabase (**secret**) |
+| `ADS_SOURCE_PROVIDER` / `ADS_SOURCE_API_KEY` | CI secret | Provider crawl (`scrapecreators` prod, `mock` test) |
+| `ADS_SCOPE` | (mặc định `skin_rejuvenation`) | `all` để tắt lọc phạm vi (không khuyến nghị) |
+| `EXA_API_KEY` + `EXA_*` | CI secret (manual) | Exa market research / discovery |
+| `RESOLVE_PAGE_ID` / `MAX_PAGE_ID_RESOLVES_PER_RUN` | CI/local | Tự resolve Facebook page_id khi import đối thủ |
+
+## Cấu trúc repo
 
 ```
-package.json             scripts: dev/build/preview/lint/spy:sync
-index.html               entry Vite
-vite.config.ts           cấu hình Vite (alias @ -> gốc repo)
-vercel.json              SPA rewrite
-src/
-  App.tsx                router 9 view + localStorage + online fetch + drawer
-  types.ts               schema 5 bảng + Swipe File + Creative Briefs
-  sampleData.ts          dữ liệu demo
-  utils/spyData.ts       CSV parse, localStorage, health-check, viLabel
-  utils/sheetsApi.ts     API client Google Sheets (build URL + key, GET/POST)
-  utils/onlineData.ts    đọc 5 bảng online (ONLINE SHEET DATA)
-  utils/swipeFile.ts     Swipe File: localStorage + sync Google Sheets
-  utils/briefs.ts        Creative Briefs: localStorage + sync Google Sheets
-  components/            Sidebar · TopHeader · BrandDetailDrawer
-  components/views/      9 view
-scripts/run-weekly-spy-and-sync.mjs   ghi outputs/*.csv -> Google Sheets (service account)
-docs/                    Apps Script Web App + hướng dẫn sync
+src/                      dashboard React (main.tsx → App.tsx → 6 view)
+  components/             Sidebar, TopHeader, BrandDetailDrawer, WeeklyReportModal, SerynBenchmark, views/
+  utils/                  spyData (CSV/localStorage), labelsVi (dịch nhãn), remoteData (Supabase+Sheets),
+                          reportData, brandIntelligence, adContentIntelligence, serynBenchmark, ownBrand,
+                          competitors, competitorDiscovery, brandName, directCompetitors, incremental
+  types.ts                schema TypeScript của mọi dataset
+  sampleData.ts           dữ liệu demo (fallback khi chưa có nguồn nào)
+scripts/                  pipeline Node (.mjs) — xem bảng npm scripts ở trên
+  weekly-spy-sync.mjs     pipeline crawl chính (provider → lọc scope → phân tích → ghi tab)
+  lib/                    schemas (header tab — nguồn chuẩn), sheets (I/O), hookAnalysis, exaClient,
+                          pageIdResolver, reportGen/reportStore/reportDateUtils, supabase, netConfig…
+  vision_excludes.json    config lọc ad_id bị loại sau vision review (KHÔNG phải secret)
+docs/                     ONLINE_DATA.md · DEPLOY.md · SHEETS_SCHEMA.md · AUTOMATED_WEEKLY_SPY…
+  google-apps-script-web-api.js   nguồn Apps Script đang deploy (sửa xong phải Deploy → New version)
+supabase/schema.sql       tạo bảng spy_data (chạy 1 lần trong SQL Editor)
+data/market-research/     output.schema.json — contract output Claude deep-analysis (market:validate)
+public/                   seryn-mark.png (favicon/logo), seryn-logo.png (brand asset)
+.github/workflows/        5 workflows (bảng trên)
 ```
+
+## Đọc thêm
+
+- [`docs/ONLINE_DATA.md`](docs/ONLINE_DATA.md) — vòng dữ liệu online đầy đủ: Sheet → Apps Script → Supabase → dashboard
+- [`docs/DEPLOY.md`](docs/DEPLOY.md) — deploy Vercel
+- [`docs/SHEETS_SCHEMA.md`](docs/SHEETS_SCHEMA.md) — schema mọi tab Google Sheets
+- [`docs/AUTOMATED_WEEKLY_SPY_GITHUB_ACTIONS.md`](docs/AUTOMATED_WEEKLY_SPY_GITHUB_ACTIONS.md) — thiết lập CI weekly spy
+- [`docs/claude-hook-review-prompt.md`](docs/claude-hook-review-prompt.md) — prompt Claude review hook clusters
+
+## Nguyên tắc dữ liệu
+
+- **Không bịa** offers / ad counts / page_id / spend / ROAS. Thiếu dữ liệu → `unknown`.
+- Chỉ nói *"likely scaled based on duration and repetition"* — không khẳng định ad chắc chắn hiệu quả.
+- Khuyến nghị cho SERYN luôn premium, y khoa, điềm tĩnh — không FOMO rẻ tiền, không fear-based.

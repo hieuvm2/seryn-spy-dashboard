@@ -58,6 +58,7 @@ recommended_seryn_action, confidence_score).
 2. Chạy prompt trên với Claude.
 3. Dán output đã tinh chỉnh vào tab **SERYN Content Recommendations**
    (các dòng `source = hook_intelligence`, đúng `source_hook_cluster_id`).
-4. Dashboard **Hook Intelligence → C. Content Generator** sẽ hiển thị bản cập nhật.
+4. Dashboard hiển thị bản cập nhật trong **drawer hồ sơ brand** (mục hook clusters / recommendations)
+   sau khi dữ liệu sync về (Supabase/Apps Script).
 
 Heuristic tự động chạy bằng: `npm run hooks:analyze`.

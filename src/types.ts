@@ -385,33 +385,6 @@ export type SpyTableName =
   | "serynContentRecommendations";
 
 /* ============================================================
-   CONTENT INTELLIGENCE — Top Hooks · Swipe File · Creative Briefs
-   ============================================================ */
-
-export type SerynAction = "copy" | "adapt" | "counter" | "avoid" | "monitor" | string;
-
-export type TopHookItem = {
-  id: string;
-  source: "ad_level" | "scaled_content";
-  brand_name: string;
-  ad_id?: string;
-  ad_snapshot_url?: string;
-  hook_text: string;
-  hook_type?: string;
-  service_or_product?: string;
-  content_format?: string;
-  content_angle?: string;
-  offer_detected?: string;
-  proof_point?: string;
-  days_active?: number | string;
-  longest_days_active?: number | string;
-  scale_level?: number | string;
-  scale_reason?: string;
-  seryn_action?: SerynAction;
-  seryn_rewrite?: string;
-};
-
-/* ============================================================
    VISUAL INTELLIGENCE — phân tích creative ads (ảnh/video)
    5 lớp: Asset · OCR/Text overlay · Visual · Risk · Pattern
    ============================================================ */
@@ -680,7 +653,7 @@ export type CompetitorDiscoveryCandidate = {
 
 /* ============================================================
    WEEKLY INTELLIGENCE (team report) — Weekly_Summary / Action_Plan / Swipe
-   List-fields lưu JSON string trên Sheet; dùng parseTopList() để đọc an toàn.
+   List-fields lưu JSON string trên Sheet; dùng parseTopList() (utils/reportData) để đọc an toàn.
    ============================================================ */
 
 /** Item dạng {key,count} cho top hooks/offers/brands (lưu JSON string). */
@@ -753,9 +726,3 @@ export type DataQualityReport = {
   failedPages: number;
   level: "good" | "warning" | "low";
 };
-
-/* Alias cho các bảng pipeline cũ theo schema yêu cầu (backward-compatible map):
-   AdMaster   ≈ AdLevelAnalysis (tab "Ad Level Analysis")
-   CrawlLog   ≈ CrawlRun        (tab "Crawl Runs" + "Page Crawl Logs") */
-export type AdMaster = AdLevelAnalysis;
-export type CrawlLog = CrawlRun;

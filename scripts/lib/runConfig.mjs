@@ -11,9 +11,6 @@ import { SERVICE_CATEGORY } from "./schemas.mjs";
 export const SERVICE_CATEGORIES = [SERVICE_CATEGORY];
 
 /** Nhãn tìm kiếm (Vi/En) — chỉ trẻ hóa da (dùng cho detector/scoring). */
-export const SERVICE_LABELS = {
-  [SERVICE_CATEGORY]: "trẻ hóa da",
-};
 
 const num = (v, d) => {
   const n = Number(v);
@@ -85,7 +82,6 @@ export function resolveServiceCategories() {
 }
 
 export function nowISO() { return new Date().toISOString(); }
-export function todayISO() { return new Date().toISOString().slice(0, 10); }
 export function currentMondayISO() {
   const d = new Date();
   const day = d.getUTCDay();

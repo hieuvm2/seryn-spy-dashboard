@@ -1,9 +1,10 @@
 /* ============================================================
    SERYN Spy Dashboard — Google Apps Script Web App API
    ------------------------------------------------------------
-   1) ĐỌC 5 tab dashboard -> JSON (doGet không có ?type).
-   2) ĐỌC/GHI 2 tab "Swipe File" & "Creative Briefs"
-        - doGet  ?type=swipe_file        | ?type=creative_briefs
+   1) ĐỌC mọi tab dashboard trong SHEET_MAP -> JSON (doGet không có ?type).
+   2) ĐỌC/GHI các tab record trong RECORD_TABS
+      (competitors, competitor_discovery, action_plan, swipe_suggestions)
+        - doGet  ?type=<record_type>
         - doPost {type, action, record|id} (create/update/upsert/delete)
    3) BẢO VỆ bằng API key (Script Property API_SECRET_KEY) — xem mục BẢO MẬT.
 
@@ -196,7 +197,7 @@ function doGet(e) {
 
     const type = e && e.parameter ? String(e.parameter.type || "").trim() : "";
 
-    // Đọc 1 trong 2 tab record (Swipe File / Creative Briefs).
+    // Đọc 1 tab record trong RECORD_TABS (?type=competitors | competitor_discovery | action_plan | swipe_suggestions).
     if (type && RECORD_TABS[type]) {
       const conf = RECORD_TABS[type];
       return makeJson_({ ok: true, type: type, data: sheetToObjects_(conf.tab) });

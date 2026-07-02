@@ -3,7 +3,7 @@ import {
   Sparkles, TrendingUp, Target, Layers, Filter, ShieldAlert, FlaskConical, ArrowRight,
 } from "lucide-react";
 import type { SpyDashboardData } from "../types";
-import { viLabel } from "../utils/spyData";
+import { viLabel } from "../utils/labelsVi";
 import {
   buildSerynSnapshot, buildCompetitorBenchmark, buildSerynVsCompetitorComparison,
   volumePositionNote, type SerynRecommendedTest,

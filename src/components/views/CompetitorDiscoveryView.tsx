@@ -5,7 +5,7 @@ import {
   applyOverrides, approveCandidate, rejectCandidate, markDuplicate, setPageId,
   computeReadyForSpy, isNumericPageId, discoveryWriteConfigured,
 } from "../../utils/competitorDiscovery";
-import { viLabel, humanizeText } from "../../utils/spyData";
+import { viLabel, humanizeText } from "../../utils/labelsVi";
 
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const pct = (v: unknown) => `${Math.round(num(v) * 100)}%`;

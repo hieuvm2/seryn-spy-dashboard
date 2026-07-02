@@ -5,7 +5,8 @@ import {
   Image as ImageIcon, Filter, ShieldAlert, ExternalLink, Star,
 } from "lucide-react";
 import type { SpyDashboardData } from "../types";
-import { splitChips, orUnknown, viLabel, isMissing, isMeaningful, humanizeText } from "../utils/spyData";
+import { splitChips, orUnknown, isMissing } from "../utils/spyData";
+import { viLabel, isMeaningful, humanizeText } from "../utils/labelsVi";
 import { getBrandProfile } from "../utils/brandIntelligence";
 import { isDirectCompetitor } from "../utils/directCompetitors";
 import { isOwnBrand } from "../utils/ownBrand";

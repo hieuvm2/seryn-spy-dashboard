@@ -58,12 +58,6 @@ export const TAB = {
   ownBrandPages: "Own Brand Pages",
 };
 
-/** report_type trong 2 tab `Weekly Reports` / `Monthly Reports`. */
-export const REPORT_TYPE = { weekly: "weekly", monthly: "monthly" };
-
-/** brand_type: phân biệt page của SERYN (own) vs đối thủ (competitor). */
-export const BRAND_TYPE = { own: "own", competitor: "competitor" };
-
 export const HEADERS = {
   /* ---- Tab MỚI 1: Market Intelligence (gộp source/trend/size/opportunity/queue) ---- */
   marketIntelligence: [
@@ -194,3 +188,22 @@ HEADERS.ownBrandPages = [
   "brand_name", "page_name", "page_id", "page_url", "platform", "market",
   "service_focus", "is_active", "crawl_enabled", "notes", "created_at", "updated_at",
 ];
+
+/* ============================================================
+   Weekly-spy pipeline tabs (weekly-spy-sync.mjs + hook-intelligence).
+   ĐỔI CỘT Ở ĐÂY = đổi schema tab trên Sheet (reconcile/migrate tự chạy
+   với tab append; tab ghi đè thì ghi lại theo header mới).
+   ============================================================ */
+HEADERS.adLevel = "week_date,brand_name,page_id,page_name,ad_id,ad_snapshot_url,status,start_date,days_active,media_type,platforms,headline,primary_text,hook_text,hook_type,service_or_product,price_detected,offer_detected,content_format,content_angle,proof_point,cta,funnel_stage,is_new_this_week,was_seen_previous_week,is_likely_scaled,scale_level,scale_reason,notes,content_hash,visual_hash,analysis_status,reused_from_cache,analysis_version,last_analyzed_at,ad_format,ad_format_confidence,has_video,has_image,has_carousel,media_asset_quality,inferred_objective,objective_confidence,objective_evidence,destination_type,destination_url,service_category,hook_raw_text,hook_normalized,hook_category,hook_subcategory,hook_formula,hook_emotional_trigger,hook_pain_point,hook_desired_outcome,hook_promise,hook_proof_type,hook_offer_linked,hook_target_audience,hook_funnel_stage,hook_angle,hook_strength_score,hook_clarity_score,hook_specificity_score,hook_urgency_score,hook_trust_score,hook_risk_score,hook_confidence_score,hook_evidence,brand_type".split(",");
+HEADERS.snapshot = "week_date,brand_name,page_urls,page_ids,total_active_ads,total_ads_collected,num_pages_running,services_running,prices_detected,offers_detected,main_content_formats,main_hooks,main_angles,main_proof_points,main_ctas,scaled_content_count,new_ads_count,stopped_ads_count,content_strategy_summary,weekly_change_summary,seryn_opportunity,skin_rejuvenation_ads_count,skin_rejuvenation_image_ads,skin_rejuvenation_video_ads,skin_rejuvenation_carousel_ads,skin_rejuvenation_image_rate,skin_rejuvenation_video_rate,skin_rejuvenation_carousel_rate,skin_rejuvenation_messenger_ads,skin_rejuvenation_landing_page_conversion_ads,skin_rejuvenation_lead_form_ads,skin_rejuvenation_phone_call_ads,skin_rejuvenation_unknown_objective_ads,skin_rejuvenation_messenger_rate,skin_rejuvenation_landing_page_conversion_rate,skin_rejuvenation_lead_form_rate,skin_rejuvenation_phone_call_rate,skin_rejuvenation_unknown_objective_rate,skin_rejuvenation_top_format,skin_rejuvenation_top_inferred_objective,skin_rejuvenation_format_objective_pattern,skin_rejuvenation_confidence_score,brand_type".split(",");
+HEADERS.scaled = "week_date,brand_name,content_cluster_id,representative_ad_id,representative_hook,service_or_product,price_detected,offer_detected,content_format,content_angle,proof_point,number_of_similar_ads,longest_days_active,average_days_active,scale_level,why_it_is_scaling,competitor_strategy_interpretation,seryn_should_copy_adapt_counter_avoid,seryn_reframe".split(",");
+HEADERS.change = "week_date,brand_name,active_ads_change,new_ads_count,stopped_ads_count,new_services_detected,removed_services,new_offers_detected,removed_offers,new_content_angles,removed_content_angles,scaled_content_new,scaled_content_still_running,strategic_change_type,change_summary,seryn_implication".split(",");
+HEADERS.visualAnalysis = "ad_id,brand,page_id,creative_type,media_url,thumbnail_url,snapshot_url,image_urls,video_preview_url,carousel_image_urls,has_media_asset,text_overlay_raw,text_overlay_summary,offer_from_visual,claim_from_visual,risk_terms_from_visual,visual_format,visual_angle,human_presence,doctor_presence,before_after_presence,text_overlay_presence,offer_visual_presence,clinical_score,beauty_luxury_score,ugc_score,trust_signal_score,offer_visibility_score,scroll_stop_score,confidence_score,confidence_reason,visual_risk_level,risk_reasons,claim_risk_score,before_after_risk,medical_claim_risk,promotion_claim_risk,visual_insight_summary,seryn_action,creative_signature,cluster_size,content_hash,visual_hash,analysis_status,reused_from_cache,analysis_version,last_analyzed_at,last_seen_date".split(",");
+HEADERS.brandVisualSummary = "brand,week_date,total_creatives,before_after_rate,doctor_rate,ugc_rate,offer_banner_rate,high_risk_rate,avg_clinical_score,avg_luxury_score,top_visual_formats,dominant_visual_angle,notes".split(",");
+HEADERS.visualPattern = "id,week_date,brand,visual_format,visual_angle,hook_type,offer_type,ad_count,is_signal,representative_ad_id,summary,recommended_seryn_response".split(",");
+HEADERS.changeInsight = "id,brand,week_start,previous_week_start,change_type,severity,confidence_score,summary,evidence,affected_ads,previous_value,current_value,recommended_action".split(",");
+HEADERS.adAnalysisCache = "ad_id,brand,page_id,content_hash,visual_hash,analysis_version,analysis_provider,analysis_status,reused_from_cache,text_analysis_json,visual_analysis_json,first_seen_date,last_seen_date,last_analyzed_at".split(",");
+HEADERS.rawAdsArchive = "crawl_run_id,week_date,brand,page_id,ad_id,content_hash,visual_hash,status,source_provider,source_country,first_seen_date,last_seen_date,raw_json".split(",");
+HEADERS.pageCrawlLogs = "crawl_run_id,week_date,brand,page_id,status,ads_fetched,error_message,started_at,finished_at".split(",");
+HEADERS.historicalSnapshots = "week_date,brand,active_ads_count,new_ads_count,stopped_ads_count,changed_ads_count,reused_ads_count,top_service,top_hook,top_offer,top_visual_format,crawl_status,snapshot_json".split(",");
+HEADERS.patternCache = "pattern_id,pattern_hash,brand,service_type,hook_type,offer_type,visual_format,visual_angle,first_seen_date,last_seen_date,ads_count,active_days_avg,example_ads,scale_signal".split(",");

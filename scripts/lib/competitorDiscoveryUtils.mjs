@@ -332,15 +332,3 @@ export function buildFanpageQueries(candidate, geo) {
   return [...new Set(out)].slice(0, 3);
 }
 
-/** Merge enrichment vào candidate base (chỉ điền field còn trống). */
-export function mergeCandidateEnrichment(base, enrichment = {}) {
-  const out = { ...base };
-  for (const k of ["facebook_url", "facebook_page_id", "facebook_page_name", "instagram_url", "tiktok_url", "phone", "address", "location"]) {
-    if (!str(out[k]).trim() && str(enrichment[k]).trim()) out[k] = enrichment[k];
-  }
-  if (enrichment.detected_services) {
-    const merged = [...new Set([...str(out.detected_services).split("|"), ...str(enrichment.detected_services).split("|")].filter(Boolean))];
-    out.detected_services = merged.join("|");
-  }
-  return out;
-}
