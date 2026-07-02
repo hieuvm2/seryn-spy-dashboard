@@ -29,27 +29,27 @@ export function getBrandAds(brand: string, d: SpyDashboardData): AdLevelAnalysis
 export function getBrandScaledContent(brand: string, d: SpyDashboardData): ScaledContentAnalysis[] {
   return (d.scaledContentAnalysis ?? []).filter((s) => s.brand_name === brand);
 }
-export function getBrandWeeklyChange(brand: string, d: SpyDashboardData): WeeklyStrategyChange | undefined {
+function getBrandWeeklyChange(brand: string, d: SpyDashboardData): WeeklyStrategyChange | undefined {
   return (d.weeklyStrategyChange ?? []).find((c) => c.brand_name === brand);
 }
 export function getBrandVisualSummary(brand: string, d: SpyDashboardData): BrandVisualSummary | undefined {
   return (d.brandVisualSummary ?? []).find((v) => brandMatch(v.brand, brand));
 }
-export function getBrandVisualPatterns(brand: string, d: SpyDashboardData): VisualPattern[] {
+function getBrandVisualPatterns(brand: string, d: SpyDashboardData): VisualPattern[] {
   return (d.visualPatternAnalysis ?? []).filter((p) => brandMatch(p.brand, brand));
 }
 /** Hook clusters mà brand này có mặt trong brands_using. */
-export function getBrandHookClusters(brand: string, d: SpyDashboardData): HookCluster[] {
+function getBrandHookClusters(brand: string, d: SpyDashboardData): HookCluster[] {
   return (d.hookIntelligence ?? []).filter((c) =>
     String(c.brands_using || "").split("|").some((b) => brandMatch(b, brand)),
   );
 }
 /** Discovery info (website/fanpage/phone/address) nếu brand từng được Exa phát hiện. */
-export function getBrandDiscoveryInfo(brand: string, d: SpyDashboardData): CompetitorDiscoveryCandidate | undefined {
+function getBrandDiscoveryInfo(brand: string, d: SpyDashboardData): CompetitorDiscoveryCandidate | undefined {
   return (d.competitorDiscovery ?? []).find((c) => brandMatch(c.brand_name, brand) || brandMatch(c.normalized_brand_name, brand));
 }
 /** Recommendations gắn với brand: source_brands / competitor_evidence / hook cluster của brand. */
-export function getBrandRecommendations(brand: string, d: SpyDashboardData): SerynContentRecommendation[] {
+function getBrandRecommendations(brand: string, d: SpyDashboardData): SerynContentRecommendation[] {
   const clusterIds = new Set(getBrandHookClusters(brand, d).map((c) => String(c.hook_cluster_id)));
   return (d.serynContentRecommendations ?? []).filter((r) => {
     if (brandMatch(r.source_brands, brand) || String(r.source_brands || "").split("|").some((b) => brandMatch(b, brand))) return true;
@@ -59,7 +59,7 @@ export function getBrandRecommendations(brand: string, d: SpyDashboardData): Ser
   });
 }
 /** Tín hiệu thị trường liên quan brand: match brand trong title/summary/source, hoặc trùng domain. */
-export function getBrandMarketSignals(brand: string, d: SpyDashboardData): MarketIntelligenceItem[] {
+function getBrandMarketSignals(brand: string, d: SpyDashboardData): MarketIntelligenceItem[] {
   const disc = getBrandDiscoveryInfo(brand, d);
   const domain = lc(disc?.website_domain);
   return (d.marketIntelligence ?? []).filter((m) => {
@@ -103,5 +103,3 @@ export function getBrandProfile(brand: string, d: SpyDashboardData): BrandIntell
     marketSignals: getBrandMarketSignals(brand, d),
   };
 }
-
-export { num as biNum, lc as biLc };

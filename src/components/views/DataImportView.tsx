@@ -141,7 +141,7 @@ export default function DataImportView({
           <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border bg-indigo-50 border-indigo-200 text-indigo-700">TRỰC TUYẾN</span>
         </div>
         <p className="text-xs text-slate-500 font-medium mb-4">
-          Lấy 5 bảng trực tiếp từ Google Sheets qua Google Apps Script Web App. Cấu hình URL bằng biến môi trường <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">VITE_GOOGLE_SHEETS_API_URL</code> trong Vercel → Settings → Environment Variables (xem README_GOOGLE_SHEETS_ONLINE_DATA.md). <b>Không nhúng service account / private key vào trình duyệt.</b> Mọi người mở cùng link đều xem chung một bộ dữ liệu. Nếu API lỗi → tự giữ dữ liệu localStorage / mẫu.
+          Lấy dữ liệu trực tiếp từ Google Sheets qua Google Apps Script Web App. Cấu hình URL bằng biến môi trường <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">VITE_GOOGLE_SHEETS_API_URL</code> trong Vercel → Settings → Environment Variables (xem docs/ONLINE_DATA.md). <b>Không nhúng service account / private key vào trình duyệt.</b> Mọi người mở cùng link đều xem chung một bộ dữ liệu. Nếu API lỗi → tự giữ dữ liệu localStorage / mẫu.
         </p>
 
         {/* Trạng thái cấu hình & nguồn hiện tại */}

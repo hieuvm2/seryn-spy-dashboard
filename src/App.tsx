@@ -21,8 +21,10 @@ import {
   saveSourceType,
   clearSourceType,
 } from "./utils/spyData";
-import { fetchOnlineSpyData, getOnlineApiUrl, isOnlineConfigured } from "./utils/onlineData";
-import { fetchSupabaseSpyData, isSupabaseConfigured } from "./utils/supabaseData";
+import {
+  fetchOnlineSpyData, getOnlineApiUrl, isOnlineConfigured,
+  fetchSupabaseSpyData, isSupabaseConfigured,
+} from "./utils/remoteData";
 
 /** Nguồn online: ưu tiên Supabase; fallback Google Sheets (Apps Script). */
 const USE_SUPABASE = isSupabaseConfigured();

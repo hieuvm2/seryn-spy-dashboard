@@ -18,18 +18,16 @@
    "likely scaled based on duration and repetition".
    ============================================================ */
 import "dotenv/config";
-import { logAuthDiag } from "./lib/netConfig.mjs"; // ép IPv4 TRƯỚC khi gọi Google (side-effect) + diag
+import "./lib/netConfig.mjs"; // ép IPv4 TRƯỚC khi gọi Google (side-effect)
 import fs from "node:fs";
 import crypto from "node:crypto";
-import { google } from "googleapis";
 import { HEADERS as SHARED_HEADERS, RUN_TYPE, SERVICE_CATEGORY } from "./lib/schemas.mjs";
-import { withRetry } from "./lib/sheets.mjs";
+import { getSheetsClient, readTab, writeTab, appendTab } from "./lib/sheets.mjs";
 import { analyzeHook } from "./lib/hookAnalysis.mjs";
 import { importDiscovered } from "./import-discovered-competitors.mjs";
 import { syncSheetToSupabase } from "./sync-sheet-to-supabase.mjs";
 import { supabaseConfigured } from "./lib/supabase.mjs";
 
-const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const PROVIDER = (process.env.ADS_SOURCE_PROVIDER || "mock").trim().toLowerCase();
 /* PHẠM VI SPY (mặc định): chỉ ad CĂNG DA / TRẺ HÓA DA MẶT (service_category=skin_rejuvenation)
@@ -90,101 +88,6 @@ function daysActive(startISO) {
 }
 
 /* ============================================================
-   1) AUTH — service account JSON string hoặc file fallback
-   ============================================================ */
-function buildAuth() {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  if (raw && raw.trim()) {
-    let creds;
-    try { creds = JSON.parse(raw); }
-    catch (e) { fail("GOOGLE_SERVICE_ACCOUNT_JSON không phải JSON hợp lệ: " + (e?.message || e)); }
-    return new google.auth.GoogleAuth({ credentials: creds, scopes: SCOPES });
-  }
-  const file = process.env.GOOGLE_SERVICE_ACCOUNT_FILE;
-  if (file && fs.existsSync(file)) {
-    return new google.auth.GoogleAuth({ keyFile: file, scopes: SCOPES });
-  }
-  fail(
-    "Thiếu credentials service account.\n" +
-    "  → Đặt GOOGLE_SERVICE_ACCOUNT_JSON (nội dung JSON, dùng cho GitHub Actions),\n" +
-    "    hoặc GOOGLE_SERVICE_ACCOUNT_FILE (đường dẫn file JSON, dùng khi chạy local).\n" +
-    "  → Nhớ Share Google Sheet (Editor) cho client_email của service account."
-  );
-}
-
-/* ---------- Sheets I/O ---------- */
-async function readTabObjects(sheets, name) {
-  let res;
-  try {
-    res = await withRetry(() => sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${name}'` }), { label: `đọc tab ${name}` });
-  } catch { return []; } // tab chưa tồn tại (range 400, không transient)
-  const values = res.data.values || [];
-  if (values.length < 2) return [];
-  const headers = values[0].map((h) => String(h || "").trim());
-  return values.slice(1)
-    .filter((row) => row.some((c) => String(c || "").trim() !== ""))
-    .map((row) => {
-      const o = {};
-      headers.forEach((h, i) => { o[h] = row[i] != null ? String(row[i]) : ""; });
-      return o;
-    });
-}
-
-async function writeTab(sheets, titles, name, headers, rows) {
-  if (!titles.includes(name)) {
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: SHEET_ID,
-      requestBody: { requests: [{ addSheet: { properties: { title: name } } }] },
-    });
-    titles.push(name);
-  }
-  // clear + update đều idempotent -> retry an toàn cho lỗi mạng tạm thời.
-  await withRetry(() => sheets.spreadsheets.values.clear({ spreadsheetId: SHEET_ID, range: `'${name}'` }), { label: `clear ${name}` });
-  const matrix = [headers, ...rows.map((r) => headers.map((h) => {
-    const v = r[h];
-    return v === undefined || v === null ? "" : String(v);
-  }))];
-  await withRetry(() => sheets.spreadsheets.values.update({
-    spreadsheetId: SHEET_ID,
-    range: `'${name}'!A1`,
-    valueInputOption: "RAW",
-    requestBody: { values: matrix },
-  }), { label: `ghi ${name}` });
-  console.log(`  [OK] ${name}: ghi ${rows.length} dòng dữ liệu`);
-}
-
-/** Reconcile header: tab cũ có header khác (đổi thứ tự/thêm cột) -> migrate
- *  dữ liệu cũ theo tên cột rồi ghi lại, tránh lệch cột khi append schema mới. */
-async function reconcileHeader(sheets, name, headers) {
-  let res;
-  try { res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${name}'` }); }
-  catch { return; }
-  const values = res.data.values || [];
-  if (!values.length) return;
-  const cur = values[0].map((h) => String(h || "").trim());
-  if (cur.length === headers.length && headers.every((h, i) => cur[i] === h)) return;
-  const idx = {}; cur.forEach((h, i) => { idx[h] = i; });
-  const migrated = values.slice(1).map((row) => headers.map((h) => (h in idx ? (row[idx[h]] ?? "") : "")));
-  await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${name}'!A1`, valueInputOption: "RAW", requestBody: { values: [headers, ...migrated] } });
-  console.log(`  [migrate] ${name}: header ${cur.length}→${headers.length} cột, giữ ${migrated.length} dòng.`);
-}
-
-/** Append rows (giữ lịch sử) — tạo tab + header nếu chưa có; không clear. */
-async function appendTab(sheets, titles, name, headers, rows) {
-  const toRow = (r) => headers.map((h) => { const v = r[h]; return v === undefined || v === null ? "" : String(v); });
-  if (!titles.includes(name)) {
-    await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: [{ addSheet: { properties: { title: name } } }] } });
-    titles.push(name);
-    await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${name}'!A1`, valueInputOption: "RAW", requestBody: { values: [headers] } });
-  } else {
-    await reconcileHeader(sheets, name, headers);
-  }
-  if (!rows.length) { console.log(`  [OK] ${name}: +0 dòng`); return; }
-  await sheets.spreadsheets.values.append({ spreadsheetId: SHEET_ID, range: `'${name}'!A1`, valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: rows.map(toRow) } });
-  console.log(`  [OK] ${name}: +${rows.length} dòng (append)`);
-}
-
-/* ============================================================
    COMPETITORS — đọc watchlist
    ============================================================ */
 const DEFAULT_COMPETITORS = [
@@ -206,7 +109,7 @@ const DEFAULT_COMPETITORS = [
 function isTrue(v) { return ["true", "1", "yes", "x", "có"].includes(String(v || "").trim().toLowerCase()); }
 
 async function loadCompetitors(sheets) {
-  const rows = await readTabObjects(sheets, "Competitors");
+  const rows = await readTab(sheets, "Competitors");
   let source = rows;
   if (!rows.length) {
     if (PROVIDER === "mock") {
@@ -235,7 +138,7 @@ async function loadCompetitors(sheets) {
    Chỉ lấy page is_active=TRUE, crawl_enabled=TRUE, có page_id numeric.
    ============================================================ */
 async function loadOwnBrandPages(sheets) {
-  const rows = await readTabObjects(sheets, "Own Brand Pages");
+  const rows = await readTab(sheets, "Own Brand Pages");
   if (!rows.length) return [];
   const byBrand = new Map();
   for (const r of rows) {
@@ -803,24 +706,25 @@ function applyScale(ads) {
 /* ============================================================
    AGGREGATE — Snapshot / Scaled / Recommendations
    ============================================================ */
+/* Header các tab weekly-spy — định nghĩa tập trung ở lib/schemas.mjs. */
 const HEADERS = {
-  ad: "week_date,brand_name,page_id,page_name,ad_id,ad_snapshot_url,status,start_date,days_active,media_type,platforms,headline,primary_text,hook_text,hook_type,service_or_product,price_detected,offer_detected,content_format,content_angle,proof_point,cta,funnel_stage,is_new_this_week,was_seen_previous_week,is_likely_scaled,scale_level,scale_reason,notes,content_hash,visual_hash,analysis_status,reused_from_cache,analysis_version,last_analyzed_at,ad_format,ad_format_confidence,has_video,has_image,has_carousel,media_asset_quality,inferred_objective,objective_confidence,objective_evidence,destination_type,destination_url,service_category,hook_raw_text,hook_normalized,hook_category,hook_subcategory,hook_formula,hook_emotional_trigger,hook_pain_point,hook_desired_outcome,hook_promise,hook_proof_type,hook_offer_linked,hook_target_audience,hook_funnel_stage,hook_angle,hook_strength_score,hook_clarity_score,hook_specificity_score,hook_urgency_score,hook_trust_score,hook_risk_score,hook_confidence_score,hook_evidence,brand_type".split(","),
-  snapshot: "week_date,brand_name,page_urls,page_ids,total_active_ads,total_ads_collected,num_pages_running,services_running,prices_detected,offers_detected,main_content_formats,main_hooks,main_angles,main_proof_points,main_ctas,scaled_content_count,new_ads_count,stopped_ads_count,content_strategy_summary,weekly_change_summary,seryn_opportunity,skin_rejuvenation_ads_count,skin_rejuvenation_image_ads,skin_rejuvenation_video_ads,skin_rejuvenation_carousel_ads,skin_rejuvenation_image_rate,skin_rejuvenation_video_rate,skin_rejuvenation_carousel_rate,skin_rejuvenation_messenger_ads,skin_rejuvenation_landing_page_conversion_ads,skin_rejuvenation_lead_form_ads,skin_rejuvenation_phone_call_ads,skin_rejuvenation_unknown_objective_ads,skin_rejuvenation_messenger_rate,skin_rejuvenation_landing_page_conversion_rate,skin_rejuvenation_lead_form_rate,skin_rejuvenation_phone_call_rate,skin_rejuvenation_unknown_objective_rate,skin_rejuvenation_top_format,skin_rejuvenation_top_inferred_objective,skin_rejuvenation_format_objective_pattern,skin_rejuvenation_confidence_score,brand_type".split(","),
-  scaled: "week_date,brand_name,content_cluster_id,representative_ad_id,representative_hook,service_or_product,price_detected,offer_detected,content_format,content_angle,proof_point,number_of_similar_ads,longest_days_active,average_days_active,scale_level,why_it_is_scaling,competitor_strategy_interpretation,seryn_should_copy_adapt_counter_avoid,seryn_reframe".split(","),
-  change: "week_date,brand_name,active_ads_change,new_ads_count,stopped_ads_count,new_services_detected,removed_services,new_offers_detected,removed_offers,new_content_angles,removed_content_angles,scaled_content_new,scaled_content_still_running,strategic_change_type,change_summary,seryn_implication".split(","),
+  ad: SHARED_HEADERS.adLevel,
+  snapshot: SHARED_HEADERS.snapshot,
+  scaled: SHARED_HEADERS.scaled,
+  change: SHARED_HEADERS.change,
   // SERYN Content Recommendations — header SUPERSET dùng chung (weekly + opportunity Exa).
   rec: SHARED_HEADERS.contentRecs,
-  visual: "ad_id,brand,page_id,creative_type,media_url,thumbnail_url,snapshot_url,image_urls,video_preview_url,carousel_image_urls,has_media_asset,text_overlay_raw,text_overlay_summary,offer_from_visual,claim_from_visual,risk_terms_from_visual,visual_format,visual_angle,human_presence,doctor_presence,before_after_presence,text_overlay_presence,offer_visual_presence,clinical_score,beauty_luxury_score,ugc_score,trust_signal_score,offer_visibility_score,scroll_stop_score,confidence_score,confidence_reason,visual_risk_level,risk_reasons,claim_risk_score,before_after_risk,medical_claim_risk,promotion_claim_risk,visual_insight_summary,seryn_action,creative_signature,cluster_size,content_hash,visual_hash,analysis_status,reused_from_cache,analysis_version,last_analyzed_at,last_seen_date".split(","),
-  brandVisual: "brand,week_date,total_creatives,before_after_rate,doctor_rate,ugc_rate,offer_banner_rate,high_risk_rate,avg_clinical_score,avg_luxury_score,top_visual_formats,dominant_visual_angle,notes".split(","),
-  visualPattern: "id,week_date,brand,visual_format,visual_angle,hook_type,offer_type,ad_count,is_signal,representative_ad_id,summary,recommended_seryn_response".split(","),
-  changeInsight: "id,brand,week_start,previous_week_start,change_type,severity,confidence_score,summary,evidence,affected_ads,previous_value,current_value,recommended_action".split(","),
-  cache: "ad_id,brand,page_id,content_hash,visual_hash,analysis_version,analysis_provider,analysis_status,reused_from_cache,text_analysis_json,visual_analysis_json,first_seen_date,last_seen_date,last_analyzed_at".split(","),
-  rawArchive: "crawl_run_id,week_date,brand,page_id,ad_id,content_hash,visual_hash,status,source_provider,source_country,first_seen_date,last_seen_date,raw_json".split(","),
+  visual: SHARED_HEADERS.visualAnalysis,
+  brandVisual: SHARED_HEADERS.brandVisualSummary,
+  visualPattern: SHARED_HEADERS.visualPattern,
+  changeInsight: SHARED_HEADERS.changeInsight,
+  cache: SHARED_HEADERS.adAnalysisCache,
+  rawArchive: SHARED_HEADERS.rawAdsArchive,
   // Crawl Runs — header SUPERSET dùng chung (weekly + exa market/discovery + import).
   crawlRuns: SHARED_HEADERS.crawlRuns,
-  pageCrawlLogs: "crawl_run_id,week_date,brand,page_id,status,ads_fetched,error_message,started_at,finished_at".split(","),
-  historical: "week_date,brand,active_ads_count,new_ads_count,stopped_ads_count,changed_ads_count,reused_ads_count,top_service,top_hook,top_offer,top_visual_format,crawl_status,snapshot_json".split(","),
-  patternCache: "pattern_id,pattern_hash,brand,service_type,hook_type,offer_type,visual_format,visual_angle,first_seen_date,last_seen_date,ads_count,active_days_avg,example_ads,scale_signal".split(","),
+  pageCrawlLogs: SHARED_HEADERS.pageCrawlLogs,
+  historical: SHARED_HEADERS.historicalSnapshots,
+  patternCache: SHARED_HEADERS.patternCache,
 };
 
 function uniqJoin(arr) { return [...new Set(arr.filter((x) => x && x !== "unknown" && x !== "no_clear_offer"))].join("|"); }
@@ -1447,23 +1351,19 @@ async function main() {
   const weekDate = currentMondayISO();
   console.log(`Sheet ID: ${SHEET_ID}\nWeek    : ${weekDate}\n`);
 
-  const auth = buildAuth();
-  const sheets = google.sheets({ version: "v4", auth });
-
-  // xác thực mở được Sheet + lấy danh sách tab (retry lỗi mạng tạm thời như
-  // "Premature close" ở OAuth token — hay gặp trên GitHub Actions).
-  let meta;
-  try { meta = await withRetry(() => sheets.spreadsheets.get({ spreadsheetId: SHEET_ID }), { label: "mở Google Sheet" }); }
-  catch (e) { await logAuthDiag(e); fail(`Không mở được Google Sheet (đã Share Editor cho service account chưa?): ${e?.message || e}`); }
-  const titles = (meta.data.sheets || []).map((s) => s.properties.title);
+  // Auth + mở Sheet + danh sách tab: dùng chung lib/sheets.mjs (retry lỗi mạng
+  // tạm thời như "Premature close" ở OAuth token — hay gặp trên GitHub Actions).
+  let sheets, titles;
+  try { ({ sheets, titles } = await getSheetsClient()); }
+  catch (e) { fail(String(e?.message || e)); }
 
   // đọc dữ liệu cũ TRƯỚC khi ghi đè (cho weekly change + cache incremental)
-  const prevSnap = await readTabObjects(sheets, "Brand Weekly Snapshot");
-  const prevAds = await readTabObjects(sheets, "Ad Level Analysis");
-  const prevVisual = await readTabObjects(sheets, "Visual Analysis");
-  const prevCache = await readTabObjects(sheets, "Ad Analysis Cache");
-  const prevArchive = await readTabObjects(sheets, "Raw Ads Archive");
-  const prevPattern = await readTabObjects(sheets, "Pattern Cache");
+  const prevSnap = await readTab(sheets, "Brand Weekly Snapshot");
+  const prevAds = await readTab(sheets, "Ad Level Analysis");
+  const prevVisual = await readTab(sheets, "Visual Analysis");
+  const prevCache = await readTab(sheets, "Ad Analysis Cache");
+  const prevArchive = await readTab(sheets, "Raw Ads Archive");
+  const prevPattern = await readTab(sheets, "Pattern Cache");
   const prevWeek = prevSnap[0]?.week_date || "";
   const prevSnapByBrand = {}; for (const r of prevSnap) prevSnapByBrand[r.brand_name] = r;
   const prevAdsByBrand = {}; for (const r of prevAds) (prevAdsByBrand[r.brand_name] ||= []).push(r);
@@ -1658,7 +1558,7 @@ async function main() {
   await writeTab(sheets, titles, "Weekly Strategy Change", HEADERS.change, changes);
   // SERYN Content Recommendations: GIỮ LẠI row do Exa market research sync vào
   // (source != weekly_spy) — chỉ ghi đè phần weekly, tránh xoá opportunity Exa.
-  const prevRecs = await readTabObjects(sheets, "SERYN Content Recommendations");
+  const prevRecs = await readTab(sheets, "SERYN Content Recommendations");
   const preservedRecs = prevRecs.filter((r) => String(r.source || "").trim() && String(r.source).trim() !== RUN_TYPE.weeklySpy);
   await writeTab(sheets, titles, "SERYN Content Recommendations", HEADERS.rec, [...recs, ...preservedRecs]);
   await writeTab(sheets, titles, "Visual Analysis", HEADERS.visual, visualRows);

@@ -9,7 +9,7 @@
    KHÔNG phải CPA/ROAS/hiệu quả bán thật. Không bịa số liệu.
    ============================================================ */
 import type { SpyDashboardData, AdLevelAnalysis } from "../types";
-import { viLabel, isMeaningful, humanizeText } from "./spyData";
+import { viLabel, isMeaningful, humanizeText } from "./labelsVi";
 import { getBrandScaledContent, getBrandAds, getBrandSnapshot, getBrandVisualSummary } from "./brandIntelligence";
 
 /* ---------- types ---------- */
@@ -87,7 +87,7 @@ const ANGLE_VI: Record<string, string> = {
   safety_objection: "An toàn / gỡ lo ngại", transformation: "Biến đổi / trẻ hóa", pain_problem: "Khơi nỗi đau",
   premium_positioning: "Định vị cao cấp", unknown: "Chưa rõ",
 };
-export function classifyContentAngle(text: string): string {
+function classifyContentAngle(text: string): string {
   const t = lc(text);
   for (const [a, re] of ANGLE_RULES) if (re.test(t)) return a;
   return "unknown";
@@ -119,7 +119,7 @@ const PAIN_MAP: Array<[string, RegExp]> = [
   ["da xỉn màu", /xỉn|kém sắc|tối màu/i], ["lỗ chân lông to", /lỗ chân lông/i],
   ["da kém săn chắc", /kém săn chắc|kém đàn hồi|thiếu collagen/i],
 ];
-export function detectPainPoint(text: string): string {
+function detectPainPoint(text: string): string {
   const t = lc(text);
   for (const [p, re] of PAIN_MAP) if (re.test(t)) return p;
   return "dấu hiệu lão hóa da";
@@ -128,12 +128,12 @@ const DESIRE_MAP: Array<[string, RegExp]> = [
   ["da căng bóng", /căng bóng|căng mịn/i], ["da săn chắc, nâng cơ", /săn chắc|nâng cơ|đàn hồi/i],
   ["da sáng mịn", /sáng mịn|rạng rỡ|sáng da/i], ["da trẻ trung tự nhiên", /trẻ trung|tươi trẻ|trẻ hóa|thanh xuân/i],
 ];
-export function detectDesiredOutcome(text: string): string {
+function detectDesiredOutcome(text: string): string {
   const t = lc(text);
   for (const [d, re] of DESIRE_MAP) if (re.test(t)) return d;
   return "làn da trẻ trung, căng bóng";
 }
-export function detectProofType(text: string): string {
+function detectProofType(text: string): string {
   const t = lc(text);
   if (/bác sĩ|chuyên gia|ts\.?\s*bs|y khoa|phác đồ/.test(t)) return "Bác sĩ / chuyên gia";
   if (/công nghệ|máy|hifu|thermage|laser|\brf\b|fda/.test(t)) return "Công nghệ / máy móc";
@@ -142,7 +142,7 @@ export function detectProofType(text: string): string {
   return "Chưa rõ";
 }
 const PRICE_RE = /(\d[\d.,]*\s?(?:k|K|đ|tr|triệu|VNĐ|vnđ|%))/;
-export function detectOffer(text: string): string {
+function detectOffer(text: string): string {
   const t = String(text || "");
   const words = ["miễn phí", "giảm", "ưu đãi", "tặng", "combo", "trợ giá", "đồng giá", "chỉ từ", "khuyến mãi"];
   const w = words.find((x) => lc(t).includes(x));
@@ -150,7 +150,7 @@ export function detectOffer(text: string): string {
   if (w && price) return `${w} ${price}`;
   return w || price || "";
 }
-export function detectCTA(text: string): string {
+function detectCTA(text: string): string {
   const t = lc(text);
   if (/nhắn tin|inbox|nhắn ngay/.test(t)) return "Nhắn tin";
   if (/đặt lịch|booking|đăng ký lịch/.test(t)) return "Đặt lịch";
@@ -159,7 +159,7 @@ export function detectCTA(text: string): string {
   if (/tìm hiểu|xem thêm/.test(t)) return "Tìm hiểu thêm";
   return "";
 }
-export function inferObjectiveFromContent(text: string, url?: string): AdContentIntelligence["inferredObjective"] {
+function inferObjectiveFromContent(text: string, url?: string): AdContentIntelligence["inferredObjective"] {
   const t = lc(text + " " + (url || ""));
   if (/m\.me|messenger|nhắn tin|inbox|chat/.test(t)) return "messenger";
   if (/tel:|gọi|hotline|call/.test(t)) return "phone_call";
@@ -197,7 +197,7 @@ function riskOf(text: string, offer: string, beforeAfter: boolean): AdContentInt
 }
 
 /* ---------- content score ---------- */
-export function calculateContentScore(item: Partial<AdContentIntelligence>): number {
+function calculateContentScore(item: Partial<AdContentIntelligence>): number {
   const ads = num(item.adsCount);
   const days = num(item.activeDays);
   const repetitionScore = clamp(ads * 18);
@@ -226,7 +226,7 @@ const AWARE: Record<string, string> = {
   offer_promotion: "Product-aware", urgency: "Product-aware", safety_objection: "Consideration",
   premium_positioning: "Consideration", unknown: "Problem-aware",
 };
-export function buildContentPsychology(item: Partial<AdContentIntelligence>): AdContentPsychology {
+function buildContentPsychology(item: Partial<AdContentIntelligence>): AdContentPsychology {
   const angle = String(item.contentAngle || "unknown");
   const pain = item.painPoint || "dấu hiệu lão hóa da";
   const desire = item.desiredOutcome || "làn da trẻ trung";
@@ -254,7 +254,7 @@ export function buildContentPsychology(item: Partial<AdContentIntelligence>): Ad
 }
 
 /* ---------- breakdown ---------- */
-export function buildContentBreakdown(item: Partial<AdContentIntelligence>): AdContentBreakdown {
+function buildContentBreakdown(item: Partial<AdContentIntelligence>): AdContentBreakdown {
   const text = String(item.contentText || "");
   const opening = text.split(/[.!?\n|]/)[0]?.trim().slice(0, 90) || "N/A";
   const pain = item.painPoint || "dấu hiệu lão hóa da";
@@ -278,7 +278,7 @@ export function buildContentBreakdown(item: Partial<AdContentIntelligence>): AdC
 }
 
 /* ---------- SERYN response ---------- */
-export function buildSerynContentResponse(item: Partial<AdContentIntelligence>): SerynContentResponse {
+function buildSerynContentResponse(item: Partial<AdContentIntelligence>): SerynContentResponse {
   const angle = String(item.contentAngle || "unknown");
   const pain = item.painPoint || "dấu hiệu lão hóa da";
   const desire = item.desiredOutcome || "làn da trẻ trung, căng bóng";

@@ -8,7 +8,7 @@
 import type { SpyDashboardData, OwnBrandPage } from "../types";
 
 /** Chuẩn hóa tên brand để so khớp (bỏ dấu, thường hóa, gọn khoảng trắng). */
-export function normBrand(s: unknown): string {
+function normBrand(s: unknown): string {
   return String(s ?? "")
     .normalize("NFD").replace(/[̀-ͯ]/g, "")
     .toLowerCase().replace(/\s+/g, " ").trim();
@@ -18,7 +18,7 @@ const truthy = (v: unknown) =>
   ["true", "1", "yes", "x", "có", "co"].includes(String(v ?? "").trim().toLowerCase());
 
 /** Tên brand của SERYN lấy từ Own Brand Pages (mặc định luôn gồm "seryn"). */
-export function getOwnBrandNames(data: SpyDashboardData): string[] {
+function getOwnBrandNames(data: SpyDashboardData): string[] {
   const set = new Set<string>();
   for (const p of data.ownBrandPages ?? []) {
     const b = normBrand(p.brand_name);
@@ -57,13 +57,6 @@ export function getOwnSnapshotBrandNames(data: SpyDashboardData): string[] {
     }
   }
   return [...out];
-}
-
-/** Tên brand đối thủ (loại bỏ own) trong snapshot. */
-export function getCompetitorBrandNames(data: SpyDashboardData): string[] {
-  return (data.brandWeeklySnapshot ?? [])
-    .map((r) => String(r.brand_name || ""))
-    .filter((b) => b && !isOwnBrand(b, data.ownBrandPages ?? []));
 }
 
 /** Số page SERYN đã bật crawl (is_active & crawl_enabled & có page_id). */

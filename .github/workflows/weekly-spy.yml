@@ -51,12 +51,8 @@ jobs:
           # crawl tuning (dùng Repository variables — vars — hoặc để trống dùng default)
           ADS_SOURCE_COUNTRY: ${{ vars.ADS_SOURCE_COUNTRY }}
           ADS_SOURCE_MAX_ADS: ${{ vars.ADS_SOURCE_MAX_ADS }}
-          # incremental cache + AI vision (prep)
+          # incremental cache + visual heuristic
           VISUAL_AI_PROVIDER: ${{ vars.VISUAL_AI_PROVIDER }}
-          VISUAL_AI_API_KEY: ${{ secrets.VISUAL_AI_API_KEY }}
-          MAX_AI_ANALYSIS_PER_RUN: ${{ vars.MAX_AI_ANALYSIS_PER_RUN }}
-          AI_BATCH_SIZE: ${{ vars.AI_BATCH_SIZE }}
-          AI_RETRY_LIMIT: ${{ vars.AI_RETRY_LIMIT }}
           TEXT_ANALYSIS_PROMPT_VERSION: ${{ vars.TEXT_ANALYSIS_PROMPT_VERSION }}
           VISUAL_ANALYSIS_PROMPT_VERSION: ${{ vars.VISUAL_ANALYSIS_PROMPT_VERSION }}
         run: npm run spy:weekly

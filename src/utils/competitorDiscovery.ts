@@ -7,7 +7,7 @@
    - KHÔNG gọi Exa từ frontend. KHÔNG bịa page_id.
    ============================================================ */
 import type { CompetitorDiscoveryCandidate } from "../types";
-import { isSheetsConfigured, apiPost } from "./sheetsApi";
+import { isSheetsConfigured, apiPost } from "./remoteData";
 import { createCompetitor } from "./competitors";
 import { isValidCompetitorBrand } from "./brandName";
 
@@ -56,7 +56,7 @@ export function discoveryWriteConfigured(): boolean {
  * Cập nhật 1 candidate (status / facebook_page_id / notes...).
  * Luôn lưu override local; nếu cấu hình online -> POST record tab.
  */
-export async function updateCandidate(
+async function updateCandidate(
   candidate: CompetitorDiscoveryCandidate,
   patch: Partial<CompetitorDiscoveryCandidate>,
 ): Promise<{ ok: boolean; synced: boolean; message: string }> {

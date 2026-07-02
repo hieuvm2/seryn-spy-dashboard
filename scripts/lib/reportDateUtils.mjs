@@ -42,12 +42,6 @@ function addDays(dt, n) {
   return x;
 }
 
-/** "YYYY-MM-DD" của `date` theo timezone (mặc định Asia/Ho_Chi_Minh). */
-export function formatDateYYYYMMDD(date = new Date(), timezone = DEFAULT_TZ) {
-  const { y, m, d } = zonedYMD(date, timezone);
-  return `${y}-${pad2(m)}-${pad2(d)}`;
-}
-
 /**
  * Khoảng TUẦN TRƯỚC (thứ Hai → Chủ Nhật) so với hôm nay (theo timezone).
  * - Tìm thứ Hai của tuần hiện tại, lùi 7 ngày = thứ Hai tuần trước.

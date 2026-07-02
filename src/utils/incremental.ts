@@ -4,17 +4,6 @@
    ============================================================ */
 import type { SpyDashboardData, CrawlRun } from "../types";
 
-/** Nhãn ngắn cho badge analysis_status. */
-export const STATUS_LABEL: Record<string, string> = {
-  newly_analyzed: "New",
-  reused_from_cache: "Cached",
-  changed_reanalyzed: "Changed",
-  carried_forward: "Carried",
-  crawl_failed: "Crawl fail",
-  missing_media: "No media",
-  low_confidence: "Low conf",
-};
-
 export const STATUS_TONE: Record<string, string> = {
   newly_analyzed: "bg-emerald-50 text-emerald-700 border-emerald-200",
   reused_from_cache: "bg-slate-100 text-slate-600 border-slate-200",
@@ -24,13 +13,6 @@ export const STATUS_TONE: Record<string, string> = {
   missing_media: "bg-amber-50 text-amber-700 border-amber-200",
   low_confidence: "bg-slate-100 text-slate-500 border-slate-200",
 };
-
-export function statusLabel(s?: string): string {
-  return STATUS_LABEL[String(s || "")] || (s ? String(s) : "");
-}
-export function statusTone(s?: string): string {
-  return STATUS_TONE[String(s || "")] || "bg-slate-100 text-slate-500 border-slate-200";
-}
 
 const n = (v: unknown) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
 

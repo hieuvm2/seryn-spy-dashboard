@@ -10,28 +10,6 @@ const num = (v) => { const n = Number(String(v).replace(/[^\d.]/g, "")); return 
 const round = (n) => Math.round(n);
 
 /**
- * Directional opportunity score (0–1):
- * 0.25*competitor + 0.20*web_mentions + 0.20*trend + 0.15*offer + 0.10*credibility + 0.10*price
- */
-export function marketOpportunityScore({
-  competitor_activity_score = 0,
-  web_mentions_score = 0,
-  trend_strength_score = 0,
-  offer_intensity_score = 0,
-  source_credibility_score = 0,
-  price_signal_score = 0,
-} = {}) {
-  const s =
-    0.25 * competitor_activity_score +
-    0.2 * web_mentions_score +
-    0.2 * trend_strength_score +
-    0.15 * offer_intensity_score +
-    0.1 * source_credibility_score +
-    0.1 * price_signal_score;
-  return Math.round(Math.min(1, s) * 100) / 100;
-}
-
-/**
  * Ước lượng directional TAM/SAM/SOM.
  * Vì KHÔNG có dữ liệu audited, dùng anchor giả định khiêm tốn + tín hiệu để
  * scale band low/mid/high. confidence phản ánh độ giàu dữ liệu.

@@ -4,7 +4,7 @@
    Chạy SAU weekly spy sync (đọc tab pipeline đã ghi) -> tạo
    Weekly_Summary + Action_Plan + Swipe_File_Suggestions + markdown.
 
-   Chạy:  npm run report:weekly
+   Chạy:  npm run report:weekly-intel
    ENV:   GOOGLE_SHEET_ID + GOOGLE_SERVICE_ACCOUNT_JSON|FILE (như spy:weekly)
    KHÔNG dùng Exa. KHÔNG crawl ads (chỉ đọc dữ liệu đã có).
    ============================================================ */

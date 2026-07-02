@@ -20,12 +20,7 @@ export function hashSeed(s) { let h = 0; const str = String(s || ""); for (let i
 const pick = (list, seed) => list[hashSeed(seed) % list.length];
 
 /* ---------- enums ---------- */
-export const HOOK_CATEGORY = ["pain_point", "desire_outcome", "curiosity", "authority", "social_proof", "transformation", "offer_promotion", "fear_loss_aversion", "myth_busting", "mistake_warning", "comparison", "education", "urgency", "testimonial", "diagnosis_problem", "consultation_invite", "unknown"];
-export const HOOK_FORMULA = ["problem_solution", "before_after", "question_hook", "mistake_hook", "secret_hook", "doctor_explains", "customer_story", "limited_offer", "free_consultation", "myth_vs_truth", "comparison_hook", "checklist_hook", "symptom_diagnosis", "result_promise", "fear_to_relief", "aspiration_identity", "unknown"];
-export const HOOK_FUNNEL = ["awareness", "consideration", "conversion", "retargeting", "unknown"];
-export const HOOK_ANGLE = ["medical_trust", "beauty_transformation", "natural_youth", "anti_aging", "confidence_recovery", "expert_consultation", "technology_based", "offer_led", "social_proof_led", "education_led", "problem_diagnosis", "unknown"];
 export const SCALE_SIGNAL = ["none", "early_signal", "repeated_signal", "strong_persistence_signal", "evergreen_persistence_signal"];
-export const SERYN_HOOK_ACTION = ["copy_structure", "adapt_angle", "counter_positioning", "avoid_due_to_risk", "monitor", "test_now"];
 
 /* ---------- keyword tables (ưu tiên theo thứ tự) ---------- */
 const RE = {

@@ -2,14 +2,18 @@
 
 ```
 GitHub Actions (cron thứ 6)  ──►  npm run spy:weekly
-   → đọc tab Competitors → pull ads (mock|custom) → phân tích
-   → ghi 5 tab Google Sheets  ──►  Apps Script doGet  ──►  Dashboard Vercel
+   → đọc tab Competitors + Own Brand Pages → pull ads (scrapecreators|mock|custom)
+   → lọc scope skin_rejuvenation → phân tích incremental (cache)
+   → ghi ~15 tab Google Sheets → đẩy Supabase
+   ──►  npm run report:weekly-intel → Weekly_Summary / Action_Plan / Swipe_File_Suggestions
+   ──►  Dashboard Vercel (đọc Supabase, fallback Apps Script doGet)
 ```
 
-- Workflow: `.github/workflows/weekly-spy.yml`
-- Script: `scripts/weekly-spy-sync.mjs` (`npm run spy:weekly`)
+- Workflow: `.github/workflows/weekly-spy.yml` (2 step: `spy:weekly` rồi `report:weekly-intel`)
+- Script: `scripts/weekly-spy-sync.mjs` + `scripts/weekly-intelligence.mjs`
 - Lịch: **02:07 UTC thứ Sáu** = ~**09:07 sáng thứ Sáu giờ Việt Nam** (UTC+7). Cron: `7 2 * * 5`.
-- Provider hiện tại: **`mock`** (test pipeline). Đổi sang ads thật ở mục 9.
+- Provider lấy từ secret `ADS_SOURCE_PROVIDER` — production dùng **`scrapecreators`** (ads thật);
+  `mock` chỉ để test pipeline. Chi tiết ở mục 9.
 
 > Không build lại dashboard. Không commit secret. Không đưa private key vào frontend.
 > Service account JSON chỉ nằm trong **GitHub Secrets** (server-side).
@@ -32,7 +36,7 @@ GitHub Actions (cron thứ 6)  ──►  npm run spy:weekly
 - Mở file JSON, copy `client_email` (dạng `xxx@yyy.iam.gserviceaccount.com`).
 - Mở Google Sheet (ID `11WRRCa5AfIoWDK9qo3UqT3QvdrD0xCRY-zRd-8Ezj0Q`) → **Share** →
   dán email đó → chọn **Editor** → Send.
-- Tạo tab **`Competitors`** theo `docs/COMPETITORS_SHEET_SCHEMA.md` (hoặc để trống nếu test bằng mock).
+- Tạo tab **`Competitors`** theo `docs/SHEETS_SCHEMA.md` §1 (hoặc để trống nếu test bằng mock).
 
 ## 4. Thêm GitHub Secrets
 
@@ -42,9 +46,12 @@ Repo GitHub → **Settings → Secrets and variables → Actions → New reposit
 |---|---|---|
 | `GOOGLE_SHEET_ID` | `11WRRCa5AfIoWDK9qo3UqT3QvdrD0xCRY-zRd-8Ezj0Q` | ✅ |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | **Dán toàn bộ nội dung** file JSON service account | ✅ |
-| `ADS_SOURCE_PROVIDER` | `mock` (hoặc `custom`) | ✅ |
+| `ADS_SOURCE_PROVIDER` | `scrapecreators` (prod) / `mock` (test) / `custom` | ✅ |
+| `ADS_SOURCE_API_KEY` | Key ScrapeCreators (nhiều key phân cách `,` → tự rotation) | khi scrapecreators |
 | `ADS_SOURCE_API_URL` | URL API ads thật (chỉ khi `custom`) | khi custom |
-| `ADS_SOURCE_API_KEY` | Key API ads thật (nếu API cần) | tùy chọn |
+| `SUPABASE_URL` | `https://<project>.supabase.co` | cho bước đẩy Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | service role key (**secret**, bypass RLS để upsert) | cho bước đẩy Supabase |
+| `EXA_API_KEY` | key Exa (chỉ 2 workflow manual dùng) | tùy chọn |
 
 > ⚠️ `GOOGLE_SERVICE_ACCOUNT_JSON` là **toàn bộ JSON** (cả dấu `{ }`, `\n` trong private_key giữ nguyên).
 > Dán nguyên văn vào ô value của Secret — GitHub lưu an toàn, không lộ trong log.
@@ -61,16 +68,20 @@ Repo GitHub → **Settings → Secrets and variables → Actions → New reposit
 
 ## 7. Kiểm tra Google Sheets
 
-- Mở Google Sheet → kiểm tra 5 tab đã có dữ liệu tuần mới:
+- Mở Google Sheet → kiểm tra 5 tab lõi đã có dữ liệu tuần mới:
   `Brand Weekly Snapshot`, `Ad Level Analysis`, `Scaled Content Analysis`,
   `Weekly Strategy Change`, `SERYN Content Recommendations`.
+- Pipeline còn ghi các tab visual/cache/provenance (`Visual Analysis`, `Ad Analysis Cache`,
+  `Crawl Runs`, `Raw Ads Archive`…) và bước 2 ghi `Weekly_Summary` / `Action_Plan` /
+  `Swipe_File_Suggestions` — danh sách đầy đủ: `docs/SHEETS_SCHEMA.md`.
 - Cột `week_date` = thứ Hai của tuần chạy.
 
 ## 8. Dashboard Vercel đọc dữ liệu mới
 
-- Mở dashboard → tab **Nhập dữ liệu** → **Refresh Online Data** (hoặc reload trang).
-- Badge chuyển **ONLINE SHEET DATA**; dữ liệu mới hiển thị. (Dashboard đọc qua Apps Script `doGet`,
-  cấu hình bằng `VITE_GOOGLE_SHEETS_API_URL` — xem `README_GOOGLE_SHEETS_ONLINE_DATA.md`.)
+- Cuối pipeline tự đẩy Supabase (khi có `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`) —
+  dashboard đọc Supabase là thấy dữ liệu mới ngay (badge **SUPABASE**).
+- Hoặc mở dashboard → view **Dữ liệu** → **Refresh Online Data** (badge **GOOGLE SHEETS** nếu
+  đang dùng fallback Apps Script). Cấu hình nguồn đọc: `docs/ONLINE_DATA.md`.
 
 ## 9. Đổi provider từ mock sang ads thật
 

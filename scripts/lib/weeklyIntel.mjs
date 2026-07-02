@@ -51,12 +51,6 @@ export function buildAdDedupeKey(ad) {
   const sig = [normalizePageId(ad.page_id), lc(ad.primary_text || ad.ad_text), lc(ad.landing_url || ""), lc(ad.media_url || "")].join("|");
   return "sig:" + crypto.createHash("sha1").update(sig).digest("hex").slice(0, 16);
 }
-export function calculateContentHash(ad) {
-  return crypto.createHash("sha1").update([ad.headline, ad.primary_text || ad.ad_text, ad.description, ad.cta].map(lc).join("|")).digest("hex").slice(0, 16);
-}
-export function calculateVisualHash(ad) {
-  return crypto.createHash("sha1").update([ad.media_url, ad.thumbnail_url, ad.visual_format].map(lc).join("|")).digest("hex").slice(0, 16);
-}
 
 /* ---------- safe JSON for sheet cells ---------- */
 export function stringifySheetJsonField(value) {

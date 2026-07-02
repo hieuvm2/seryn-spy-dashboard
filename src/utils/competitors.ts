@@ -7,17 +7,10 @@
    - Nếu online write chưa sẵn sàng -> chỉ lưu draft + cảnh báo.
    ============================================================ */
 import type { Competitor, CompetitorStatus } from "../types";
-import { isSheetsConfigured, apiGet, apiPost } from "./sheetsApi";
+import { isSheetsConfigured, apiGet, apiPost } from "./remoteData";
 import { normalizeBrandName } from "./brandName";
 
 const DRAFT_KEY = "seryn_competitors_v1";
-
-/** Cột Sheet "Competitors" — GIỮ 5 cột pipeline đầu, thêm metadata dashboard. */
-export const COMPETITOR_SHEET_TAB = "Competitors";
-export const COMPETITOR_HEADERS = [
-  "brand_name", "page_ids", "page_urls", "active", "notes",
-  "category", "last_crawled_at", "last_status", "id",
-] as const;
 
 function slug(s: string): string {
   return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
@@ -31,7 +24,7 @@ function stableHash(s: string): string {
 }
 /** id ổn định theo brand để dashboard ↔ Sheet ↔ pipeline khớp khi upsert.
  *  Dùng normalizeBrandName GIỐNG pipeline (import-discovered) để tạo CÙNG id. */
-export function competitorId(brand: string): string {
+function competitorId(brand: string): string {
   const base = slug(normalizeBrandName(brand)) || slug(brand);
   return `cmp-${base || ("x-" + stableHash(String(brand || "")))}`;
 }
@@ -42,7 +35,7 @@ function isTrue(v: unknown): boolean {
 }
 
 /** Chuẩn hóa Facebook Page URL. */
-export function normalizePageUrl(raw: string): string {
+function normalizePageUrl(raw: string): string {
   let u = str(raw).trim();
   if (!u) return "";
   if (!/^https?:\/\//i.test(u)) u = "https://" + u.replace(/^\/+/, "");
@@ -58,13 +51,13 @@ export function normalizePageUrl(raw: string): string {
 }
 
 /** Cố gắng lấy page_id dạng số từ URL (best-effort; không có thì rỗng). */
-export function extractPageIdFromUrl(url: string): string {
+function extractPageIdFromUrl(url: string): string {
   const m = str(url).match(/(?:profile\.php\?id=|\/)(\d{6,})/);
   return m ? m[1] : "";
 }
 
 /* ---------- (de)serialize Sheet ---------- */
-export function competitorToRecord(c: Competitor): Record<string, string> {
+function competitorToRecord(c: Competitor): Record<string, string> {
   return {
     brand_name: str(c.brand),
     page_ids: str(c.page_id),
@@ -77,7 +70,7 @@ export function competitorToRecord(c: Competitor): Record<string, string> {
     id: str(c.id || competitorId(c.brand)),
   };
 }
-export function recordToCompetitor(r: Record<string, unknown>): Competitor {
+function recordToCompetitor(r: Record<string, unknown>): Competitor {
   const brand = str(r.brand_name ?? r.brand);
   const page_id = str(r.page_ids ?? r.page_id);
   const page_url = str(r.page_urls ?? r.page_url);
@@ -238,11 +231,6 @@ export function updateCompetitor(id: string, patch: Partial<Competitor>): Compet
 
 export function toggleCompetitorActive(id: string, active: boolean): Competitor | null {
   return updateCompetitor(id, { active });
-}
-
-/** Soft-delete: đánh dấu inactive (không xóa cứng). */
-export function softDeleteCompetitor(id: string): Competitor | null {
-  return updateCompetitor(id, { active: false, notes: "(đã ẩn)" });
 }
 
 /** Xóa local theo id. */

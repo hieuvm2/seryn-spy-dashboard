@@ -1,6 +1,6 @@
 /* ============================================================
    SERYN Spy — Weekly Intelligence unit/validation tests
-   Chạy:  npm run report:test   (không cần Sheets/network)
+   Chạy:  npm run test:weekly-intel   (không cần Sheets/network)
    Exit != 0 nếu có test fail.
    ============================================================ */
 import {

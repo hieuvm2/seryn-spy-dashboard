@@ -197,19 +197,11 @@ const notIn = (arr: string[], set: string[]) => {
   return arr.filter((x) => !s.has(x.toLowerCase()));
 };
 
-export function getContentAngleGaps(data: SpyDashboardData): string[] {
-  const s = buildSerynSnapshot(data), c = buildCompetitorBenchmark(data);
-  return notIn(c.topContentAngles, s.topContentAngles);
-}
-export function getServiceGaps(data: SpyDashboardData): string[] {
-  const s = buildSerynSnapshot(data), c = buildCompetitorBenchmark(data);
-  return notIn(c.topServices, s.topServices);
-}
-export function getFormatGaps(data: SpyDashboardData): string[] {
+function getFormatGaps(data: SpyDashboardData): string[] {
   const s = buildSerynSnapshot(data), c = buildCompetitorBenchmark(data);
   return (["video", "carousel", "image"] as const).filter((k) => (c.formatMix[k] || 0) - (s.formatMix[k] || 0) >= 15);
 }
-export function getFunnelGaps(data: SpyDashboardData): string[] {
+function getFunnelGaps(data: SpyDashboardData): string[] {
   const s = buildSerynSnapshot(data), c = buildCompetitorBenchmark(data);
   return (["messenger", "lead_form", "landing_page_conversion", "phone_call"] as const)
     .filter((k) => (c.funnelMix[k] || 0) - (s.funnelMix[k] || 0) >= 15);
@@ -218,7 +210,7 @@ export function getFunnelGaps(data: SpyDashboardData): string[] {
 const FMT_VI: Record<string, string> = { image: "ảnh", video: "video", carousel: "carousel" };
 const FUNNEL_VI: Record<string, string> = { messenger: "Messenger", lead_form: "lead form", landing_page_conversion: "trang đích", phone_call: "gọi điện" };
 
-export function getSerynRecommendedTests(data: SpyDashboardData): SerynRecommendedTest[] {
+function getSerynRecommendedTests(data: SpyDashboardData): SerynRecommendedTest[] {
   const s = buildSerynSnapshot(data), c = buildCompetitorBenchmark(data);
   const tests: SerynRecommendedTest[] = [];
   const missingAngles = notIn(c.topContentAngles, s.topContentAngles);
