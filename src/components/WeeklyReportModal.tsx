@@ -9,7 +9,13 @@ import { createPortal } from "react-dom";
 import { Printer, X } from "lucide-react";
 import type { SpyDashboardData, DataSourceType } from "../types";
 import { viLabel } from "../utils/spyData";
-import { buildReportModel, type ReportRecAction } from "../utils/reportData";
+import { buildReportModel, type ReportRecAction, type ReportBrandRow } from "../utils/reportData";
+
+/* ---- Màu biểu đồ (palette đã validate: CVD ΔE 21.2, aqua dùng nhãn trực tiếp) ---- */
+const CH = {
+  blue: "#2a78d6", aqua: "#1baf7a", red: "#e34948",
+  ink: "#0b0b0b", ink2: "#52514e", muted: "#898781", baseline: "#c3c2b7",
+};
 
 const ACTION_LABEL: Record<ReportRecAction, string> = {
   adapt: "ADAPT — Học hỏi & làm tốt hơn",
@@ -22,6 +28,146 @@ const ACTION_LABEL: Record<ReportRecAction, string> = {
 const pct = (r: number) => `${Math.round((r || 0) * 100)}%`;
 const vn = (n: number) => n.toLocaleString("vi-VN");
 const trunc = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+
+/* ============================================================
+   Biểu đồ top 5 đối thủ (SVG thuần — in PDF được, màu đã validate).
+   1) QC đang chạy (thanh ngang, 1 màu)
+   2) QC mới vs đã dừng (diverging: xanh phải / đỏ trái)
+   3) Tỷ lệ Video & Messenger (2 series, nhãn % trực tiếp)
+   ============================================================ */
+const NAME_W = 118, ROW_H = 26, BAR_H = 13, CHART_W = 360, PAD_T = 6;
+const nameTr = (s: string) => trunc(String(s || ""), 20);
+
+function BrandLabel({ y, name }: { y: number; name: string }) {
+  return (
+    <text x={NAME_W - 6} y={y} textAnchor="end" dominantBaseline="middle"
+      fontSize="10" fill={CH.ink2} fontWeight={600}>{nameTr(name)}</text>
+  );
+}
+function Legend({ items }: { items: { color: string; label: string }[] }) {
+  return (
+    <div className="rpt-legend">
+      {items.map((it) => (
+        <span key={it.label} className="rpt-legend-item">
+          <span className="rpt-legend-swatch" style={{ background: it.color }} />{it.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** 1) QC đang chạy — thanh ngang đơn sắc, giá trị ở cuối thanh. */
+function ActiveAdsChart({ brands }: { brands: ReportBrandRow[] }) {
+  const max = Math.max(...brands.map((b) => b.active), 1);
+  const plotW = CHART_W - NAME_W - 34;
+  const h = PAD_T + brands.length * ROW_H + 4;
+  return (
+    <svg viewBox={`0 0 ${CHART_W} ${h}`} width="100%" role="img" aria-label="QC đang chạy của 5 đối thủ lớn nhất">
+      <line x1={NAME_W} y1={PAD_T - 2} x2={NAME_W} y2={h - 2} stroke={CH.baseline} strokeWidth="1" />
+      {brands.map((b, i) => {
+        const y = PAD_T + i * ROW_H + (ROW_H - BAR_H) / 2;
+        const w = Math.max((b.active / max) * plotW, 2);
+        return (
+          <g key={b.name}>
+            <title>{`${b.name}: ${vn(b.active)} QC đang chạy`}</title>
+            <BrandLabel y={y + BAR_H / 2} name={b.name} />
+            <rect x={NAME_W} y={y} width={w} height={BAR_H} rx="3" fill={CH.blue} />
+            <text x={NAME_W + w + 5} y={y + BAR_H / 2} dominantBaseline="middle"
+              fontSize="10" fontWeight={700} fill={CH.ink} style={{ fontVariantNumeric: "tabular-nums" }}>{vn(b.active)}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/** 2) QC mới vs đã dừng — diverging quanh trục 0. */
+function NewStoppedChart({ brands }: { brands: ReportBrandRow[] }) {
+  const max = Math.max(...brands.map((b) => Math.max(b.newAds, b.stopped)), 1);
+  const cx = NAME_W + (CHART_W - NAME_W) / 2;
+  const armW = (CHART_W - NAME_W) / 2 - 26;
+  const h = PAD_T + brands.length * ROW_H + 4;
+  return (
+    <svg viewBox={`0 0 ${CHART_W} ${h}`} width="100%" role="img" aria-label="QC mới và QC đã dừng của 5 đối thủ lớn nhất">
+      <line x1={cx} y1={PAD_T - 2} x2={cx} y2={h - 2} stroke={CH.baseline} strokeWidth="1" />
+      {brands.map((b, i) => {
+        const y = PAD_T + i * ROW_H + (ROW_H - BAR_H) / 2;
+        const wNew = (b.newAds / max) * armW;
+        const wStop = (b.stopped / max) * armW;
+        return (
+          <g key={b.name}>
+            <title>{`${b.name}: +${vn(b.newAds)} mới · −${vn(b.stopped)} dừng`}</title>
+            <BrandLabel y={y + BAR_H / 2} name={b.name} />
+            {b.stopped > 0 && <rect x={cx - wStop} y={y} width={Math.max(wStop, 2)} height={BAR_H} rx="3" fill={CH.red} />}
+            {b.newAds > 0 && <rect x={cx + 1} y={y} width={Math.max(wNew, 2)} height={BAR_H} rx="3" fill={CH.blue} />}
+            <text x={cx - wStop - 4} y={y + BAR_H / 2} textAnchor="end" dominantBaseline="middle"
+              fontSize="9.5" fontWeight={700} fill={CH.ink} style={{ fontVariantNumeric: "tabular-nums" }}>{b.stopped ? `−${vn(b.stopped)}` : ""}</text>
+            <text x={cx + wNew + 5} y={y + BAR_H / 2} dominantBaseline="middle"
+              fontSize="9.5" fontWeight={700} fill={CH.ink} style={{ fontVariantNumeric: "tabular-nums" }}>{b.newAds ? `+${vn(b.newAds)}` : ""}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/** 3) Tỷ lệ Video & Messenger — 2 thanh/brand, nhãn % trực tiếp (relief cho aqua). */
+function RatesChart({ brands }: { brands: ReportBrandRow[] }) {
+  const plotW = CHART_W - NAME_W - 40;
+  const GROUP_H = 30, SUB_H = 10;
+  const h = PAD_T + brands.length * GROUP_H + 4;
+  return (
+    <svg viewBox={`0 0 ${CHART_W} ${h}`} width="100%" role="img" aria-label="Tỷ lệ video và messenger của 5 đối thủ lớn nhất">
+      <line x1={NAME_W} y1={PAD_T - 2} x2={NAME_W} y2={h - 2} stroke={CH.baseline} strokeWidth="1" />
+      {brands.map((b, i) => {
+        const y0 = PAD_T + i * GROUP_H + 3;
+        const rows = [
+          { v: b.videoRate, color: CH.blue },
+          { v: b.msgRate, color: CH.aqua },
+        ];
+        return (
+          <g key={b.name}>
+            <title>{`${b.name}: video ${pct(b.videoRate)} · messenger ${pct(b.msgRate)}`}</title>
+            <BrandLabel y={y0 + SUB_H + 1} name={b.name} />
+            {rows.map((r, j) => {
+              const y = y0 + j * (SUB_H + 2);
+              const w = Math.max(Math.min(r.v, 1) * plotW, 1.5);
+              return (
+                <g key={j}>
+                  <rect x={NAME_W} y={y} width={w} height={SUB_H} rx="2.5" fill={r.color} />
+                  <text x={NAME_W + w + 4} y={y + SUB_H / 2} dominantBaseline="middle"
+                    fontSize="9" fontWeight={700} fill={CH.ink} style={{ fontVariantNumeric: "tabular-nums" }}>{pct(r.v)}</text>
+                </g>
+              );
+            })}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function TopCompetitorCharts({ brands }: { brands: ReportBrandRow[] }) {
+  if (!brands.length) return null;
+  return (
+    <div className="rpt-charts">
+      <div className="rpt-chart">
+        <div className="rpt-chart-title">QC đang chạy</div>
+        <ActiveAdsChart brands={brands} />
+      </div>
+      <div className="rpt-chart">
+        <div className="rpt-chart-title">Biến động tuần — mới vs dừng</div>
+        <Legend items={[{ color: CH.blue, label: "QC mới" }, { color: CH.red, label: "QC đã dừng" }]} />
+        <NewStoppedChart brands={brands} />
+      </div>
+      <div className="rpt-chart">
+        <div className="rpt-chart-title">Tỷ lệ định dạng trẻ hóa da</div>
+        <Legend items={[{ color: CH.blue, label: "Video" }, { color: CH.aqua, label: "Messenger" }]} />
+        <RatesChart brands={brands} />
+      </div>
+    </div>
+  );
+}
 
 export default function WeeklyReportModal({
   open,
@@ -102,6 +248,14 @@ export default function WeeklyReportModal({
               ))}
             </div>
           </section>
+
+          {/* ---- Biểu đồ 5 đối thủ lớn nhất ---- */}
+          {m.brands.length > 0 && (
+            <section className="rpt-section rpt-avoid">
+              <h2 className="rpt-h2">5 đối thủ lớn nhất tuần này</h2>
+              <TopCompetitorCharts brands={m.brands.slice(0, 5)} />
+            </section>
+          )}
 
           {/* ---- Bảng đối thủ ---- */}
           <section className="rpt-section">
@@ -206,23 +360,6 @@ export default function WeeklyReportModal({
             </table>
           </section>
 
-          {/* ---- Thay đổi chiến lược tuần ---- */}
-          {m.changes.length ? (
-            <section className="rpt-section">
-              <h2 className="rpt-h2">Thay đổi chiến lược đáng chú ý</h2>
-              <ul className="rpt-changes">
-                {m.changes.map((c, i) => (
-                  <li key={i} className="rpt-avoid">
-                    <span className={`rpt-sev rpt-sev-${c.severity}`}>{c.severity || "—"}</span>
-                    <b>{c.brand}</b> · <span className="rpt-type">{viLabel(c.type)}</span>
-                    {c.summary ? <> — {trunc(c.summary, 140)}</> : null}
-                    {c.action ? <span className="rpt-rec-tag"> [{c.action}]</span> : null}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
           {/* ---- Action plan ---- */}
           {m.actions.length ? (
             <section className="rpt-section">
@@ -237,24 +374,6 @@ export default function WeeklyReportModal({
                   </li>
                 ))}
               </ol>
-            </section>
-          ) : null}
-
-          {/* ---- Swipe file ---- */}
-          {m.swipes.length ? (
-            <section className="rpt-section">
-              <h2 className="rpt-h2">Swipe file — ad đáng lưu để tham khảo</h2>
-              <ul className="rpt-swipes">
-                {m.swipes.map((s, i) => (
-                  <li key={i} className="rpt-avoid">
-                    <b>{s.brand}</b>
-                    {s.hook ? ` — “${trunc(s.hook, 80)}”` : ""}
-                    {s.offer ? <span className="rpt-swipe-offer"> · {s.offer}</span> : ""}
-                    {s.whySave ? <div className="rpt-action-sub">Vì sao lưu: {trunc(s.whySave, 130)}</div> : null}
-                    {s.howAdapt ? <div className="rpt-action-sub">SERYN adapt: {trunc(s.howAdapt, 130)}</div> : null}
-                  </li>
-                ))}
-              </ul>
             </section>
           ) : null}
 

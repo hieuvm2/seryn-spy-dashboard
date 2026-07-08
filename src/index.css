@@ -99,6 +99,14 @@ html {
 /* Section */
 .rpt-section { margin-top: 22px; }
 .rpt-h2 { font-size: 14px; font-weight: 800; color: #15224b; text-transform: uppercase; letter-spacing: 0.04em; border-left: 4px solid #f47d6b; padding-left: 10px; margin: 0 0 12px; }
+
+/* Biểu đồ top 5 đối thủ (SVG in được) */
+.rpt-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.rpt-chart { border: 1px solid #eef2f7; border-radius: 10px; padding: 10px 12px; background: #fff; }
+.rpt-chart-title { font-size: 11px; font-weight: 800; color: #15224b; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 6px; }
+.rpt-legend { display: flex; gap: 12px; margin-bottom: 4px; }
+.rpt-legend-item { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; color: #52514e; }
+.rpt-legend-swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .rpt-exec { background: #f8fafc; border: 1px solid #eef2f7; border-radius: 10px; padding: 12px 14px; font-size: 13px; margin: 0; }
 .rpt-note { font-size: 10.5px; color: #9ca3af; font-style: italic; margin-top: 8px; }
 .rpt-muted { color: #9ca3af; font-size: 11px; font-weight: 600; }
@@ -173,7 +181,7 @@ html {
     box-shadow: none !important; border-radius: 0 !important; padding: 0 !important;
   }
   .rpt-doc, .rpt-doc * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  .rpt-section, .rpt-table, .rpt-rec, .rpt-kpi, .rpt-avoid, tr { break-inside: avoid; }
+  .rpt-section, .rpt-table, .rpt-rec, .rpt-kpi, .rpt-avoid, .rpt-chart, tr { break-inside: avoid; }
   .rpt-h2 { break-after: avoid; }
   .rpt-header { break-after: avoid; }
 }
