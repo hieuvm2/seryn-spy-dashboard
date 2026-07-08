@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   X, Activity, FileText,
-  Image as ImageIcon, Filter, ShieldAlert, ExternalLink, Star,
+  Image as ImageIcon, Filter, ExternalLink, Star,
 } from "lucide-react";
 import type { SpyDashboardData } from "../types";
 import { splitChips, orUnknown, viLabel, isMissing, isMeaningful, humanizeText } from "../utils/spyData";
@@ -85,6 +85,19 @@ function RateGroup({ items }: { items: { label: string; v: unknown }[] }) {
 }
 const ar = (v: unknown) => Array.isArray(v) ? v : [];
 
+/** Đếm tần suất giá trị (bỏ rỗng/unknown), trả top-n [{label, count}] giảm dần. */
+function topCounts(values: (string | undefined)[], n: number): { label: string; count: number }[] {
+  const map = new Map<string, { label: string; count: number }>();
+  for (const raw of values) {
+    const v = String(raw ?? "").trim();
+    if (!v || !isMeaningful(v) || isMissing(v)) continue;
+    const key = v.toLowerCase();
+    const cur = map.get(key);
+    if (cur) cur.count += 1; else map.set(key, { label: v, count: 1 });
+  }
+  return [...map.values()].sort((a, b) => b.count - a.count).slice(0, n);
+}
+
 export default function BrandDetailDrawer({
   brandName, data, open, onClose,
 }: { brandName: string | null; data: SpyDashboardData; open: boolean; onClose: () => void }) {
@@ -95,6 +108,26 @@ export default function BrandDetailDrawer({
   const snap = p?.snapshot;
   const disc = p?.discovery;
   const skinN = num(snap?.skin_rejuvenation_ads_count);
+
+  // Báo cáo tổng quan riêng của brand: content đang scale, CTA chính, CTKM đang áp dụng.
+  // Content đang scale: cluster nhân rộng (nhiều QC nhất) -> "định dạng · góc tiếp cận".
+  const scalingContent = (p?.scaled ?? [])
+    .map((s) => ({
+      label: [viLabel(String(s.content_format || "")), viLabel(String(s.content_angle || ""))].filter((x) => x && isMeaningful(x)).join(" · "),
+      count: num(s.number_of_similar_ads),
+      days: num(s.longest_days_active),
+    }))
+    .filter((s) => s.label)
+    .sort((a, b) => b.count - a.count || b.days - a.days)
+    .slice(0, 4);
+  // CTA chính: đếm tần suất CTA trên từng QC; fallback main_ctas của snapshot.
+  const topCtas = topCounts((p?.ads ?? []).map((a) => a.cta), 3);
+  const ctaFallback = splitChips(snap?.main_ctas).filter(isMeaningful);
+  // CTKM đang áp dụng: offers_detected (snapshot) + offer_detected từng QC, khử trùng lặp.
+  const offerChips = topCounts(
+    [...splitChips(snap?.offers_detected), ...(p?.ads ?? []).map((a) => a.offer_detected)],
+    6,
+  );
   // Link page đối thủ: mỗi page_id mở thẳng fanpage; fanpage url lấy URL hợp lệ đầu tiên.
   const pageIds = splitChips(snap?.page_ids);
   const fanpageUrl = (String(disc?.facebook_url || "").trim() || splitChips(snap?.page_urls)[0] || "").trim();
@@ -141,7 +174,7 @@ export default function BrandDetailDrawer({
                 <p className="text-sm text-slate-400 font-semibold">Không có dữ liệu tổng hợp cho đối thủ này.</p>
               ) : (
                 <div className="grid lg:grid-cols-2 gap-4">
-                  {/* 1. Ads overview */}
+                  {/* 1. Ads overview — báo cáo tổng quan riêng của brand */}
                   <Section icon={Activity} title="Tổng quan quảng cáo">
                     <div className="grid grid-cols-2 gap-x-6">
                       <Field label="QC đang chạy" value={orUnknown(snap?.total_active_ads)} />
@@ -151,6 +184,45 @@ export default function BrandDetailDrawer({
                       <Field label="Đã dừng" value={orUnknown(snap?.stopped_ads_count)} />
                       <Field label="Nội dung nhân rộng" value={orUnknown(snap?.scaled_content_count)} />
                       {skinN > 0 && <Field label="QC trẻ hóa da" value={skinN} />}
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-slate-100 space-y-2.5">
+                      <div>
+                        <p className="text-[11px] text-slate-400 font-semibold uppercase mb-1">Content đang scale</p>
+                        {scalingContent.length ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {scalingContent.map((s, i) => (
+                              <span key={i} className="border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[11px] font-semibold">
+                                {s.label}{s.count > 1 ? ` · ${s.count} QC` : ""}{s.days > 0 ? ` · ${s.days} ngày` : ""}
+                              </span>
+                            ))}
+                          </div>
+                        ) : <span className="text-xs text-slate-400">Chưa phát hiện content nhân rộng.</span>}
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-slate-400 font-semibold uppercase mb-1">CTA chính</p>
+                        {topCtas.length ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {topCtas.map((c, i) => (
+                              <span key={i} className="border border-cyan-200 bg-cyan-50 text-cyan-700 px-2 py-0.5 rounded text-[11px] font-semibold">
+                                {viLabel(c.label)}{c.count > 1 ? ` · ${c.count} QC` : ""}
+                              </span>
+                            ))}
+                          </div>
+                        ) : ctaFallback.length ? <Chips value={ctaFallback.join("|")} /> : <span className="text-xs text-slate-400">N/A</span>}
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-slate-400 font-semibold uppercase mb-1">CTKM đang áp dụng</p>
+                        {offerChips.length ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {offerChips.map((o, i) => (
+                              <span key={i} className="border border-amber-200 bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[11px] font-semibold">
+                                {viLabel(o.label)}{o.count > 1 ? ` · ${o.count} QC` : ""}
+                              </span>
+                            ))}
+                          </div>
+                        ) : <span className="text-xs text-slate-400">Không phát hiện CTKM đang chạy.</span>}
+                      </div>
                     </div>
                   </Section>
 
@@ -207,18 +279,10 @@ export default function BrandDetailDrawer({
                     ) : <p className="text-xs text-slate-400">Chưa có dữ liệu format/funnel trẻ hóa da.</p>}
                   </Section>
 
-                  {/* Own brand -> đánh giá nội dung SERYN; competitor -> ghi chú rủi ro */}
-                  {isOwn ? (
+                  {/* Own brand -> đánh giá nội dung SERYN */}
+                  {isOwn && (
                     <Section icon={Sparkles} title="Đánh giá nội dung hiện tại của SERYN" accent full>
                       <SerynSelfEval data={data} />
-                    </Section>
-                  ) : (
-                    <Section icon={ShieldAlert} title="Ghi chú rủi ro" full>
-                      <p className="text-xs text-slate-600">
-                        {num(p.visual?.high_risk_rate) >= 0.3 || num(p.visual?.before_after_rate) >= 0.4
-                          ? "Brand này dùng nhiều before/after hoặc creative rủi ro claim — KHÔNG copy nguyên xi; SERYN chỉ tham khảo cấu trúc và phản ứng (counter positioning), giữ câu chữ an toàn."
-                          : "Tham khảo cấu trúc / góc tiếp cận của brand này, không sao chép nguyên văn. Mọi nội dung SERYN giữ tông điềm tĩnh, 'kết quả tùy cơ địa'."}
-                      </p>
                     </Section>
                   )}
                 </div>
