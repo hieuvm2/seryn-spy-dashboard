@@ -18,6 +18,22 @@ function parseList(v?: string): string[] {
   return String(v ?? "").split("|").map((s) => s.trim()).filter(Boolean);
 }
 
+/* ---- Màu biểu đồ (palette validate CVD-safe, giống báo cáo PDF) ---- */
+const CH = { blue: "#2a78d6", aqua: "#1baf7a", red: "#e34948", ink: "#0b0b0b", ink2: "#52514e", muted: "#898781", baseline: "#c3c2b7", grid: "#e1e0d9" };
+
+/** Parse "Brand (48 mới)" / "Brand ▲+44" / "Brand ▼-6" -> {name, value}. */
+function parseBrandCounts(v?: string): { name: string; value: number }[] {
+  return parseList(v)
+    .map((item) => {
+      const m = item.match(/^(.+?)\s*(?:\(|[▲▼])\s*([+−–-]?\s*\d+)/);
+      if (!m) return null;
+      const value = Math.abs(num(m[2].replace(/[−–]/g, "-")));
+      const name = m[1].trim();
+      return name && value >= 0 ? { name, value } : null;
+    })
+    .filter((x): x is { name: string; value: number } => !!x);
+}
+
 function fmtDateTime(iso?: string): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -172,6 +188,127 @@ function TopChips({ title, value }: { title: string; value?: string }) {
   );
 }
 
+/* ---------------- charts (SVG thuần, palette validate) ---------------- */
+
+const trunc20 = (s: string) => (s.length > 20 ? s.slice(0, 19) + "…" : s);
+
+function ChartLegend({ items }: { items: { color: string; label: string }[] }) {
+  return (
+    <div className="flex flex-wrap gap-x-4 gap-y-1 mb-1.5">
+      {items.map((it) => (
+        <span key={it.label} className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-500">
+          <span className="w-2.5 h-2.5 rounded-[3px] inline-block" style={{ background: it.color }} />{it.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Biến động top 5 đối thủ trong kỳ — diverging: dừng (đỏ, trái) vs mới (xanh, phải). */
+function MoversChart({ newBrands, stoppedBrands }: { newBrands?: string; stoppedBrands?: string }) {
+  const news = parseBrandCounts(newBrands);
+  const stops = parseBrandCounts(stoppedBrands);
+  const byName = new Map<string, { name: string; added: number; stopped: number }>();
+  for (const n of news) byName.set(n.name.toLowerCase(), { name: n.name, added: n.value, stopped: 0 });
+  for (const s of stops) {
+    const k = s.name.toLowerCase();
+    const cur = byName.get(k);
+    if (cur) cur.stopped = s.value; else byName.set(k, { name: s.name, added: 0, stopped: s.value });
+  }
+  const rows = [...byName.values()].sort((a, b) => (b.added + b.stopped) - (a.added + a.stopped)).slice(0, 5);
+  if (!rows.length) return null;
+
+  const NAME_W = 128, ROW_H = 28, BAR_H = 13, W = 560;
+  const max = Math.max(...rows.map((r) => Math.max(r.added, r.stopped)), 1);
+  const cx = NAME_W + (W - NAME_W) / 2;
+  const armW = (W - NAME_W) / 2 - 34;
+  const h = 6 + rows.length * ROW_H + 4;
+  return (
+    <svg viewBox={`0 0 ${W} ${h}`} width="100%" role="img" aria-label="QC mới và QC dừng theo đối thủ trong kỳ">
+      <line x1={cx} y1={4} x2={cx} y2={h - 2} stroke={CH.baseline} strokeWidth="1" />
+      {rows.map((r, i) => {
+        const y = 6 + i * ROW_H + (ROW_H - BAR_H) / 2;
+        const wNew = (r.added / max) * armW;
+        const wStop = (r.stopped / max) * armW;
+        return (
+          <g key={r.name}>
+            <title>{`${r.name}: +${r.added} mới · −${r.stopped} dừng`}</title>
+            <text x={NAME_W - 8} y={y + BAR_H / 2} textAnchor="end" dominantBaseline="middle" fontSize="11" fill={CH.ink2} fontWeight={600}>{trunc20(r.name)}</text>
+            {r.stopped > 0 && <rect x={cx - wStop} y={y} width={Math.max(wStop, 2)} height={BAR_H} rx="3" fill={CH.red} />}
+            {r.added > 0 && <rect x={cx + 1} y={y} width={Math.max(wNew, 2)} height={BAR_H} rx="3" fill={CH.blue} />}
+            <text x={cx - wStop - 5} y={y + BAR_H / 2} textAnchor="end" dominantBaseline="middle" fontSize="10" fontWeight={700} fill={CH.ink} style={{ fontVariantNumeric: "tabular-nums" }}>{r.stopped ? `−${r.stopped}` : ""}</text>
+            <text x={cx + wNew + 6} y={y + BAR_H / 2} dominantBaseline="middle" fontSize="10" fontWeight={700} fill={CH.ink} style={{ fontVariantNumeric: "tabular-nums" }}>{r.added ? `+${r.added}` : ""}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/** Xu hướng qua các kỳ báo cáo — 3 series: active / mới / dừng (cùng đơn vị QC). */
+function TrendChart({ reports }: { reports: SpyReport[] }) {
+  // Khử trùng kỳ (cùng period_start tạo nhiều lần -> giữ bản generated_at mới nhất).
+  const byPeriod = new Map<string, SpyReport>();
+  for (const r of [...reports].sort((a, b) =>
+    String(a.period_start).localeCompare(String(b.period_start)) ||
+    String(a.generated_at).localeCompare(String(b.generated_at)))) {
+    byPeriod.set(String(r.period_start), r);
+  }
+  const pts = [...byPeriod.values()]
+    .slice(-8)
+    .map((r) => ({
+      label: String(r.period_start).slice(5), // MM-DD
+      active: num(r.total_active_ads), added: num(r.total_new_ads), stopped: num(r.total_stopped_ads),
+    }));
+  if (pts.length < 2) return null;
+
+  const W = 720, H = 170, L = 40, R = 46, T = 10, B = 26;
+  const plotW = W - L - R, plotH = H - T - B;
+  const max = Math.max(...pts.flatMap((p) => [p.active, p.added, p.stopped]), 1);
+  const x = (i: number) => L + (i / (pts.length - 1)) * plotW;
+  const y = (v: number) => T + plotH - (v / max) * plotH;
+  const line = (key: "active" | "added" | "stopped") => pts.map((p, i) => `${x(i)},${y(p[key])}`).join(" ");
+  const series: { key: "active" | "added" | "stopped"; color: string; label: string }[] = [
+    { key: "active", color: CH.blue, label: "Ads active" },
+    { key: "added", color: CH.aqua, label: "Ads mới" },
+    { key: "stopped", color: CH.red, label: "Ads dừng" },
+  ];
+  const ticks = [0, 0.5, 1].map((f) => Math.round(max * f));
+  // Nhãn giá trị cuối đường: đẩy tách nhau ≥11px để không chồng chữ.
+  const endLabels = series
+    .map((s) => ({ color: s.color, v: pts[pts.length - 1][s.key], ly: y(pts[pts.length - 1][s.key]) }))
+    .sort((a, b) => a.ly - b.ly);
+  for (let i = 1; i < endLabels.length; i++) {
+    if (endLabels[i].ly - endLabels[i - 1].ly < 11) endLabels[i].ly = endLabels[i - 1].ly + 11;
+  }
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Xu hướng ads active, mới, dừng qua các kỳ báo cáo">
+      {ticks.map((tv) => (
+        <g key={tv}>
+          <line x1={L} y1={y(tv)} x2={W - R} y2={y(tv)} stroke={CH.grid} strokeWidth="1" />
+          <text x={L - 5} y={y(tv)} textAnchor="end" dominantBaseline="middle" fontSize="9" fill={CH.muted} style={{ fontVariantNumeric: "tabular-nums" }}>{tv}</text>
+        </g>
+      ))}
+      {pts.map((p, i) => (
+        <text key={i} x={x(i)} y={H - 8} textAnchor="middle" fontSize="9" fill={CH.muted} style={{ fontVariantNumeric: "tabular-nums" }}>{p.label}</text>
+      ))}
+      {series.map((s) => (
+        <g key={s.key}>
+          <polyline points={line(s.key)} fill="none" stroke={s.color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+          {pts.map((p, i) => (
+            <circle key={i} cx={x(i)} cy={y(p[s.key])} r="3" fill={s.color} stroke="#fff" strokeWidth="1.5">
+              <title>{`${p.label} · ${s.label}: ${p[s.key]}`}</title>
+            </circle>
+          ))}
+        </g>
+      ))}
+      {endLabels.map((l, i) => (
+        <text key={i} x={W - R + 6} y={l.ly} dominantBaseline="middle" fontSize="9.5" fontWeight={700} fill={CH.ink2} style={{ fontVariantNumeric: "tabular-nums" }}>{l.v}</text>
+      ))}
+    </svg>
+  );
+}
+
 /* ---------------- main view ---------------- */
 
 export default function ReportsView({ data }: { data: SpyDashboardData }) {
@@ -228,6 +365,18 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
         })}
       </div>
 
+      {/* Xu hướng qua các kỳ — theo dõi nhanh không cần mở từng báo cáo */}
+      {reports.length >= 2 && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp className="w-4 h-4 text-cyan-500" />
+            <h3 className="text-sm font-bold text-slate-800">Xu hướng qua các kỳ {mode === "weekly" ? "tuần" : "tháng"}</h3>
+          </div>
+          <ChartLegend items={[{ color: CH.blue, label: "Ads active" }, { color: CH.aqua, label: "Ads mới" }, { color: CH.red, label: "Ads dừng" }]} />
+          <TrendChart reports={reports} />
+        </div>
+      )}
+
       {reports.length === 0 ? (
         <EmptyState mode={mode} />
       ) : (
@@ -262,8 +411,6 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
         </div>
       )}
 
-      {/* Manual run hint */}
-      <ManualHint />
     </div>
   );
 }
@@ -293,27 +440,32 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
         </div>
 
         {/* KPI snapshot */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mt-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3">
           <Kpi label="Đối thủ" value={num(r.total_brands_tracked)} />
           <Kpi label="Ads active" value={num(r.total_active_ads)} />
           <Kpi label="Ads mới" value={`+${num(r.total_new_ads)}`} tone="new" />
           <Kpi label="Ads dừng" value={`−${num(r.total_stopped_ads)}`} tone="stopped" />
-          <Kpi label="Page" value={num(r.total_pages_tracked)} />
-          <Kpi label="Crawl OK" value={crawlRateLabel(r.crawl_success_rate)} />
         </div>
       </div>
 
-      {/* Movers */}
+      {/* Biến động top 5 đối thủ trong kỳ — biểu đồ; fallback dạng chữ nếu không parse được */}
       <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-1">
           <TrendingUp className="w-4 h-4 text-cyan-500" />
-          <h3 className="text-sm font-bold text-slate-800">Top Movers</h3>
+          <h3 className="text-sm font-bold text-slate-800">Biến động top 5 đối thủ trong kỳ</h3>
         </div>
-        <div className="grid sm:grid-cols-3 gap-3">
-          <MoverCol icon={TrendingUp} title="Biến động (movers)" value={r.top_movers} accent="cyan" />
-          <MoverCol icon={TrendingUp} title="Tăng ad mới" value={r.top_new_ads_brands} accent="emerald" />
-          <MoverCol icon={TrendingDown} title="Giảm / dừng" value={r.top_stopped_ads_brands} accent="rose" />
-        </div>
+        {parseBrandCounts(r.top_new_ads_brands).length + parseBrandCounts(r.top_stopped_ads_brands).length > 0 ? (
+          <>
+            <ChartLegend items={[{ color: CH.blue, label: "QC mới" }, { color: CH.red, label: "QC đã dừng" }]} />
+            <MoversChart newBrands={r.top_new_ads_brands} stoppedBrands={r.top_stopped_ads_brands} />
+          </>
+        ) : (
+          <div className="grid sm:grid-cols-3 gap-3 mt-2">
+            <MoverCol icon={TrendingUp} title="Biến động (movers)" value={r.top_movers} accent="cyan" />
+            <MoverCol icon={TrendingUp} title="Tăng ad mới" value={r.top_new_ads_brands} accent="emerald" />
+            <MoverCol icon={TrendingDown} title="Giảm / dừng" value={r.top_stopped_ads_brands} accent="rose" />
+          </div>
+        )}
       </div>
 
       {/* Top patterns */}
@@ -382,28 +534,3 @@ function EmptyState({ mode }: { mode: SpyReportType }) {
   );
 }
 
-function ManualHint() {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <Info className="w-4 h-4 text-slate-400" />
-        <p className="text-xs font-bold text-slate-600">Tạo báo cáo thủ công (cần cấu hình Google Sheets)</p>
-      </div>
-      <div className="space-y-1.5">
-        {[
-          { cmd: "npm run report:weekly", desc: "Tạo báo cáo tuần trước (thứ Hai → Chủ Nhật)" },
-          { cmd: "npm run report:monthly", desc: "Tạo báo cáo tổng kết tháng hiện tại" },
-        ].map((c) => (
-          <div key={c.cmd} className="flex flex-wrap items-center gap-2">
-            <code className="font-mono text-[12px] px-2 py-1 rounded bg-slate-900 text-slate-100">{c.cmd}</code>
-            <span className="text-[11px] text-slate-500">{c.desc}</span>
-          </div>
-        ))}
-      </div>
-      <p className="text-[11px] text-slate-400 mt-2.5">
-        Báo cáo được lưu theo từng kỳ trên Google Sheets (tab <span className="font-mono">Weekly Reports</span> / <span className="font-mono">Monthly Reports</span>),
-        không ghi đè kỳ cũ. GitHub Actions tự chạy weekly mỗi thứ Hai và monthly vào ngày cuối tháng.
-      </p>
-    </div>
-  );
-}
