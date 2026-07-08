@@ -16,13 +16,31 @@ create table if not exists public.spy_data (
 
 comment on table public.spy_data is 'SERYN spy dashboard datasets (kết quả phân tích). Mỗi hàng = 1 dataset, rows = mảng jsonb.';
 
--- RLS: dashboard (anon) chỉ ĐỌC; ghi chỉ qua service_role key (bypass RLS).
+-- ============================================================
+-- RLS + PHÂN QUYỀN (Supabase Auth — đăng nhập Google):
+--   * ĐỌC : chỉ user đã đăng nhập với email @seryn.vn (viewer).
+--   * GHI : admin (hieuvm2@seryn.vn) toàn quyền qua dashboard;
+--           pipeline/Claude vẫn ghi bằng service_role key (bypass RLS).
+--   * anon (chưa đăng nhập): KHÔNG đọc, KHÔNG ghi.
+-- Chạy lại khối này trong SQL Editor khi cập nhật (drop policy if exists
+-- nên chạy nhiều lần an toàn).
+-- ============================================================
 alter table public.spy_data enable row level security;
 
+-- Gỡ policy đọc công khai cũ (nếu có từ schema phiên bản trước).
 drop policy if exists "spy_data public read" on public.spy_data;
-create policy "spy_data public read"
-  on public.spy_data for select
-  to anon, authenticated
-  using (true);
 
--- (Không tạo policy INSERT/UPDATE/DELETE cho anon — chỉ service_role được ghi.)
+-- VIEWER: mọi email @seryn.vn đã đăng nhập được ĐỌC.
+drop policy if exists "spy_data seryn read" on public.spy_data;
+create policy "spy_data seryn read"
+  on public.spy_data for select
+  to authenticated
+  using ( lower(coalesce(auth.jwt()->>'email', '')) like '%@seryn.vn' );
+
+-- ADMIN: hieuvm2@seryn.vn toàn quyền (SELECT/INSERT/UPDATE/DELETE).
+drop policy if exists "spy_data admin all" on public.spy_data;
+create policy "spy_data admin all"
+  on public.spy_data for all
+  to authenticated
+  using ( lower(coalesce(auth.jwt()->>'email', '')) = 'hieuvm2@seryn.vn' )
+  with check ( lower(coalesce(auth.jwt()->>'email', '')) = 'hieuvm2@seryn.vn' );

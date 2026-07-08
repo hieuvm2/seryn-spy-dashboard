@@ -48,6 +48,12 @@ jobs:
           # Supabase: cuối pipeline tự đẩy datasets lên Supabase cho dashboard đọc.
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Sync SERYN Pages từ sheet vận hành (Meta_Ads_Master_Database) -> Own Brand Pages.
+          # Sheet ID không phải secret; sheet đã share Viewer cho service account.
+          SERYN_PAGES_SHEET_ID: "1kqVs8dyOgnk5l3CsgcGlhex-eI7OHhAkS6GLKnXh4j0"
+          SERYN_PAGES_TAB: "Seryn Page"
+          SERYN_PAGES_GEO: "Nội địa"
+          SERYN_PAGES_STATUS: "Đang chạy"
           # crawl tuning (dùng Repository variables — vars — hoặc để trống dùng default)
           ADS_SOURCE_COUNTRY: ${{ vars.ADS_SOURCE_COUNTRY }}
           ADS_SOURCE_MAX_ADS: ${{ vars.ADS_SOURCE_MAX_ADS }}

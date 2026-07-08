@@ -1447,6 +1447,15 @@ async function main() {
   const weekDate = currentMondayISO();
   console.log(`Sheet ID: ${SHEET_ID}\nWeek    : ${weekDate}\n`);
 
+  // Đồng bộ Own Brand Pages từ sheet vận hành "Seryn Page" (nếu cấu hình
+  // SERYN_PAGES_SHEET_ID) TRƯỚC khi crawl — lỗi chỉ warn, không chặn pipeline.
+  if ((process.env.SERYN_PAGES_SHEET_ID || "").trim()) {
+    try {
+      const { syncSerynPages } = await import("./sync-seryn-pages.mjs");
+      await syncSerynPages({ write: true });
+    } catch (e) { warn(`Sync Seryn Pages lỗi (bỏ qua, dùng Own Brand Pages hiện có): ${e?.message || e}`); }
+  }
+
   const auth = buildAuth();
   const sheets = google.sheets({ version: "v4", auth });
 

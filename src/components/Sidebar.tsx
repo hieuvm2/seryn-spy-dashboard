@@ -27,7 +27,12 @@ interface SidebarProps {
   mobileOpen?: boolean;
   /** Đóng drawer (mobile). */
   onClose?: () => void;
+  /** false = viewer (chỉ xem) — chỉ thấy 3 tab đầu (Tổng quan / Đối thủ / Báo cáo). */
+  canEdit?: boolean;
 }
+
+/** Tab viewer được thấy. Admin: tất cả. */
+const VIEWER_VIEW_IDS: ViewId[] = ["overview", "brands", "reports"];
 
 type MenuItem = { id: ViewId; label: string; icon: any };
 type MenuGroup = { title: string; items: MenuItem[] };
@@ -52,7 +57,14 @@ const menuGroups: MenuGroup[] = [
   },
 ];
 
-export default function Sidebar({ activeSection, setActiveSection, mobileOpen = false, onClose }: SidebarProps) {
+export default function Sidebar({ activeSection, setActiveSection, mobileOpen = false, onClose, canEdit = true }: SidebarProps) {
+  // Viewer (chỉ xem): chỉ thấy 3 tab đầu.
+  const groups = canEdit
+    ? menuGroups
+    : menuGroups
+        .map((g) => ({ ...g, items: g.items.filter((it) => VIEWER_VIEW_IDS.includes(it.id)) }))
+        .filter((g) => g.items.length > 0);
+
   const handleNav = (id: ViewId) => {
     setActiveSection(id);
     window.location.hash = id;
@@ -95,7 +107,7 @@ export default function Sidebar({ activeSection, setActiveSection, mobileOpen = 
 
       {/* Nav (grouped) */}
       <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
-        {menuGroups.map((group) => (
+        {groups.map((group) => (
           <div key={group.title}>
             <p className="px-3 pb-1.5 text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold">
               {group.title}

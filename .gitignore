@@ -40,3 +40,6 @@ data/market-research/market_research_output.json
 # Script tạm (readback/debug) — không commit
 _*.mjs
 _*.json
+
+.vercel
+.env*

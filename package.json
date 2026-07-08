@@ -25,7 +25,9 @@
     "competitors:import": "node scripts/import-discovered-competitors.mjs",
     "competitors:status": "node scripts/competitor-discovery-status.mjs",
     "hooks:analyze": "node scripts/hook-intelligence-analysis.mjs",
-    "supabase:sync": "node scripts/sync-sheet-to-supabase.mjs"
+    "supabase:sync": "node scripts/sync-sheet-to-supabase.mjs",
+    "seryn:pages": "node scripts/sync-seryn-pages.mjs",
+    "seryn:pages:write": "node scripts/sync-seryn-pages.mjs --write"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

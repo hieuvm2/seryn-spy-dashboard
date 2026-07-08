@@ -23,6 +23,8 @@ import {
 } from "./utils/spyData";
 import { fetchOnlineSpyData, getOnlineApiUrl, isOnlineConfigured } from "./utils/onlineData";
 import { fetchSupabaseSpyData, isSupabaseConfigured } from "./utils/supabaseData";
+import { signOut, type AuthUser } from "./utils/auth";
+import { syncDirectCompetitorsOnline } from "./utils/directCompetitors";
 
 /** Nguồn online: ưu tiên Supabase; fallback Google Sheets (Apps Script). */
 const USE_SUPABASE = isSupabaseConfigured();
@@ -44,6 +46,9 @@ const VALID_VIEWS: ViewId[] = [
   "data-import",
 ];
 
+/** Viewer (chỉ xem) chỉ được vào 3 tab đầu. Admin: tất cả. */
+export const VIEWER_VIEWS: ViewId[] = ["overview", "brands", "reports"];
+
 /** Hash cũ -> view mới (tránh app trắng màn hình khi mở bookmark cũ). */
 const VIEW_REDIRECTS: Partial<Record<string, ViewId>> = {
   "weekly-intelligence": "overview",
@@ -56,7 +61,14 @@ const VIEW_REDIRECTS: Partial<Record<string, ViewId>> = {
   "seryn-recommendations": "brands",
 };
 
-export default function App() {
+interface AppProps {
+  /** User đã đăng nhập (null = chế độ demo không auth, khi chưa cấu hình Supabase). */
+  auth: AuthUser | null;
+}
+
+export default function App({ auth }: AppProps) {
+  // Quyền chỉnh sửa (nhập/xóa dữ liệu): admin — hoặc chế độ demo không auth.
+  const canEdit = !auth || auth.role === "admin";
   const stored = loadSpyDataFromLocalStorage();
   const [spyData, setSpyData] = useState<SpyDashboardData>(stored ?? sampleSpyDashboardData);
   const [dataSource, setDataSource] = useState<DataSourceType>(stored ? (loadSourceType() ?? "local-csv") : "demo");
@@ -69,6 +81,10 @@ export default function App() {
   const onlineConfigured = USE_SUPABASE || isOnlineConfigured();
   const [onlineStatus, setOnlineStatus] = useState<string>("");
   const [isOnlineLoading, setIsOnlineLoading] = useState(false);
+
+  // Khi khởi động: tải lựa chọn "đối thủ trực tiếp" của admin từ Supabase
+  // -> mọi người xem thấy cùng danh sách.
+  useEffect(() => { void syncDirectCompetitorsOnline(); }, []);
 
   // Khi khởi động: nếu có nguồn online -> tự fetch (Supabase ưu tiên).
   // Lỗi -> fallback localStorage (OFFLINE CACHE) -> sample. Không crash app.
@@ -137,7 +153,11 @@ export default function App() {
       const hash = window.location.hash.substring(1);
       const redirect = VIEW_REDIRECTS[hash];
       if (redirect) { window.location.hash = redirect; return; }
-      setActiveSection(VALID_VIEWS.includes(hash as ViewId) ? (hash as ViewId) : "overview");
+      // Viewer chỉ được vào 3 tab đầu (Tổng quan / Đối thủ / Báo cáo).
+      const allowed = canEdit
+        ? VALID_VIEWS.includes(hash as ViewId)
+        : VIEWER_VIEWS.includes(hash as ViewId);
+      setActiveSection(allowed ? (hash as ViewId) : "overview");
     };
     apply();
     window.addEventListener("hashchange", apply);
@@ -183,6 +203,7 @@ export default function App() {
         setActiveSection={goView}
         mobileOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        canEdit={canEdit}
       />
 
       <div className="flex-1 lg:pl-64 flex flex-col min-h-screen min-w-0">
@@ -191,19 +212,21 @@ export default function App() {
           market="Vietnam"
           weekDate={weekDate}
           isOnlineLoading={isOnlineLoading}
-          onImportClick={() => goView("data-import")}
-          onClear={handleClear}
+          onImportClick={canEdit ? () => goView("data-import") : undefined}
+          onClear={canEdit ? handleClear : undefined}
           onExportClick={() => setReportOpen(true)}
           onMenuClick={() => setSidebarOpen(true)}
+          user={auth}
+          onSignOut={auth ? () => signOut() : undefined}
         />
 
         <main className="p-4 sm:p-6 lg:p-8 flex-1 max-w-7xl w-full mx-auto pb-24">
           {activeSection === "overview" && <OverviewView data={spyData} onSelectBrand={setSelectedBrand} />}
           {activeSection === "brands" && <BrandsView data={spyData} onSelectBrand={setSelectedBrand} />}
           {activeSection === "reports" && <ReportsView data={spyData} />}
-          {activeSection === "competitor-setup" && <CompetitorSetupView data={spyData} />}
-          {activeSection === "competitor-discovery" && <CompetitorDiscoveryView data={spyData} />}
-          {activeSection === "data-import" && (
+          {activeSection === "competitor-setup" && canEdit && <CompetitorSetupView data={spyData} />}
+          {activeSection === "competitor-discovery" && canEdit && <CompetitorDiscoveryView data={spyData} />}
+          {activeSection === "data-import" && canEdit && (
             <DataImportView
               data={spyData}
               dataSource={dataSource}
