@@ -129,66 +129,87 @@ function Kpi({ label, value, tone }: { label: string; value: React.ReactNode; to
   );
 }
 
-/* Map accent -> class cụ thể (Tailwind JIT KHÔNG sinh class từ chuỗi nội suy). */
-const ICON_COLOR: Record<string, string> = {
-  slate: "text-slate-500", cyan: "text-cyan-500", violet: "text-violet-500",
-  amber: "text-amber-500", emerald: "text-emerald-500", rose: "text-rose-500",
-};
 const MOVER_TONE: Record<string, { wrap: string; icon: string }> = {
   cyan: { wrap: "border-cyan-100 bg-cyan-50/50", icon: "text-cyan-500" },
   emerald: { wrap: "border-emerald-100 bg-emerald-50/50", icon: "text-emerald-500" },
   rose: { wrap: "border-rose-100 bg-rose-50/50", icon: "text-rose-500" },
 };
 
-/** Danh sách bullet con (có tiêu đề nhóm) — dùng khi gộp nhiều field vào 1 card.
-    Bỏ các item chỉ là câu miễn trừ dữ liệu ("không phải ROAS/CPA..."). */
-function SubList({ title, body }: { title: string; body?: string }) {
-  const items = parseList(body).filter((it) => !isAdsDisclaimer(it));
+/** Tách "Đầu mục: nội dung" (đầu mục ngắn) để dựng bảng 2 cột quét nhanh. */
+function splitHead(s: string): { head: string; rest: string } | null {
+  const i = s.indexOf(":");
+  if (i > 0 && i <= 42) return { head: s.slice(0, i).trim(), rest: s.slice(i + 1).trim() };
+  return null;
+}
+
+const PRIO_BADGE: Record<string, string> = {
+  "ưu tiên cao": "bg-rose-50 text-rose-700 border-rose-200",
+  "trung bình": "bg-amber-50 text-amber-700 border-amber-200",
+  "thấp": "bg-slate-100 text-slate-600 border-slate-200",
+};
+const HEAD_BADGE: Record<string, string> = {
+  "phản đòn": "bg-rose-50 text-rose-700 border-rose-200",
+  "học hỏi": "bg-amber-50 text-amber-700 border-amber-200",
+  "áp dụng": "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "tránh": "bg-slate-100 text-slate-600 border-slate-200",
+  "theo dõi": "bg-cyan-50 text-cyan-700 border-cyan-200",
+};
+
+/** Bảng quan sát: "Brand: nội dung" -> hàng [badge đậm | nội dung ngắn];
+    "[Ưu tiên cao] việc..." -> badge màu theo mức ưu tiên. Bỏ câu miễn trừ. */
+function ObservationTable({ title, body }: { title?: string; body?: string }) {
+  const items = parseList(body).filter((it) => !isAdsDisclaimer(it)).map((it) => humanizeText(it));
   if (!items.length) return null;
   return (
     <div>
-      <p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1.5">{title}</p>
-      {items.length > 1 ? (
-        <ul className="space-y-1.5">
-          {items.map((it, i) => (
-            <li key={i} className="text-[13px] leading-relaxed text-slate-600 flex gap-2">
-              <span className="text-slate-300 select-none">•</span>
-              <span>{humanizeText(it)}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-[13px] leading-relaxed text-slate-600">{humanizeText(stripAdsDisclaimer(items[0]))}</p>
-      )}
+      {title && <p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1">{title}</p>}
+      <table className="w-full">
+        <tbody>
+          {items.map((raw, i) => {
+            const pm = raw.match(/^\[(.+?)\]\s*(.*)$/);
+            const sp = pm ? null : splitHead(raw);
+            const head = pm ? pm[1] : sp?.head;
+            const rest = pm ? pm[2] : sp ? sp.rest : raw;
+            const badge = (head && (PRIO_BADGE[head.toLowerCase()] || HEAD_BADGE[head.toLowerCase()])) || "bg-slate-50 border-slate-200 text-slate-700";
+            return (
+              <tr key={i} className="border-b border-slate-100 last:border-0 align-top">
+                <td className="py-1.5 pr-3 w-32 sm:w-44">
+                  {head && <span className={`inline-block px-2 py-0.5 rounded-md border text-[11px] font-bold leading-snug ${badge}`}>{head}</span>}
+                </td>
+                <td className="py-1.5 text-[13px] leading-relaxed text-slate-600">{rest}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-/** Section: nếu field list -> render bullet; nếu 1 đoạn -> render text.
-    Bỏ item chỉ là câu miễn trừ dữ liệu ("không phải ROAS/CPA..."). */
-function Section({ icon: Icon, title, body, accent = "slate" }: { icon: any; title: string; body?: string; accent?: string }) {
-  const items = parseList(body).filter((it) => !isAdsDisclaimer(it));
-  const has = items.length > 0;
+/** Biểu đồ thanh mini từ chuỗi "key (count) | ..." — thay chip cloud, đọc nhanh hơn.
+    Không parse được số -> fallback chips. */
+function MiniBars({ title, value }: { title: string; value?: string }) {
+  const items = parseList(value)
+    .map((it) => { const m = it.match(/^(.+?)\s*\((\d+)/); return m ? { label: viLabel(m[1].trim()), count: num(m[2]) } : null; })
+    .filter((x): x is { label: string; count: number } => !!x && !!x.label)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+  if (!items.length) return <TopChips title={title} value={value} />;
+  const max = Math.max(...items.map((i) => i.count), 1);
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5">
-      <div className="flex items-center gap-2 mb-2.5">
-        <Icon className={`w-4 h-4 ${ICON_COLOR[accent] ?? ICON_COLOR.slate}`} />
-        <h3 className="text-sm font-bold text-slate-800">{title}</h3>
+    <div>
+      <p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1.5">{title}</p>
+      <div className="space-y-1.5">
+        {items.map((it, i) => (
+          <div key={`${it.label}-${i}`} className="flex items-center gap-2 text-xs">
+            <span className="w-32 shrink-0 truncate text-slate-600 font-semibold" title={it.label}>{it.label}</span>
+            <div className="flex-1 h-2.5 rounded-[3px] bg-slate-100 overflow-hidden">
+              <div className="h-full rounded-[3px]" style={{ width: `${Math.max((it.count / max) * 100, 3)}%`, background: CH.blue }} />
+            </div>
+            <span className="w-8 text-right text-slate-800 font-bold tabular-nums">{it.count}</span>
+          </div>
+        ))}
       </div>
-      {!has ? (
-        <p className="text-xs text-slate-400 italic">Không có dữ liệu nổi bật trong kỳ.</p>
-      ) : items.length > 1 ? (
-        <ul className="space-y-1.5">
-          {items.map((it, i) => (
-            <li key={i} className="text-[13px] leading-relaxed text-slate-600 flex gap-2">
-              <span className="text-slate-300 select-none">•</span>
-              <span>{humanizeText(it)}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-[13px] leading-relaxed text-slate-600">{humanizeText(stripAdsDisclaimer(items[0]))}</p>
-      )}
     </div>
   );
 }
@@ -498,57 +519,73 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
             <MoverCol icon={TrendingDown} title="Giảm / dừng" value={r.top_stopped_ads_brands} accent="rose" />
           </div>
         )}
-        {/* Diễn giải biến động (gộp từ section "Biến động đối thủ" cũ — tránh 2 card trùng chủ đề) */}
+        {/* Diễn giải biến động — bảng brand | quan sát */}
         {!!String(r.key_competitor_moves ?? "").trim() && (
           <div className="mt-3 pt-3 border-t border-slate-100">
-            <SubList title="Diễn giải" body={r.key_competitor_moves} />
+            <ObservationTable title="Diễn giải" body={r.key_competitor_moves} />
           </div>
         )}
       </div>
 
-      {/* Top patterns */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
+      {/* Tín hiệu nổi bật — biểu đồ thanh mini theo từng chiều */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Target className="w-4 h-4 text-cyan-500" />
           <h3 className="text-sm font-bold text-slate-800">Tín hiệu nổi bật</h3>
         </div>
-        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3">
-          <TopChips title="Dịch vụ" value={r.top_services} />
-          <TopChips title="Ưu đãi" value={r.top_offers} />
-          <TopChips title="Góc nội dung" value={r.top_content_angles} />
-          <TopChips title="Định dạng QC" value={r.top_ad_formats} />
-          <TopChips title="Mục tiêu / phễu" value={r.top_objectives} />
+        <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4">
+          <MiniBars title="Dịch vụ" value={r.top_services} />
+          <MiniBars title="Ưu đãi" value={r.top_offers} />
+          <MiniBars title="Góc nội dung" value={r.top_content_angles} />
+          <MiniBars title="Định dạng QC" value={r.top_ad_formats} />
+          <MiniBars title="Mục tiêu / phễu" value={r.top_objectives} />
         </div>
       </div>
 
-      {/* Mẫu nội dung & hình ảnh (gộp 2 section pattern cũ) */}
+      {/* Mẫu nội dung & hình ảnh — bảng brand | quan sát */}
       {(!!String(r.notable_content_patterns ?? "").trim() || !!String(r.notable_visual_patterns ?? "").trim()) && (
         <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
           <div className="flex items-center gap-2">
             <ListChecks className="w-4 h-4 text-violet-500" />
             <h3 className="text-sm font-bold text-slate-800">Mẫu nội dung & hình ảnh đáng chú ý</h3>
           </div>
-          <SubList title="Nội dung" body={r.notable_content_patterns} />
-          <SubList title="Hình ảnh / creative" body={r.notable_visual_patterns} />
+          <ObservationTable title="Nội dung" body={r.notable_content_patterns} />
+          <ObservationTable title="Hình ảnh / creative" body={r.notable_visual_patterns} />
         </div>
       )}
 
-      <Section icon={ShieldAlert} title="Rủi ro tuyên bố (claim)" body={r.risk_warnings} accent="amber" />
+      {/* Rủi ro — bảng brand | rủi ro */}
+      {!!String(r.risk_warnings ?? "").trim() && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4 text-amber-500" />
+            <h3 className="text-sm font-bold text-slate-800">Rủi ro tuyên bố (claim)</h3>
+          </div>
+          <ObservationTable body={r.risk_warnings} />
+        </div>
+      )}
 
-      {/* Khuyến nghị cho SERYN (gộp "Hàm ý" + "Hành động đề xuất") */}
+      {/* Khuyến nghị cho SERYN — bảng có badge chiến lược / mức ưu tiên */}
       {(!!String(r.seryn_implications ?? "").trim() || !!String(r.recommended_actions ?? "").trim()) && (
         <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4 text-emerald-500" />
             <h3 className="text-sm font-bold text-slate-800">Khuyến nghị cho SERYN</h3>
           </div>
-          <SubList title="Hàm ý chiến lược" body={r.seryn_implications} />
-          <SubList title="Hành động đề xuất" body={r.recommended_actions} />
+          <ObservationTable title="Hàm ý chiến lược" body={r.seryn_implications} />
+          <ObservationTable title="Hành động đề xuất" body={r.recommended_actions} />
         </div>
       )}
 
+      {/* SERYN so với đối thủ — bảng chỉ số | giá trị */}
       {!!String(r.seryn_benchmark ?? "").trim() && (
-        <Section icon={Sparkles} title="SERYN so với đối thủ" body={r.seryn_benchmark} accent="cyan" />
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-cyan-500" />
+            <h3 className="text-sm font-bold text-slate-800">SERYN so với đối thủ</h3>
+          </div>
+          <ObservationTable body={r.seryn_benchmark} />
+        </div>
       )}
 
     </div>
