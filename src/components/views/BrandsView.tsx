@@ -14,7 +14,7 @@ const SCALE_SHORT: Record<string, string> = {
   "Long-running Content": "Chạy dài ngày", "Strong Content Pattern": "Pattern mạnh",
 };
 const OBJ_SHORT: Record<string, string> = {
-  messenger: "Messenger", lead_form: "Lead form", landing_page_conversion: "Trang đích",
+  messenger: "Messenger", lead_form: "Lead form", landing_page_conversion: "Landing page",
   phone_call: "Gọi điện", awareness: "Nhận biết", unknown: "Chưa rõ",
 };
 
@@ -176,7 +176,7 @@ export default function BrandsView({
                     <td className="px-4 py-3">
                       {contentByBrand[r.brand_name] ? (
                         <div className="space-y-1 max-w-[180px]">
-                          <span className="inline-block text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded">{ANGLE_VI[contentByBrand[r.brand_name].angle] || contentByBrand[r.brand_name].angle}</span>
+                          <span className="inline-block text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded">{ANGLE_VI[contentByBrand[r.brand_name].angle] || viLabel(contentByBrand[r.brand_name].angle)}</span>
                           <div className="flex flex-wrap gap-1 text-[10px] text-slate-500 font-semibold">
                             <span>{OBJ_SHORT[contentByBrand[r.brand_name].objective] || "Chưa rõ"}</span>
                             <span className="text-slate-300">·</span>

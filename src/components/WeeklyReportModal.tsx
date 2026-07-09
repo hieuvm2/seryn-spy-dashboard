@@ -232,7 +232,7 @@ export default function WeeklyReportModal({
             </div>
             <h1 className="rpt-title">Báo cáo Spy Ads đối thủ — Tuần {m.weekDate}</h1>
             <div className="rpt-meta">
-              Phạm vi: ad trẻ hóa da · {m.kpis.totalBrands} đối thủ watchlist · Thị trường Vietnam
+              Phạm vi: QC trẻ hóa da · {m.kpis.totalBrands} đối thủ trong danh sách theo dõi · Thị trường Việt Nam
               {m.generatedAt ? ` · Xuất lúc ${m.generatedAt}` : ""} · Nguồn: {m.sourceLabel}
             </div>
           </header>
@@ -263,10 +263,10 @@ export default function WeeklyReportModal({
             <table className="rpt-table">
               <thead>
                 <tr>
-                  <th>Đối thủ</th><th className="num">Active</th><th className="num">Mới</th>
-                  <th className="num">Dừng</th><th className="num">Scale</th>
+                  <th>Đối thủ</th><th className="num">Đang chạy</th><th className="num">Mới</th>
+                  <th className="num">Dừng</th><th className="num">Nhân rộng</th>
                   <th className="num">Video</th><th className="num">Msg</th>
-                  <th>Format chính</th><th>Hook chính</th>
+                  <th>Định dạng chính</th><th>Hook chính</th>
                 </tr>
               </thead>
               <tbody>
@@ -287,7 +287,7 @@ export default function WeeklyReportModal({
             </table>
             {m.inactiveBrands > 0 && (
               <p className="rpt-note">
-                Ẩn {m.inactiveBrands} đối thủ không chạy quảng cáo trẻ hóa da tuần này (active = 0).
+                Ẩn {m.inactiveBrands} đối thủ không chạy quảng cáo trẻ hóa da tuần này (0 QC đang chạy).
               </p>
             )}
           </section>
@@ -298,7 +298,7 @@ export default function WeeklyReportModal({
             <div className="rpt-pattern-grid">
               {[
                 { t: "Top hook", items: m.patterns.hooks },
-                { t: "Top offer", items: m.patterns.offers },
+                { t: "Top ưu đãi", items: m.patterns.offers },
                 { t: "Top định dạng", items: m.patterns.formats },
                 { t: "Top dịch vụ", items: m.patterns.services },
                 { t: "Top góc tiếp cận", items: m.patterns.angles },
@@ -344,7 +344,7 @@ export default function WeeklyReportModal({
             <h2 className="rpt-h2">Cụm nội dung đối thủ đang nhân rộng</h2>
             <table className="rpt-table">
               <thead>
-                <tr><th>Đối thủ</th><th className="num">Số ad</th><th>Format</th><th>Hook đại diện</th><th>SERYN</th></tr>
+                <tr><th>Đối thủ</th><th className="num">Số QC</th><th>Định dạng</th><th>Hook đại diện</th><th>SERYN</th></tr>
               </thead>
               <tbody>
                 {m.scaledClusters.length ? m.scaledClusters.map((s, i) => (
@@ -355,7 +355,7 @@ export default function WeeklyReportModal({
                     <td>{trunc(s.hook, 70) || "—"}</td>
                     <td className="rpt-action-cell">{s.action || "—"}</td>
                   </tr>
-                )) : <tr><td colSpan={5} className="rpt-muted">Chưa có cụm nội dung scale.</td></tr>}
+                )) : <tr><td colSpan={5} className="rpt-muted">Chưa có cụm nội dung nhân rộng.</td></tr>}
               </tbody>
             </table>
           </section>
@@ -363,12 +363,12 @@ export default function WeeklyReportModal({
           {/* ---- Action plan ---- */}
           {m.actions.length ? (
             <section className="rpt-section">
-              <h2 className="rpt-h2">Action Plan ưu tiên</h2>
+              <h2 className="rpt-h2">Kế hoạch hành động ưu tiên</h2>
               <ol className="rpt-actions">
                 {m.actions.map((a, i) => (
                   <li key={i} className="rpt-avoid">
-                    <span className={`rpt-prio rpt-prio-${a.priority}`}>{a.priority || "—"}</span>
-                    <b>{a.insight || a.insightType}</b>
+                    <span className={`rpt-prio rpt-prio-${a.priority}`}>{viLabel(a.priority) || "—"}</span>
+                    <b>{a.insight || viLabel(a.insightType)}</b>
                     {a.brand ? ` · ${a.brand}` : ""}
                     {a.suggested ? <div className="rpt-action-sub">→ {a.suggested}</div> : null}
                   </li>
@@ -381,9 +381,9 @@ export default function WeeklyReportModal({
           <footer className="rpt-footer">
             <div className="rpt-footer-brand">SERYN Clinic · Spy Ads Intelligence</div>
             <p className="rpt-footer-note">
-              Phạm vi spy: chỉ ad <b>căng da / trẻ hóa da mặt</b> của {m.kpis.totalBrands} đối thủ trong watchlist
-              (đã loại nâng ngực, hút mỡ, nâng mũi, răng, triệt lông, filler/botox thuần…). Brand hiển thị 0 ad
-              trẻ hóa da có thể vẫn chạy ad dịch vụ khác. Dữ liệu là tín hiệu quan sát, không phải kết quả
+              Phạm vi spy: chỉ QC <b>căng da / trẻ hóa da mặt</b> của {m.kpis.totalBrands} đối thủ trong danh sách theo dõi
+              (đã loại nâng ngực, hút mỡ, nâng mũi, răng, triệt lông, filler/botox thuần…). Brand hiển thị 0 QC
+              trẻ hóa da có thể vẫn chạy QC dịch vụ khác. Dữ liệu là tín hiệu quan sát, không phải kết quả
               ngân sách/chuyển đổi. Báo cáo nội bộ — không chia sẻ ra ngoài.
             </p>
           </footer>

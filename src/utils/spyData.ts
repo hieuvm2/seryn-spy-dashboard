@@ -461,6 +461,43 @@ const VI_LABELS: Record<string, string> = {
   promotion: "Khuyến mãi",
   luxury: "Sang trọng",
   unknown: "Chưa rõ",
+  // ---- status / meta hiển thị ----
+  active: "Đang chạy",
+  own: "Thương hiệu SERYN",
+  facebook: "Facebook",
+  demo: "Dữ liệu mẫu",
+  hook_intelligence: "Hook Intelligence",
+  weekly: "Tuần",
+  monthly: "Tháng",
+  // ---- change_type (Weekly Change Insights) ----
+  new_page_detected: "Phát hiện page mới",
+  service_focus_shifted: "Đổi trọng tâm dịch vụ",
+  offer_changed: "Thay đổi ưu đãi",
+  same_concept_new_variants: "Biến thể mới cùng concept",
+  // ---- recommended_action bổ sung ----
+  ignore: "Bỏ qua",
+  // ---- recommendation_type bổ sung ----
+  hook_content_opportunity: "Cơ hội nội dung từ hook",
+  // ---- trạng thái đối thủ / crawl run (badge Cấu hình đối thủ, Discovery) ----
+  ok: "Sẵn sàng",
+  inactive: "Ngưng",
+  needs_page_id: "Thiếu page_id",
+  crawl_error: "Lỗi crawl",
+  success: "Thành công",
+  failed: "Thất bại",
+  partial: "Một phần",
+  running: "Đang chạy",
+  // ---- category đối thủ (free-form) ----
+  hospital: "Bệnh viện",
+  spa: "Spa",
+  clinic: "Phòng khám",
+  // ---- testType (SerynBenchmark "Test tuần này") ----
+  "content angle": "Angle nội dung",
+  offer: "Ưu đãi",
+  format: "Định dạng",
+  funnel: "Funnel",
+  visual: "Visual",
+  cta: "CTA",
 };
 
 /** Dịch một token enum sang tiếng Việt (giữ nguyên nếu không có trong bảng). */

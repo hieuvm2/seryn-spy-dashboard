@@ -7,7 +7,7 @@
    tính: "thấp hơn trung bình", "chưa thấy dùng", "đối thủ lặp lại nhiều hơn".
    ============================================================ */
 import type { SpyDashboardData, BrandWeeklySnapshot, AdLevelAnalysis } from "../types";
-import { normalizeNumber, countChips } from "./spyData";
+import { normalizeNumber, countChips, viLabel } from "./spyData";
 import { isOwnRow, getOwnSnapshotBrandNames } from "./ownBrand";
 
 const num = normalizeNumber;
@@ -228,9 +228,9 @@ export function getSerynRecommendedTests(data: SpyDashboardData): SerynRecommend
 
   missingAngles.slice(0, 2).forEach((a) => tests.push({
     priority: "High", testType: "Content Angle",
-    recommendation: `Test có kiểm soát góc "${a}" theo tông SERYN (điềm tĩnh, y khoa).`,
+    recommendation: `Test có kiểm soát góc "${viLabel(a)}" theo tông SERYN (điềm tĩnh, y khoa).`,
     reason: "Đối thủ đang lặp lại angle này nhưng SERYN chưa thấy dùng trong dữ liệu hiện có.",
-    evidence: `Angle đối thủ hay dùng: ${c.topContentAngles.join(", ") || "—"}.`,
+    evidence: `Angle đối thủ hay dùng: ${c.topContentAngles.map(viLabel).join(", ") || "—"}.`,
     riskNote: /fear|nỗi lo|lão hóa/i.test(a) ? "Tránh fear-based; giữ 'kết quả tùy cơ địa'." : undefined,
   }));
   fmtGaps.forEach((k) => tests.push({
@@ -247,9 +247,9 @@ export function getSerynRecommendedTests(data: SpyDashboardData): SerynRecommend
   }));
   missingServices.slice(0, 2).forEach((sv) => tests.push({
     priority: "Low", testType: "Content Angle",
-    recommendation: `Cân nhắc nội dung giáo dục quanh dịch vụ "${sv}" nếu phù hợp định vị.`,
+    recommendation: `Cân nhắc nội dung giáo dục quanh dịch vụ "${viLabel(sv)}" nếu phù hợp định vị.`,
     reason: "Đối thủ đẩy mạnh dịch vụ này, SERYN chưa thấy trong dữ liệu.",
-    evidence: `Dịch vụ đối thủ nổi bật: ${c.topServices.join(", ") || "—"}.`,
+    evidence: `Dịch vụ đối thủ nổi bật: ${c.topServices.map(viLabel).join(", ") || "—"}.`,
   }));
   // Nếu SERYN neo offer/giá nhiều -> nhắc giữ premium
   if (s.topOffers.length && c.visualRates.offer_banner >= 30) {

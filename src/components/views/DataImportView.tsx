@@ -101,7 +101,7 @@ export default function DataImportView({
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setStatus({ msg: "Đã export JSON hiện tại.", ok: true });
+    setStatus({ msg: "Đã xuất file JSON hiện tại.", ok: true });
   };
 
   const counts: Record<SpyTableName, number> = {
@@ -149,7 +149,7 @@ export default function DataImportView({
           <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
             <p className="text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold mb-1">API URL</p>
             <span className={`inline-flex items-center gap-1.5 text-xs font-extrabold px-2 py-0.5 rounded border ${onlineConfigured ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
-              {onlineConfigured ? "Configured" : "Not configured"}
+              {onlineConfigured ? "Đã cấu hình" : "Chưa cấu hình"}
             </span>
           </div>
           <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
@@ -167,10 +167,10 @@ export default function DataImportView({
           disabled={isOnlineLoading}
           className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm transition cursor-pointer"
         >
-          <RefreshCw className={`w-4 h-4 ${isOnlineLoading ? "animate-spin" : ""}`} /> {isOnlineLoading ? "Đang nạp…" : "Refresh Online Data"}
+          <RefreshCw className={`w-4 h-4 ${isOnlineLoading ? "animate-spin" : ""}`} /> {isOnlineLoading ? "Đang nạp…" : "Làm mới dữ liệu online"}
         </button>
         {!onlineConfigured && (
-          <p className="text-[11px] text-amber-600 font-semibold mt-3">⚠️ Chưa cấu hình <code className="bg-slate-100 px-1 rounded">VITE_GOOGLE_SHEETS_API_URL</code>. Bấm Refresh sẽ báo <b>Missing VITE_GOOGLE_SHEETS_API_URL</b>. Thêm biến này trên Vercel rồi redeploy để bật chế độ ONLINE SHEET DATA.</p>
+          <p className="text-[11px] text-amber-600 font-semibold mt-3">⚠️ Chưa cấu hình <code className="bg-slate-100 px-1 rounded">VITE_GOOGLE_SHEETS_API_URL</code>. Bấm Làm mới sẽ báo <b>Missing VITE_GOOGLE_SHEETS_API_URL</b>. Thêm biến này trên Vercel rồi deploy lại để bật nguồn dữ liệu GOOGLE SHEETS.</p>
         )}
       </div>
 

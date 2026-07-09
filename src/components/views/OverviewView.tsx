@@ -35,7 +35,7 @@ function Kpi({ label, value, icon: Icon, accent }: { label: string; value: React
 }
 
 function ChipList({ items }: { items: { label: string; n: number }[] }) {
-  if (!items.length) return <span className="text-xs text-slate-400 font-semibold">unknown</span>;
+  if (!items.length) return <span className="text-xs text-slate-400 font-semibold">chưa rõ</span>;
   return (
     <div className="flex flex-wrap gap-2">
       {items.slice(0, 10).map((it) => (
@@ -141,7 +141,7 @@ export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboa
                 );
               })
             ) : (
-              <p className="text-xs text-slate-400 font-semibold">Chưa có content scale.</p>
+              <p className="text-xs text-slate-400 font-semibold">Chưa có nội dung nhân rộng.</p>
             )}
           </div>
           <p className="mt-5 text-[11px] text-slate-500 font-medium border-t border-slate-100 pt-3 leading-relaxed">

@@ -146,11 +146,11 @@ export default function BrandDetailDrawer({
             {/* Sticky header */}
             <div className="px-6 py-4 bg-white border-b border-slate-200 shrink-0 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className={`text-[10px] uppercase font-mono tracking-widest font-bold ${isOwn ? "text-emerald-600" : "text-cyan-600"}`}>{isOwn ? "SERYN PROFILE" : "HỒ SƠ ĐỐI THỦ"}</p>
+                <p className={`text-[10px] uppercase font-mono tracking-widest font-bold ${isOwn ? "text-emerald-600" : "text-cyan-600"}`}>{isOwn ? "HỒ SƠ SERYN" : "HỒ SƠ ĐỐI THỦ"}</p>
                 <h3 className="text-lg font-extrabold text-slate-900 truncate flex items-center gap-2">
                   {brandName}
                   {isOwn
-                    ? <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0"><Sparkles className="w-3 h-3" /> Own Brand</span>
+                    ? <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0"><Sparkles className="w-3 h-3" /> Thương hiệu của mình</span>
                     : isDirectCompetitor(brandName) && <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0"><Star className="w-3 h-3 fill-amber-400 text-amber-500" /> Trực tiếp</span>}
                 </h3>
                 {snap && <p className="text-xs text-slate-500 font-medium mt-0.5 max-w-2xl line-clamp-2">{humanizeText(orUnknown(snap.content_strategy_summary))}</p>}
@@ -188,7 +188,7 @@ export default function BrandDetailDrawer({
 
                     <div className="mt-3 pt-3 border-t border-slate-100 space-y-2.5">
                       <div>
-                        <p className="text-[11px] text-slate-400 font-semibold uppercase mb-1">Content đang scale</p>
+                        <p className="text-[11px] text-slate-400 font-semibold uppercase mb-1">Content đang nhân rộng</p>
                         {scalingContent.length ? (
                           <div className="flex flex-wrap gap-1.5">
                             {scalingContent.map((s, i) => (
@@ -276,7 +276,7 @@ export default function BrandDetailDrawer({
                         ]} />
                         <p className="text-[11px] text-slate-500 mt-2">Chủ đạo: <b>{viLabel(String(snap?.skin_rejuvenation_top_format || ""))}</b> → <b>{viLabel(String(snap?.skin_rejuvenation_top_inferred_objective || ""))}</b></p>
                       </div>
-                    ) : <p className="text-xs text-slate-400">Chưa có dữ liệu format/funnel trẻ hóa da.</p>}
+                    ) : <p className="text-xs text-slate-400">Chưa có dữ liệu định dạng/phễu trẻ hóa da.</p>}
                   </Section>
 
                   {/* Own brand -> đánh giá nội dung SERYN */}
@@ -316,7 +316,7 @@ function SerynSelfEval({ data }: { data: SpyDashboardData }) {
       <Row q="Nên test gì tiếp theo?">
         {cmp.recommendedTests.length ? (
           <ul className="list-disc pl-4 space-y-0.5">
-            {cmp.recommendedTests.slice(0, 3).map((t, i) => <li key={i}><b>[{t.priority}]</b> {t.recommendation}</li>)}
+            {cmp.recommendedTests.slice(0, 3).map((t, i) => <li key={i}><b>[{viLabel(t.priority)}]</b> {t.recommendation}</li>)}
           </ul>
         ) : "Chưa đủ dữ liệu để đề xuất test."}
       </Row>
@@ -361,7 +361,7 @@ function ContentCard({ c }: { c: AdContentIntelligence }) {
       <p className="text-xs font-bold text-slate-800 leading-snug">{c.contentSummary}</p>
       <div className="flex flex-wrap gap-1.5 text-[10px]">
         <span className={`font-bold px-2 py-0.5 rounded border ${SCALE_TONE[c.scaleSignal]}`}>{SCALE_VI[c.scaleSignal]}</span>
-        <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{ANGLE_VI[c.contentAngle] || c.contentAngle}</span>
+        <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{ANGLE_VI[c.contentAngle] || viLabel(c.contentAngle)}</span>
         <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{FMT_VI[c.adFormat]}</span>
         <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{OBJ_VI[c.inferredObjective]}</span>
         {c.activeDays > 0 && <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{c.activeDays} ngày</span>}
@@ -385,7 +385,7 @@ function ContentCard({ c }: { c: AdContentIntelligence }) {
       )}
       {tab === "psych" && (
         <div className="space-y-0.5">
-          <KV k="Pain" v={ps.customerPain} /><KV k="Desire" v={ps.customerDesire} />
+          <KV k="Nỗi đau" v={ps.customerPain} /><KV k="Mong muốn" v={ps.customerDesire} />
           <KV k="Niềm tin" v={ps.beliefTrigger} /><KV k="Gỡ phản đối" v={ps.objectionHandled} />
           <KV k="Cảm xúc" v={ps.emotionalTrigger} /><KV k="Nhận thức" v={ps.awarenessStage} />
           <p className="text-[11px] text-slate-600 mt-1">{ps.whyItMayWork}</p>
@@ -394,11 +394,11 @@ function ContentCard({ c }: { c: AdContentIntelligence }) {
       )}
       {tab === "seryn" && (
         <div className="space-y-1">
-          <p className="text-[11px]"><span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200">{ACTION_VI[r.recommendedAction] || r.recommendedAction}</span> <b className="text-slate-700">{r.suggestedAngle}</b></p>
-          <KV k="Counter" v={r.counterPositioning} />
-          <KV k="Short copy" v={r.shortAdCopy} />
-          <KV k="Premium" v={r.premiumRewrite} />
-          <KV k="An toàn" v={r.safeRewrite} />
+          <p className="text-[11px]"><span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200">{ACTION_VI[r.recommendedAction] || viLabel(r.recommendedAction)}</span> <b className="text-slate-700">{r.suggestedAngle}</b></p>
+          <KV k="Phản đòn" v={r.counterPositioning} />
+          <KV k="Copy ngắn" v={r.shortAdCopy} />
+          <KV k="Bản cao cấp" v={r.premiumRewrite} />
+          <KV k="Bản an toàn" v={r.safeRewrite} />
           <KV k="Visual" v={r.visualDirection} />
           <KV k="CTA" v={r.recommendedCTA} />
           <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">{r.complianceWarning}</p>
@@ -410,10 +410,10 @@ function ContentCard({ c }: { c: AdContentIntelligence }) {
           <KV k="Dịch vụ" v={c.serviceCategory} /><KV k="Visual" v={c.visualAngle || c.visualFormat} />
           {c.exampleAdUrls.length > 0 && (
             <div className="flex flex-wrap gap-2 pt-1">
-              {c.exampleAdUrls.slice(0, 5).map((u, i) => <a key={i} href={u} target="_blank" rel="noreferrer" className="text-[11px] text-cyan-600 hover:underline inline-flex items-center gap-0.5">ad {i + 1} <ExternalLink className="w-3 h-3" /></a>)}
+              {c.exampleAdUrls.slice(0, 5).map((u, i) => <a key={i} href={u} target="_blank" rel="noreferrer" className="text-[11px] text-cyan-600 hover:underline inline-flex items-center gap-0.5">QC {i + 1} <ExternalLink className="w-3 h-3" /></a>)}
             </div>
           )}
-          {!c.exampleAdUrls.length && c.exampleAdIds.length > 0 && <p className="text-[11px] text-slate-400">ads: {c.exampleAdIds.join(", ")}</p>}
+          {!c.exampleAdUrls.length && c.exampleAdIds.length > 0 && <p className="text-[11px] text-slate-400">Mã QC: {c.exampleAdIds.join(", ")}</p>}
         </div>
       )}
       </div>

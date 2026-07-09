@@ -4,6 +4,7 @@ import {
   AlertTriangle, Sparkles, ListChecks, Building2, Target, ShieldAlert, Info,
 } from "lucide-react";
 import type { SpyDashboardData, SpyReport, SpyReportType } from "../../types";
+import { viLabel, humanizeText } from "../../utils/spyData";
 
 /* ============================================================
    Báo cáo Spy Ads — xem lại báo cáo tuần / tháng (lưu theo kỳ).
@@ -61,24 +62,24 @@ function composeFullReport(r: SpyReport): string {
     : `BÁO CÁO SPY ADS TUẦN ${r.period_start} → ${r.period_end}`;
   return [
     head,
-    `(generated ${fmtDateTime(r.generated_at)} · TZ ${r.timezone})`,
+    `(tạo lúc ${fmtDateTime(r.generated_at)} · múi giờ ${r.timezone})`,
     "",
     sec("1. TÓM TẮT ĐIỀU HÀNH", r.executive_summary),
     "",
     "2. CHỈ SỐ CHÍNH",
     `- Đối thủ theo dõi: ${num(r.total_brands_tracked)}`,
-    `- Ads active${isMonthly ? " (cuối tháng)" : ""}: ${num(r.total_active_ads)}`,
+    `- Ads đang chạy${isMonthly ? " (cuối tháng)" : ""}: ${num(r.total_active_ads)}`,
     `- Ads mới: ${num(r.total_new_ads)}`,
     `- Ads dừng: ${num(r.total_stopped_ads)}`,
     `- Page theo dõi: ${num(r.total_pages_tracked)}`,
     `- Tỉ lệ crawl thành công: ${crawlRateLabel(r.crawl_success_rate)}`,
     "",
     sec("3. BIẾN ĐỘNG ĐỐI THỦ", r.key_competitor_moves),
-    `Top movers: ${r.top_movers || "—"}`,
+    `Biến động mạnh nhất (top movers): ${r.top_movers || "—"}`,
     `Tăng ad mới: ${r.top_new_ads_brands || "—"}`,
     `Giảm/dừng: ${r.top_stopped_ads_brands || "—"}`,
     "",
-    `4. DỊCH VỤ / OFFER NỔI BẬT\n- Dịch vụ: ${r.top_services || "—"}\n- Offer: ${r.top_offers || "—"}`,
+    `4. DỊCH VỤ / ƯU ĐÃI NỔI BẬT\n- Dịch vụ: ${r.top_services || "—"}\n- Ưu đãi: ${r.top_offers || "—"}`,
     "",
     sec("5. CONTENT ANGLE NỔI BẬT", r.notable_content_patterns),
     `Angle: ${r.top_content_angles || "—"}`,
@@ -158,15 +159,23 @@ function Section({ icon: Icon, title, body, accent = "slate" }: { icon: any; tit
           {items.map((it, i) => (
             <li key={i} className="text-[13px] leading-relaxed text-slate-600 flex gap-2">
               <span className="text-slate-300 select-none">•</span>
-              <span>{it}</span>
+              <span>{humanizeText(it)}</span>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-[13px] leading-relaxed text-slate-600">{body}</p>
+        <p className="text-[13px] leading-relaxed text-slate-600">{humanizeText(body)}</p>
       )}
     </div>
   );
+}
+
+/** Việt hóa chip "key (count)": dịch phần key qua viLabel, giữ "(count)". */
+function chipLabel(it: string): string {
+  const m = it.match(/^(.*?)\s*(\([^)]*\))?$/);
+  if (!m) return viLabel(it);
+  const key = viLabel(m[1].trim());
+  return m[2] ? `${key} ${m[2]}` : key;
 }
 
 /** Top chips dạng "key (count)". */
@@ -178,7 +187,7 @@ function TopChips({ title, value }: { title: string; value?: string }) {
       {items.length ? (
         <div className="flex flex-wrap gap-1.5">
           {items.map((it, i) => (
-            <span key={i} className="px-2 py-0.5 rounded-md bg-cyan-50 text-cyan-700 text-[11px] font-semibold border border-cyan-100">{it}</span>
+            <span key={i} className="px-2 py-0.5 rounded-md bg-cyan-50 text-cyan-700 text-[11px] font-semibold border border-cyan-100">{chipLabel(it)}</span>
           ))}
         </div>
       ) : (
@@ -269,7 +278,7 @@ function TrendChart({ reports }: { reports: SpyReport[] }) {
   const y = (v: number) => T + plotH - (v / max) * plotH;
   const line = (key: "active" | "added" | "stopped") => pts.map((p, i) => `${x(i)},${y(p[key])}`).join(" ");
   const series: { key: "active" | "added" | "stopped"; color: string; label: string }[] = [
-    { key: "active", color: CH.blue, label: "Ads active" },
+    { key: "active", color: CH.blue, label: "Ads đang chạy" },
     { key: "added", color: CH.aqua, label: "Ads mới" },
     { key: "stopped", color: CH.red, label: "Ads dừng" },
   ];
@@ -282,7 +291,7 @@ function TrendChart({ reports }: { reports: SpyReport[] }) {
     if (endLabels[i].ly - endLabels[i - 1].ly < 11) endLabels[i].ly = endLabels[i - 1].ly + 11;
   }
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Xu hướng ads active, mới, dừng qua các kỳ báo cáo">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Xu hướng ads đang chạy, mới, dừng qua các kỳ báo cáo">
       {ticks.map((tv) => (
         <g key={tv}>
           <line x1={L} y1={y(tv)} x2={W - R} y2={y(tv)} stroke={CH.grid} strokeWidth="1" />
@@ -372,7 +381,7 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
             <TrendingUp className="w-4 h-4 text-cyan-500" />
             <h3 className="text-sm font-bold text-slate-800">Xu hướng qua các kỳ {mode === "weekly" ? "tuần" : "tháng"}</h3>
           </div>
-          <ChartLegend items={[{ color: CH.blue, label: "Ads active" }, { color: CH.aqua, label: "Ads mới" }, { color: CH.red, label: "Ads dừng" }]} />
+          <ChartLegend items={[{ color: CH.blue, label: "Ads đang chạy" }, { color: CH.aqua, label: "Ads mới" }, { color: CH.red, label: "Ads dừng" }]} />
           <TrendChart reports={reports} />
         </div>
       )}
@@ -396,7 +405,7 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
                   <p className="text-[13px] font-bold text-slate-800 leading-snug">{r.title}</p>
                   <p className="text-[11px] font-mono text-slate-400 mt-0.5">{r.period_start} → {r.period_end}</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-2 text-[11px] font-semibold">
-                    <span className="text-slate-600">{num(r.total_active_ads)} active</span>
+                    <span className="text-slate-600">{num(r.total_active_ads)} đang chạy</span>
                     <span className="text-emerald-600">+{num(r.total_new_ads)} mới</span>
                     <span className="text-rose-500">−{num(r.total_stopped_ads)} dừng</span>
                   </div>
@@ -424,13 +433,13 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
           <div className="min-w-0">
             <h2 className="text-base font-bold text-slate-900">{r.title}</h2>
             <p className="text-xs font-mono text-slate-400 mt-0.5">
-              {r.period_start} → {r.period_end} · TZ {r.timezone} · {fmtDateTime(r.generated_at)}
+              {r.period_start} → {r.period_end} · Múi giờ {r.timezone} · {fmtDateTime(r.generated_at)}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <CopyButton label="Copy Executive Summary" getText={() => r.executive_summary} />
-            <CopyButton label="Copy Recommended Actions" getText={() => parseList(r.recommended_actions).map((s) => `- ${s}`).join("\n")} />
-            <CopyButton label="Copy Full Report" getText={() => composeFullReport(r)} />
+            <CopyButton label="Copy tóm tắt điều hành" getText={() => r.executive_summary} />
+            <CopyButton label="Copy hành động đề xuất" getText={() => parseList(r.recommended_actions).map((s) => `- ${s}`).join("\n")} />
+            <CopyButton label="Copy toàn bộ báo cáo" getText={() => composeFullReport(r)} />
           </div>
         </div>
 
@@ -442,7 +451,7 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
         {/* KPI snapshot */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3">
           <Kpi label="Đối thủ" value={num(r.total_brands_tracked)} />
-          <Kpi label="Ads active" value={num(r.total_active_ads)} />
+          <Kpi label="Ads đang chạy" value={num(r.total_active_ads)} />
           <Kpi label="Ads mới" value={`+${num(r.total_new_ads)}`} tone="new" />
           <Kpi label="Ads dừng" value={`−${num(r.total_stopped_ads)}`} tone="stopped" />
         </div>
@@ -476,7 +485,7 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
         </div>
         <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3">
           <TopChips title="Dịch vụ" value={r.top_services} />
-          <TopChips title="Offer" value={r.top_offers} />
+          <TopChips title="Ưu đãi (offer)" value={r.top_offers} />
           <TopChips title="Content angle" value={r.top_content_angles} />
           <TopChips title="Ad format" value={r.top_ad_formats} />
           <TopChips title="Objective / funnel" value={r.top_objectives} />
@@ -528,7 +537,7 @@ function EmptyState({ mode }: { mode: SpyReportType }) {
       <FileText className="w-8 h-8 text-slate-300 mx-auto mb-3" />
       <p className="text-sm font-bold text-slate-700">Chưa có báo cáo nào.</p>
       <p className="text-xs text-slate-500 mt-1.5">
-        Hãy chạy {mode === "weekly" ? "weekly" : "monthly"} report workflow hoặc tạo report thủ công bằng lệnh bên dưới.
+        Hãy chạy workflow báo cáo {mode === "weekly" ? "tuần" : "tháng"} hoặc tạo báo cáo thủ công bằng lệnh bên dưới.
       </p>
     </div>
   );

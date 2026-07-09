@@ -41,8 +41,8 @@ export function SerynSnapshotCard({ data, onOpen }: { data: SpyDashboardData; on
     <div className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50/60 to-white p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-cyan-700 bg-white border border-cyan-200 px-2 py-0.5 rounded-full"><Sparkles className="w-3 h-3" /> Own Brand</span>
-          <h3 className="text-base font-extrabold text-slate-900">{s.ownBrandName} Snapshot</h3>
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-cyan-700 bg-white border border-cyan-200 px-2 py-0.5 rounded-full"><Sparkles className="w-3 h-3" /> Thương hiệu của mình</span>
+          <h3 className="text-base font-extrabold text-slate-900">Tổng quan nhanh {s.ownBrandName}</h3>
         </div>
         <button onClick={onOpen} className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-500 px-3 py-1.5 rounded-lg transition">
           Xem phân tích SERYN <ArrowRight className="w-3.5 h-3.5" />
@@ -52,12 +52,12 @@ export function SerynSnapshotCard({ data, onOpen }: { data: SpyDashboardData; on
         <p className="text-xs text-slate-500 mt-3">Chưa có dữ liệu ads công khai của SERYN. Thêm page vào tab <span className="font-mono">Own Brand Pages</span> rồi crawl để bật benchmark.</p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
-          <Metric label="Ads active" value={s.activeAds} />
+          <Metric label="Ads đang chạy" value={s.activeAds} />
           <Metric label="Ads mới" value={`+${s.newAds}`} tone="emerald" />
-          <Metric label="Format chính" value={topFmt ? `${viLabel(topFmt[0])} ${topFmt[1]}%` : "—"} />
-          <Metric label="Objective chính" value={topFunnel ? `${viLabel(topFunnel[0])} ${topFunnel[1]}%` : "—"} />
+          <Metric label="Định dạng chính" value={topFmt ? `${viLabel(topFmt[0])} ${topFmt[1]}%` : "—"} />
+          <Metric label="Mục tiêu chính" value={topFunnel ? `${viLabel(topFunnel[0])} ${topFunnel[1]}%` : "—"} />
           <div className="col-span-2"><p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1">Dịch vụ</p><Chips items={s.topServices.slice(0, 4)} /></div>
-          <div className="col-span-2"><p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1">Content angle</p><Chips items={s.topContentAngles.slice(0, 4)} /></div>
+          <div className="col-span-2"><p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1">Angle nội dung</p><Chips items={s.topContentAngles.slice(0, 4)} /></div>
         </div>
       )}
     </div>
@@ -84,14 +84,14 @@ export function SerynBenchmarkCompact({ data, onOpen }: { data: SpyDashboardData
         {onOpen && <button onClick={onOpen} className="text-[11px] font-bold text-cyan-700 hover:underline">Chi tiết ở tab Đối thủ →</button>}
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <Metric label="SERYN ads" value={cmp.serynActiveAds} />
+        <Metric label="Ads SERYN" value={cmp.serynActiveAds} />
         <Metric label="TB đối thủ" value={cmp.competitorAvgActiveAds} />
         <Metric label="Đối thủ mạnh nhất" value={cmp.topCompetitorActiveAds} />
       </div>
       <div className="mt-3 space-y-1.5 text-[12px] text-slate-600">
-        <p><b className="text-slate-500">Volume:</b> {volumePositionNote(cmp)}</p>
-        <p><b className="text-slate-500">Angle gap:</b> {cmp.missingContentAngles.slice(0, 3).map(viLabel).join(", ") || "không khác biệt lớn"}</p>
-        <p><b className="text-slate-500">Format gap:</b> {cmp.formatGapNote}</p>
+        <p><b className="text-slate-500">Số lượng:</b> {volumePositionNote(cmp)}</p>
+        <p><b className="text-slate-500">Angle còn thiếu:</b> {cmp.missingContentAngles.slice(0, 3).map(viLabel).join(", ") || "không khác biệt lớn"}</p>
+        <p><b className="text-slate-500">Chênh lệch định dạng:</b> {cmp.formatGapNote}</p>
         {test && <p className="text-cyan-700"><b>Test tuần này:</b> {test.recommendation}</p>}
       </div>
       <p className="mt-3 text-[11px] text-slate-400 italic">Tín hiệu ads công khai, không phải ROAS/CPA. Số liệu tham khảo.</p>
@@ -120,18 +120,18 @@ export function SerynVsCompetitorSection({ data }: { data: SpyDashboardData }) {
       )}
 
       {/* 1. Volume */}
-      <Card icon={TrendingUp} title="1 · Volume ads">
+      <Card icon={TrendingUp} title="1 · Số lượng ads">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Metric label="SERYN" value={cmp.serynActiveAds} />
           <Metric label="TB đối thủ" value={cmp.competitorAvgActiveAds} />
           <Metric label="Đối thủ cao nhất" value={cmp.topCompetitorActiveAds} />
-          <Metric label="Gap" value={cmp.serynActiveAds - cmp.competitorAvgActiveAds} />
+          <Metric label="Chênh lệch" value={cmp.serynActiveAds - cmp.competitorAvgActiveAds} />
         </div>
         <p className="text-[12px] text-slate-600 mt-2">{volumePositionNote(cmp)} Đối thủ cao nhất: <b>{cmp.topCompetitorName}</b>.</p>
       </Card>
 
       {/* 2 · Content angles */}
-      <Card icon={Target} title="2 · Content angle">
+      <Card icon={Target} title="2 · Angle nội dung">
         <TwoCol
           left={{ title: "SERYN đang dùng", items: cmp.serynTopContentAngles }}
           right={{ title: "Đối thủ lặp lại nhiều", items: cmp.competitorTopContentAngles }}
@@ -145,11 +145,11 @@ export function SerynVsCompetitorSection({ data }: { data: SpyDashboardData }) {
           left={{ title: "SERYN", items: cmp.serynTopServices }}
           right={{ title: "Đối thủ", items: cmp.competitorTopServices }}
         />
-        <GapRow label="Đối thủ push nhưng SERYN chưa" items={cmp.missingServiceOpportunities} tone="amber" />
+        <GapRow label="Đối thủ đẩy mạnh nhưng SERYN chưa" items={cmp.missingServiceOpportunities} tone="amber" />
       </Card>
 
       {/* 4 · Offers */}
-      <Card icon={Layers} title="4 · Offer">
+      <Card icon={Layers} title="4 · Ưu đãi (offer)">
         <TwoCol
           left={{ title: "SERYN", items: cmp.serynTopOffers }}
           right={{ title: "Đối thủ", items: cmp.competitorTopOffers }}
@@ -158,14 +158,14 @@ export function SerynVsCompetitorSection({ data }: { data: SpyDashboardData }) {
       </Card>
 
       {/* 5 · Format */}
-      <Card icon={Filter} title="5 · Định dạng (image/video/carousel)">
+      <Card icon={Filter} title="5 · Định dạng (ảnh/video/carousel)">
         <p className="text-[12px] text-slate-600"><b className="text-slate-500">SERYN:</b> {fmt(cmp.serynFormatMix)}</p>
         <p className="text-[12px] text-slate-600"><b className="text-slate-500">Đối thủ:</b> {fmt(cmp.competitorFormatMix)}</p>
         <p className="text-[12px] text-cyan-700 mt-1">{cmp.formatGapNote}</p>
       </Card>
 
       {/* 6 · Funnel */}
-      <Card icon={Filter} title="6 · Funnel / Objective">
+      <Card icon={Filter} title="6 · Funnel / Mục tiêu">
         <p className="text-[12px] text-slate-600"><b className="text-slate-500">SERYN:</b> {fmt(cmp.serynFunnelMix)}</p>
         <p className="text-[12px] text-slate-600"><b className="text-slate-500">Đối thủ:</b> {fmt(cmp.competitorFunnelMix)}</p>
         <p className="text-[12px] text-cyan-700 mt-1">{cmp.funnelGapNote}</p>
@@ -175,7 +175,7 @@ export function SerynVsCompetitorSection({ data }: { data: SpyDashboardData }) {
       <Card icon={ShieldAlert} title="7 · Visual & rủi ro claim">
         <p className="text-[12px] text-slate-600">{cmp.visualGapNote}</p>
         <p className="text-[12px] text-amber-700 mt-1">{cmp.riskGapNote}</p>
-        <p className="text-[11px] text-slate-400 mt-1">Bác sĩ đối thủ {c.visualRates.doctor}% · UGC {c.visualRates.ugc}% · offer banner {c.visualRates.offer_banner}% · rủi ro {c.visualRates.risk}%. (SERYN: bác sĩ {s.visualRates.doctor}%.)</p>
+        <p className="text-[11px] text-slate-400 mt-1">Bác sĩ đối thủ {c.visualRates.doctor}% · UGC {c.visualRates.ugc}% · banner ưu đãi {c.visualRates.offer_banner}% · rủi ro {c.visualRates.risk}%. (SERYN: bác sĩ {s.visualRates.doctor}%.)</p>
       </Card>
 
       {/* 8 · Recommended tests */}
@@ -218,8 +218,8 @@ function TestRow({ t }: { t: SerynRecommendedTest }) {
   return (
     <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
       <div className="flex items-center gap-2 flex-wrap mb-1">
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${PRIO_TONE[t.priority]}`}>{t.priority}</span>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-cyan-200 bg-cyan-50 text-cyan-700">{t.testType}</span>
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${PRIO_TONE[t.priority]}`}>{viLabel(t.priority)}</span>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-cyan-200 bg-cyan-50 text-cyan-700">{viLabel(t.testType)}</span>
       </div>
       <p className="text-[13px] font-semibold text-slate-800">{t.recommendation}</p>
       <p className="text-[11px] text-slate-500 mt-0.5">{t.reason}</p>

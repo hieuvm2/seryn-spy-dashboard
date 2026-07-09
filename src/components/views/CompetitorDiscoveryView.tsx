@@ -124,7 +124,7 @@ export default function CompetitorDiscoveryView({ data }: { data: SpyDashboardDa
         <Stat label="Trùng lặp" value={counts.duplicate} />
         <Stat label="Đã import" value={counts.imported} />
       </div>
-      {latestRun && <p className="text-xs text-slate-500">Run gần nhất: <b>{latestRun.run_id || latestRun.crawl_run_id}</b> ({latestRun.status}) @ {latestRun.finished_at || latestRun.started_at}</p>}
+      {latestRun && <p className="text-xs text-slate-500">Lần chạy gần nhất: <b>{latestRun.run_id || latestRun.crawl_run_id}</b> ({viLabel(String(latestRun.status))}) @ {latestRun.finished_at || latestRun.started_at}</p>}
 
       {/* C. Filters */}
       <div className="flex flex-wrap items-center gap-2">
@@ -137,7 +137,7 @@ export default function CompetitorDiscoveryView({ data }: { data: SpyDashboardDa
           {STATUSES.map((s) => <option key={s} value={s}>{STATUS_VI[s] || s}</option>)}
         </select>
         <label className="text-xs flex items-center gap-1.5 text-slate-600">
-          <input type="checkbox" checked={readyOnly} onChange={(e) => setReadyOnly(e.target.checked)} /> ready_for_spy
+          <input type="checkbox" checked={readyOnly} onChange={(e) => setReadyOnly(e.target.checked)} /> Chỉ sẵn sàng spy
         </label>
         {toast && <span className="text-xs text-cyan-700 font-bold ml-auto">{toast}</span>}
       </div>
@@ -249,8 +249,8 @@ type Counts = { found: number; needs_review: number; needs_page_id: number; appr
 type HealthItem = { level: "warn" | "info"; text: string };
 function buildHealth(run: CrawlRun | undefined, c: Counts): HealthItem[] {
   const out: HealthItem[] = [];
-  if (run && String(run.status) === "failed") out.push({ level: "warn", text: "Run gần nhất THẤT BẠI — kiểm tra log GitHub Actions (EXA_API_KEY / queries lỗi)." });
-  else if (run && String(run.status) === "partial") out.push({ level: "warn", text: `Run gần nhất chạy một phần (partial): ${run.error_summary || "một số query Exa lỗi"}.` });
+  if (run && String(run.status) === "failed") out.push({ level: "warn", text: "Lần chạy gần nhất THẤT BẠI — kiểm tra log GitHub Actions (EXA_API_KEY / queries lỗi)." });
+  else if (run && String(run.status) === "partial") out.push({ level: "warn", text: `Lần chạy gần nhất chạy một phần (partial): ${run.error_summary || "một số query Exa lỗi"}.` });
   if (c.found > 0 && c.needs_page_id > 0) out.push({ level: "warn", text: `${c.needs_page_id} đối thủ thiếu page_id — bổ sung page_id (dạng số) rồi duyệt thì mới spy ads được.` });
   if (c.approved > 0 && c.imported === 0) out.push({ level: "warn", text: `${c.approved} đối thủ đã duyệt nhưng chưa import — chạy "npm run competitors:import" để đưa vào Competitors.` });
   if (c.found > 0 && c.ready === 0) out.push({ level: "info", text: "Chưa có đối thủ nào sẵn sàng spy (cần page_id dạng số + đã duyệt)." });
