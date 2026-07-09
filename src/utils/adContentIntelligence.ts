@@ -242,8 +242,7 @@ export function buildContentPsychology(item: Partial<AdContentIntelligence>): Ad
   const days = num(item.activeDays);
   const why = `Pattern này đáng chú ý: ${num(item.adsCount)} nội dung tương tự` +
     (days ? `, chạy bền tới ${days} ngày` : "") +
-    `, dùng góc ${ANGLE_VI[angle] || angle} quanh "${pain}" ở giai đoạn ${AWARE[angle] || "Problem-aware"}. ` +
-    "Đây là tín hiệu từ dữ liệu ads, không phải hiệu quả chuyển đổi.";
+    `, dùng góc ${ANGLE_VI[angle] || angle} quanh "${pain}" ở giai đoạn ${AWARE[angle] || "Problem-aware"}.`;
   const r = item.riskLevel;
   const riskNote = r === "High" ? "Rủi ro claim CAO — chỉ dùng bản an toàn, tránh mọi claim mạnh."
     : r === "Medium" ? "Có rủi ro claim — review câu chữ trước khi chạy." : "Rủi ro thấp — vẫn tránh claim tuyệt đối.";

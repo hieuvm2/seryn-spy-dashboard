@@ -94,7 +94,6 @@ export function SerynBenchmarkCompact({ data, onOpen }: { data: SpyDashboardData
         <p><b className="text-slate-500">Chênh lệch định dạng:</b> {cmp.formatGapNote}</p>
         {test && <p className="text-cyan-700"><b>Test tuần này:</b> {test.recommendation}</p>}
       </div>
-      <p className="mt-3 text-[11px] text-slate-400 italic">Tín hiệu ads công khai, không phải ROAS/CPA. Số liệu tham khảo.</p>
     </div>
   );
 }
@@ -110,7 +109,7 @@ export function SerynVsCompetitorSection({ data }: { data: SpyDashboardData }) {
       <div className="flex flex-col gap-1.5 border-l-2 border-cyan-500 pl-4">
         <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">SO SÁNH</span>
         <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">SERYN vs Đối thủ</h3>
-        <p className="text-sm text-slate-600 font-medium">So sánh tín hiệu ads công khai của SERYN với thị trường. Không dùng CPA/ROAS/spend.</p>
+        <p className="text-sm text-slate-600 font-medium">So sánh tín hiệu ads công khai của SERYN với thị trường.</p>
       </div>
 
       {!cmp.serynHasData && (

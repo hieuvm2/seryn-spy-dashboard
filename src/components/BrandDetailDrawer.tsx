@@ -240,7 +240,7 @@ export default function BrandDetailDrawer({
                   {/* 4. Phân tích content quảng cáo (section chính, full width) — gồm
                        luôn các quảng cáo tốt nhất (số lượng QC nhiều nhất) + ảnh thumbnail. */}
                   <Section icon={FileText} title="Phân tích content quảng cáo" accent full>
-                    <p className="text-[10px] text-slate-400 mb-3 italic">~10 quảng cáo có số lượng QC nhiều nhất của brand — kèm ảnh + bóc tách nội dung. Đây là tín hiệu từ dữ liệu ads (số QC lặp + thời gian chạy…), không phải dữ liệu hiệu quả chuyển đổi (CPA/ROAS).</p>
+                    <p className="text-[10px] text-slate-400 mb-3 italic">~10 quảng cáo có số lượng QC nhiều nhất của brand — kèm ảnh + bóc tách nội dung.</p>
                     {content.length ? (
                       <div className="grid md:grid-cols-2 gap-3">
                         {content.slice(0, 10).map((c) => <div key={c.id}><ContentCard c={c} /></div>)}
@@ -320,7 +320,6 @@ function SerynSelfEval({ data }: { data: SpyDashboardData }) {
           </ul>
         ) : "Chưa đủ dữ liệu để đề xuất test."}
       </Row>
-      <p className="text-[11px] text-slate-400 italic mt-1">Tín hiệu ads công khai, không phải ROAS/CPA.</p>
     </div>
   );
 }
@@ -353,7 +352,7 @@ function ContentCard({ c }: { c: AdContentIntelligence }) {
       <div className="relative">
         <AdThumb url={c.thumbnailUrl} format={c.adFormat} />
         {c.adsCount > 1 && <span className="absolute top-1.5 left-1.5 text-[9px] font-extrabold uppercase tracking-wide text-rose-700 bg-rose-50/95 border border-rose-200 px-1.5 py-0.5 rounded">{c.adsCount} QC</span>}
-        <span className="absolute top-1.5 right-1.5 text-[11px] font-extrabold px-1.5 py-0.5 rounded-lg bg-slate-900/85 text-white" title="Tín hiệu từ dữ liệu ads, không phải CPA/ROAS">{c.contentScore}</span>
+        <span className="absolute top-1.5 right-1.5 text-[11px] font-extrabold px-1.5 py-0.5 rounded-lg bg-slate-900/85 text-white" title="Điểm tín hiệu content">{c.contentScore}</span>
         {c.exampleAdUrls[0] && <a href={c.exampleAdUrls[0]} target="_blank" rel="noreferrer" className="absolute bottom-1.5 right-1.5 text-[10px] font-bold text-white bg-cyan-600/90 hover:bg-cyan-600 px-2 py-0.5 rounded inline-flex items-center gap-0.5">Mở QC <ExternalLink className="w-3 h-3" /></a>}
       </div>
 

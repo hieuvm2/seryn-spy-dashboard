@@ -383,8 +383,7 @@ export default function WeeklyReportModal({
             <p className="rpt-footer-note">
               Phạm vi spy: chỉ QC <b>căng da / trẻ hóa da mặt</b> của {m.kpis.totalBrands} đối thủ trong danh sách theo dõi
               (đã loại nâng ngực, hút mỡ, nâng mũi, răng, triệt lông, filler/botox thuần…). Brand hiển thị 0 QC
-              trẻ hóa da có thể vẫn chạy QC dịch vụ khác. Dữ liệu là tín hiệu quan sát, không phải kết quả
-              ngân sách/chuyển đổi. Báo cáo nội bộ — không chia sẻ ra ngoài.
+              trẻ hóa da có thể vẫn chạy QC dịch vụ khác. Báo cáo nội bộ — không chia sẻ ra ngoài.
             </p>
           </footer>
         </article>

@@ -322,7 +322,7 @@ function OwnBrandStatus({ data }: { data: SpyDashboardData }) {
         ))}
       </div>
       <p className="text-[11px] text-slate-400 mt-2">
-        {s.hasData ? "SERYN có dữ liệu ads công khai — benchmark đã bật." : "Chưa có dữ liệu ads SERYN — thêm page có page_id numeric + crawl để bật benchmark."} Tín hiệu ads công khai, không phải ROAS/CPA.
+        {s.hasData ? "SERYN có dữ liệu ads công khai — benchmark đã bật." : "Chưa có dữ liệu ads SERYN — thêm page có page_id numeric + crawl để bật benchmark."}
       </p>
     </div>
   );

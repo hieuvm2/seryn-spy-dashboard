@@ -4,7 +4,7 @@ import {
   Sparkles, ListChecks, Target, ShieldAlert, Info,
 } from "lucide-react";
 import type { SpyDashboardData, SpyReport, SpyReportType } from "../../types";
-import { viLabel, humanizeText } from "../../utils/spyData";
+import { viLabel, humanizeText, isAdsDisclaimer, stripAdsDisclaimer } from "../../utils/spyData";
 
 /* ============================================================
    Báo cáo Spy Ads — xem lại báo cáo tuần / tháng (lưu theo kỳ).
@@ -94,8 +94,6 @@ function composeFullReport(r: SpyReport): string {
     sec("9. HÀNH ĐỘNG ĐỀ XUẤT", r.recommended_actions),
     "",
     sec("SERYN VS ĐỐI THỦ", r.seryn_benchmark),
-    "",
-    `Lưu ý: ${r.data_quality_note || "Đây là báo cáo dựa trên dữ liệu ads công khai và tín hiệu lặp lại, không phải dữ liệu CPA/ROAS/spend thật."}`,
   ].join("\n");
 }
 
@@ -142,10 +140,11 @@ const MOVER_TONE: Record<string, { wrap: string; icon: string }> = {
   rose: { wrap: "border-rose-100 bg-rose-50/50", icon: "text-rose-500" },
 };
 
-/** Danh sách bullet con (có tiêu đề nhóm) — dùng khi gộp nhiều field vào 1 card. */
+/** Danh sách bullet con (có tiêu đề nhóm) — dùng khi gộp nhiều field vào 1 card.
+    Bỏ các item chỉ là câu miễn trừ dữ liệu ("không phải ROAS/CPA..."). */
 function SubList({ title, body }: { title: string; body?: string }) {
-  const items = parseList(body);
-  if (!String(body ?? "").trim()) return null;
+  const items = parseList(body).filter((it) => !isAdsDisclaimer(it));
+  if (!items.length) return null;
   return (
     <div>
       <p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1.5">{title}</p>
@@ -159,16 +158,17 @@ function SubList({ title, body }: { title: string; body?: string }) {
           ))}
         </ul>
       ) : (
-        <p className="text-[13px] leading-relaxed text-slate-600">{humanizeText(body)}</p>
+        <p className="text-[13px] leading-relaxed text-slate-600">{humanizeText(stripAdsDisclaimer(items[0]))}</p>
       )}
     </div>
   );
 }
 
-/** Section: nếu field list -> render bullet; nếu 1 đoạn -> render text. */
+/** Section: nếu field list -> render bullet; nếu 1 đoạn -> render text.
+    Bỏ item chỉ là câu miễn trừ dữ liệu ("không phải ROAS/CPA..."). */
 function Section({ icon: Icon, title, body, accent = "slate" }: { icon: any; title: string; body?: string; accent?: string }) {
-  const items = parseList(body);
-  const has = !!String(body ?? "").trim();
+  const items = parseList(body).filter((it) => !isAdsDisclaimer(it));
+  const has = items.length > 0;
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5">
       <div className="flex items-center gap-2 mb-2.5">
@@ -187,7 +187,7 @@ function Section({ icon: Icon, title, body, accent = "slate" }: { icon: any; tit
           ))}
         </ul>
       ) : (
-        <p className="text-[13px] leading-relaxed text-slate-600">{humanizeText(body)}</p>
+        <p className="text-[13px] leading-relaxed text-slate-600">{humanizeText(stripAdsDisclaimer(items[0]))}</p>
       )}
     </div>
   );
@@ -468,7 +468,7 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
 
         {/* Executive summary */}
         <div className="mt-3 rounded-xl bg-slate-50 border border-slate-100 p-3.5">
-          <p className="text-[13px] leading-relaxed text-slate-700">{humanizeText(r.executive_summary)}</p>
+          <p className="text-[13px] leading-relaxed text-slate-700">{humanizeText(stripAdsDisclaimer(r.executive_summary))}</p>
         </div>
 
         {/* KPI snapshot */}
@@ -551,13 +551,6 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
         <Section icon={Sparkles} title="SERYN so với đối thủ" body={r.seryn_benchmark} accent="cyan" />
       )}
 
-      {/* Data quality note */}
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 flex gap-2.5">
-        <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-        <p className="text-[12px] leading-relaxed text-amber-800">
-          {r.data_quality_note || "Đây là báo cáo dựa trên dữ liệu ads công khai và tín hiệu lặp lại, không phải dữ liệu CPA/ROAS/spend thật."}
-        </p>
-      </div>
     </div>
   );
 }

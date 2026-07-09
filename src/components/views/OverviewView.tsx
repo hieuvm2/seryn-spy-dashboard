@@ -101,7 +101,6 @@ export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboa
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
         <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-2">Báo cáo tuần</h3>
         <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 border border-slate-100 rounded-xl p-3">{execSummary}</p>
-        <p className="text-[11px] text-slate-400 mt-2 italic">Tín hiệu từ dữ liệu ads (số lượng + thời gian chạy), không phải kết quả ROAS/CPA.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

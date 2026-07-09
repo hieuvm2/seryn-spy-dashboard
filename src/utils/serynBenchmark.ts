@@ -243,7 +243,7 @@ export function getSerynRecommendedTests(data: SpyDashboardData): SerynRecommend
     priority: "Medium", testType: "Funnel",
     recommendation: `Thử tuyến ${FUNNEL_VI[k] || k} song song để đo phản hồi.`,
     reason: `Đối thủ dùng ${FUNNEL_VI[k] || k} nhiều hơn (đối thủ ${c.funnelMix[k] || 0}% vs SERYN ${s.funnelMix[k] || 0}%).`,
-    evidence: "Tín hiệu funnel từ CTA/landing công khai, không phải dữ liệu chuyển đổi.",
+    evidence: "Tín hiệu funnel từ CTA/landing công khai.",
   }));
   missingServices.slice(0, 2).forEach((sv) => tests.push({
     priority: "Low", testType: "Content Angle",

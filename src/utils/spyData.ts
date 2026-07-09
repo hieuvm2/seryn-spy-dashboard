@@ -562,6 +562,23 @@ const FREE_TEXT_EN: Array<[RegExp, string]> = [
   [/^Avoid\b/g, "Tránh:"],
   [/^Monitor\b/g, "Theo dõi:"],
 ];
+/* ---- Lọc câu miễn trừ "tín hiệu ads, không phải ROAS/CPA..." khỏi nội dung hiển thị ---- */
+const DISCLAIMER_RE = /(không phải|ko phải)\s+(dữ liệu\s+|kết quả\s+)?(hiệu quả|ROAS|CPA|chuyển đổi|spend|ngân sách)/i;
+
+/** Cả chuỗi là một câu miễn trừ dữ liệu (để bỏ hẳn item khỏi list). */
+export function isAdsDisclaimer(value?: string): boolean {
+  return DISCLAIMER_RE.test(String(value ?? ""));
+}
+
+/** Xóa các CÂU miễn trừ dữ liệu bên trong một đoạn văn (giữ các câu còn lại). */
+export function stripAdsDisclaimer(value?: string): string {
+  return String(value ?? "")
+    .split(/(?<=[.!])\s+/)
+    .filter((sent) => !DISCLAIMER_RE.test(sent))
+    .join(" ")
+    .trim();
+}
+
 /** Dịch các cụm tiếng Anh đã biết trong free-text (giữ phần còn lại nguyên văn). */
 export function humanizeText(value?: string): string {
   let s = String(value ?? "");
