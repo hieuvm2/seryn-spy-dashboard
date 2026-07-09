@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
   FileText, CalendarDays, Calendar, Copy, Check, TrendingUp, TrendingDown,
-  AlertTriangle, Sparkles, ListChecks, Building2, Target, ShieldAlert, Info,
+  Sparkles, ListChecks, Target, ShieldAlert, Info,
 } from "lucide-react";
 import type { SpyDashboardData, SpyReport, SpyReportType } from "../../types";
 import { viLabel, humanizeText } from "../../utils/spyData";
@@ -141,6 +141,29 @@ const MOVER_TONE: Record<string, { wrap: string; icon: string }> = {
   emerald: { wrap: "border-emerald-100 bg-emerald-50/50", icon: "text-emerald-500" },
   rose: { wrap: "border-rose-100 bg-rose-50/50", icon: "text-rose-500" },
 };
+
+/** Danh sách bullet con (có tiêu đề nhóm) — dùng khi gộp nhiều field vào 1 card. */
+function SubList({ title, body }: { title: string; body?: string }) {
+  const items = parseList(body);
+  if (!String(body ?? "").trim()) return null;
+  return (
+    <div>
+      <p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1.5">{title}</p>
+      {items.length > 1 ? (
+        <ul className="space-y-1.5">
+          {items.map((it, i) => (
+            <li key={i} className="text-[13px] leading-relaxed text-slate-600 flex gap-2">
+              <span className="text-slate-300 select-none">•</span>
+              <span>{humanizeText(it)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-[13px] leading-relaxed text-slate-600">{humanizeText(body)}</p>
+      )}
+    </div>
+  );
+}
 
 /** Section: nếu field list -> render bullet; nếu 1 đoạn -> render text. */
 function Section({ icon: Icon, title, body, accent = "slate" }: { icon: any; title: string; body?: string; accent?: string }) {
@@ -445,7 +468,7 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
 
         {/* Executive summary */}
         <div className="mt-3 rounded-xl bg-slate-50 border border-slate-100 p-3.5">
-          <p className="text-[13px] leading-relaxed text-slate-700">{r.executive_summary}</p>
+          <p className="text-[13px] leading-relaxed text-slate-700">{humanizeText(r.executive_summary)}</p>
         </div>
 
         {/* KPI snapshot */}
@@ -470,9 +493,15 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
           </>
         ) : (
           <div className="grid sm:grid-cols-3 gap-3 mt-2">
-            <MoverCol icon={TrendingUp} title="Biến động (movers)" value={r.top_movers} accent="cyan" />
+            <MoverCol icon={TrendingUp} title="Biến động mạnh nhất" value={r.top_movers} accent="cyan" />
             <MoverCol icon={TrendingUp} title="Tăng ad mới" value={r.top_new_ads_brands} accent="emerald" />
             <MoverCol icon={TrendingDown} title="Giảm / dừng" value={r.top_stopped_ads_brands} accent="rose" />
+          </div>
+        )}
+        {/* Diễn giải biến động (gộp từ section "Biến động đối thủ" cũ — tránh 2 card trùng chủ đề) */}
+        {!!String(r.key_competitor_moves ?? "").trim() && (
+          <div className="mt-3 pt-3 border-t border-slate-100">
+            <SubList title="Diễn giải" body={r.key_competitor_moves} />
           </div>
         )}
       </div>
@@ -485,21 +514,41 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
         </div>
         <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3">
           <TopChips title="Dịch vụ" value={r.top_services} />
-          <TopChips title="Ưu đãi (offer)" value={r.top_offers} />
-          <TopChips title="Content angle" value={r.top_content_angles} />
-          <TopChips title="Ad format" value={r.top_ad_formats} />
-          <TopChips title="Objective / funnel" value={r.top_objectives} />
+          <TopChips title="Ưu đãi" value={r.top_offers} />
+          <TopChips title="Góc nội dung" value={r.top_content_angles} />
+          <TopChips title="Định dạng QC" value={r.top_ad_formats} />
+          <TopChips title="Mục tiêu / phễu" value={r.top_objectives} />
         </div>
       </div>
 
-      <Section icon={Building2} title="Biến động đối thủ" body={r.key_competitor_moves} accent="cyan" />
-      <Section icon={ListChecks} title="Content pattern đáng theo dõi" body={r.notable_content_patterns} accent="cyan" />
-      <Section icon={Sparkles} title="Visual pattern" body={r.notable_visual_patterns} accent="violet" />
-      <Section icon={ShieldAlert} title="Rủi ro claim" body={r.risk_warnings} accent="amber" />
-      <Section icon={Target} title="Hàm ý cho SERYN" body={r.seryn_implications} accent="cyan" />
-      <Section icon={ListChecks} title="Hành động đề xuất" body={r.recommended_actions} accent="emerald" />
+      {/* Mẫu nội dung & hình ảnh (gộp 2 section pattern cũ) */}
+      {(!!String(r.notable_content_patterns ?? "").trim() || !!String(r.notable_visual_patterns ?? "").trim()) && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <ListChecks className="w-4 h-4 text-violet-500" />
+            <h3 className="text-sm font-bold text-slate-800">Mẫu nội dung & hình ảnh đáng chú ý</h3>
+          </div>
+          <SubList title="Nội dung" body={r.notable_content_patterns} />
+          <SubList title="Hình ảnh / creative" body={r.notable_visual_patterns} />
+        </div>
+      )}
+
+      <Section icon={ShieldAlert} title="Rủi ro tuyên bố (claim)" body={r.risk_warnings} accent="amber" />
+
+      {/* Khuyến nghị cho SERYN (gộp "Hàm ý" + "Hành động đề xuất") */}
+      {(!!String(r.seryn_implications ?? "").trim() || !!String(r.recommended_actions ?? "").trim()) && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-emerald-500" />
+            <h3 className="text-sm font-bold text-slate-800">Khuyến nghị cho SERYN</h3>
+          </div>
+          <SubList title="Hàm ý chiến lược" body={r.seryn_implications} />
+          <SubList title="Hành động đề xuất" body={r.recommended_actions} />
+        </div>
+      )}
+
       {!!String(r.seryn_benchmark ?? "").trim() && (
-        <Section icon={Sparkles} title="SERYN vs Đối thủ" body={r.seryn_benchmark} accent="cyan" />
+        <Section icon={Sparkles} title="SERYN so với đối thủ" body={r.seryn_benchmark} accent="cyan" />
       )}
 
       {/* Data quality note */}
