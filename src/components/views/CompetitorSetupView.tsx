@@ -66,11 +66,15 @@ export default function CompetitorSetupView({ data }: { data: SpyDashboardData }
   const onPatch = (id: string, patch: Partial<Competitor>) => { updateCompetitor(id, patch); reload(); };
   const onToggle = (c: Competitor) => { toggleCompetitorActive(c.id, !c.active); reload(); flash(c.active ? "Đã tắt." : "Đã bật."); };
   const onCrawl = (c: Competitor) => { const r = testCrawl(c); flash(r.message, r.ok); };
-  const onDelete = (c: Competitor) => {
+  const onDelete = async (c: Competitor) => {
     if (!window.confirm(`Xóa hẳn đối thủ "${c.brand}" khỏi danh sách theo dõi?\nPipeline sẽ KHÔNG theo dõi brand này nữa. (Nếu chỉ muốn tạm dừng, dùng nút Bật/Tắt.)`)) return;
-    const { synced } = deleteCompetitor(c.id);
+    // Chờ xóa online XONG rồi mới reload — reload sớm sẽ đọc lại dòng cũ trên Sheets
+    // và đối thủ "hồi sinh" ngay trên UI.
+    const r = await deleteCompetitor(c.id);
     reload();
-    flash(synced ? `Đã xóa "${c.brand}" + đồng bộ Google Sheets.` : `Đã xóa "${c.brand}" (cục bộ).`, true);
+    if (!r.synced) flash(`Đã xóa "${c.brand}" (cục bộ — chưa cấu hình đồng bộ).`, true);
+    else if (r.deletedOnline) flash(`Đã xóa "${c.brand}" + đồng bộ Google Sheets.`, true);
+    else flash(`Không xóa được "${c.brand}" trên Google Sheets${r.error ? ` (${r.error})` : " — dòng trên Sheet thiếu id khớp"}. Chạy lại pipeline để tự điền id, hoặc xóa dòng trực tiếp trong Sheet.`, false);
   };
 
   return (

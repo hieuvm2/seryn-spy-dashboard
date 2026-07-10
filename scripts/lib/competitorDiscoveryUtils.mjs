@@ -17,6 +17,34 @@ export function normalizeBrandName(name) {
   return s.replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
 }
 
+/** id ổn định theo brand — CÙNG công thức với frontend (src/utils/competitors.ts
+ *  competitorId) để dashboard xóa/sửa online khớp đúng dòng Sheet. */
+export function competitorIdForBrand(brand) {
+  const slugify = (s) => str(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+  const stableHash = (s) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h.toString(36); };
+  const base = slugify(normalizeBrandName(brand)) || slugify(brand);
+  return `cmp-${base || ("x-" + stableHash(str(brand)))}`;
+}
+
+/** Điền id cho các dòng Competitors còn thiếu (mutate tại chỗ) — id trùng thì
+ *  thêm hậu tố -2/-3… để không bao giờ có 2 dòng cùng id (Apps Script xóa/sửa
+ *  online match theo cột id, trùng là thao tác nhầm dòng). Trả về số dòng đã điền. */
+export function ensureCompetitorIds(rows) {
+  const taken = new Set(rows.map((r) => str(r.id).trim()).filter(Boolean));
+  let filled = 0;
+  for (const r of rows) {
+    if (str(r.id).trim()) continue;
+    let id = competitorIdForBrand(r.brand_name);
+    let n = 2;
+    while (taken.has(id)) id = `${competitorIdForBrand(r.brand_name)}-${n++}`;
+    r.id = id;
+    taken.add(id);
+    filled++;
+  }
+  return filled;
+}
+
 /** Lấy domain website (loại social). */
 export function extractWebsiteUrl(result) {
   const url = str(result?.url);

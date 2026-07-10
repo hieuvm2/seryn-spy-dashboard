@@ -16,13 +16,17 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getSheetsClient, readTab, upsertTab } from "./lib/sheets.mjs";
 import { resolvePageIds, pageIdResolverAvailable } from "./lib/pageIdResolver.mjs";
-import { normalizeBrandName, isNumericPageId } from "./lib/competitorDiscoveryUtils.mjs";
+import { normalizeBrandName, isNumericPageId, competitorIdForBrand } from "./lib/competitorDiscoveryUtils.mjs";
+import { HEADERS as SHEET_HEADERS } from "./lib/schemas.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WRITE = process.argv.includes("--write");
 const jsonArg = process.argv.slice(2).find((a) => !a.startsWith("--"));
 const JSON_PATH = jsonArg || path.join(__dirname, "_new-competitors.json");
-const HEADERS = ["brand_name", "page_ids", "page_urls", "active", "notes"];
+// Header ĐẦY ĐỦ của tab Competitors (schemas.mjs). Trước đây dùng 5 cột đầu ->
+// upsertTab clear + ghi lại làm MẤT cột id/category/status của mọi dòng (dashboard
+// không xóa/sửa online được vì Apps Script match theo cột id).
+const HEADERS = SHEET_HEADERS.competitors;
 const NOTE = "manual import (Excel THĂM DÒ THỊ TRƯỜNG)";
 
 /** page_id trực tiếp từ URL — CHỈ /pages/.../<digits> (là page_id thật).
@@ -49,6 +53,14 @@ async function main() {
   const existPageIds = new Set(
     existing.flatMap((r) => String(r.page_ids || "").split("|").map((s) => s.trim()).filter(Boolean)),
   );
+  const takenIds = new Set(existing.map((r) => String(r.id || "").trim()).filter(Boolean));
+  const uniqueId = (brand) => {
+    let id = competitorIdForBrand(brand);
+    let n = 2;
+    while (takenIds.has(id)) id = `${competitorIdForBrand(brand)}-${n++}`;
+    takenIds.add(id);
+    return id;
+  };
 
   const canResolve = pageIdResolverAvailable();
   if (!canResolve) console.log("[!] Thiếu ADS_SOURCE_API_KEY — chỉ resolve được URL có sẵn id.\n");
@@ -89,6 +101,7 @@ async function main() {
       page_urls: url,
       active: resolved ? "TRUE" : "FALSE",
       notes: resolved ? `${NOTE} · ${how}` : `${NOTE} · CHƯA resolve page_id (${how}) — review tay`,
+      id: uniqueId(brand),
     });
     freshIds.forEach((id) => existPageIds.add(id));
     existNames.add(norm);

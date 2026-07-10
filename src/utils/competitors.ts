@@ -249,17 +249,20 @@ export function softDeleteCompetitor(id: string): Competitor | null {
 function removeLocal(id: string): void {
   saveDrafts(loadDrafts().filter((x) => x.id !== id));
 }
-/** Xóa online qua Apps Script (doPost action=delete theo id). */
-function remoteDelete(id: string): void {
-  if (!competitorWriteConfigured()) return;
-  apiPost({ type: "competitors", action: "delete", record: { id } })
-    .catch((e) => console.warn("Xóa competitor online thất bại — đã xóa local:", e));
-}
-/** XÓA HẲN đối thủ khỏi watchlist (local + Sheet). Pipeline sẽ không spy brand này nữa. */
-export function deleteCompetitor(id: string): { synced: boolean } {
+export type DeleteResult = { synced: boolean; deletedOnline: boolean; error?: string };
+/** XÓA HẲN đối thủ khỏi watchlist (local + Sheet). Pipeline sẽ không spy brand này nữa.
+ *  CHỜ Apps Script xóa xong rồi mới trả về — caller phải await trước khi reload,
+ *  nếu không danh sách online (còn dòng cũ) sẽ merge đè lại và đối thủ "hồi sinh".
+ *  Apps Script match theo CỘT id của Sheet — dòng thiếu id sẽ trả deletedOnline=false. */
+export async function deleteCompetitor(id: string): Promise<DeleteResult> {
   removeLocal(id);
-  remoteDelete(id);
-  return { synced: competitorWriteConfigured() };
+  if (!competitorWriteConfigured()) return { synced: false, deletedOnline: false };
+  try {
+    const res = await apiPost({ type: "competitors", action: "delete", record: { id } });
+    return { synced: true, deletedOnline: res.deleted === true };
+  } catch (e) {
+    return { synced: true, deletedOnline: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 /* ---------- Test crawl (MVP — kiểm tra cấu hình, chưa gọi backend thật) ---------- */

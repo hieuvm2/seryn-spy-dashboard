@@ -22,7 +22,7 @@ import "dotenv/config";
 import { fileURLToPath } from "node:url";
 import { resolve as resolvePath } from "node:path";
 import { getSheetsClient, readTab, writeTab, appendTab } from "./lib/sheets.mjs";
-import { normalizeBrandName, isNumericPageId, extractFacebookPageIdFromUrl, isValidCompetitorBrand } from "./lib/competitorDiscoveryUtils.mjs";
+import { normalizeBrandName, isNumericPageId, extractFacebookPageIdFromUrl, isValidCompetitorBrand, ensureCompetitorIds } from "./lib/competitorDiscoveryUtils.mjs";
 import { resolvePageIds, pageIdResolverAvailable } from "./lib/pageIdResolver.mjs";
 import { extractDomain } from "./lib/exaClient.mjs";
 import { TAB, HEADERS, RUN_TYPE, SERVICE_CATEGORY } from "./lib/schemas.mjs";
@@ -44,6 +44,10 @@ export async function importDiscovered() {
   const discovery = await readTab(sheets, TAB.discovery);
   if (!discovery.length) { console.log("[SKIP] Tab 'Competitor Discovery' trống — chưa có gì để import."); return { created: 0, updated: 0, skipped: 0, resolvedPages: 0 }; }
   const competitors = await readTab(sheets, TAB.competitors);
+  // Self-heal: dòng thiếu id (thêm tay / script cũ) -> dashboard không xóa/sửa
+  // online được (Apps Script match theo cột id). Điền id thiếu mỗi lần chạy.
+  const idBackfilled = ensureCompetitorIds(competitors);
+  if (idBackfilled) console.log(`  [id] Điền id cho ${idBackfilled} dòng Competitors còn thiếu.`);
 
   // index competitor hiện có: theo page_id, theo id (cmp-<slug>), theo brand+domain.
   const pidIndex = new Map();
@@ -157,7 +161,7 @@ export async function importDiscovered() {
     }
   }
 
-  if (created || updated) {
+  if (created || updated || idBackfilled) {
     await writeTab(sheets, titles, TAB.competitors, HEADERS.competitors, competitors);
   }
   if (touchedDiscovery) {
