@@ -28,6 +28,7 @@ import { analyzeHook } from "./lib/hookAnalysis.mjs";
 import { importDiscovered } from "./import-discovered-competitors.mjs";
 import { syncSheetToSupabase } from "./sync-sheet-to-supabase.mjs";
 import { supabaseConfigured } from "./lib/supabase.mjs";
+import { inferServiceCategory } from "./lib/serviceScope.mjs";
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
@@ -264,7 +265,7 @@ const SERVICE_KEYWORDS = [
   ["acne_treatment", ["mụn", "acne", "trị mụn"]],
   ["laser_treatment", ["laser", "pico", "co2"]],
   ["collagen_stimulation", ["collagen", "kích thích collagen", "tái tạo"]],
-  ["lifting_firming", ["nâng cơ", "căng da", "lifting", "hifu", "thermage", "săn chắc", "trắng"]],
+  ["lifting_firming", ["nâng cơ", "căng da", "căng chỉ", "lifting", "hifu", "thermage", "săn chắc"]],
   ["filler_botox", ["filler", "botox", "tiêm"]],
   ["facial_contouring", ["gọt", "vline", "v-line", "tạo hình mặt", "thon gọn mặt"]],
   ["body_slimming", ["giảm béo", "giảm mỡ", "thon gọn", "slimming"]],
@@ -274,7 +275,7 @@ const SERVICE_KEYWORDS = [
   ["anti_aging_consultation", ["chống lão hóa", "anti aging", "lão hóa", "trẻ hóa"]],
   ["hormone_biology_assessment", ["nội tiết", "hormone", "sinh học", "nền tảng sinh học"]],
   ["nutrition_lifestyle", ["dinh dưỡng", "lối sống", "nutrition"]],
-  ["facial_rejuvenation", ["trẻ hóa da", "tươi trẻ", "rejuvenation", "phục hồi da", "da"]],
+  ["facial_rejuvenation", ["trẻ hóa da", "trẻ hóa", "trẻ hoá", "tươi trẻ", "rejuvenation", "phục hồi da", "da mặt", "làn da"]],
 ];
 const FORMAT_KEYWORDS = [
   ["doctor_explainer", ["bác sĩ", "ts.bs", "bs.", "chuyên gia giải thích", "doctor"]],
@@ -352,31 +353,8 @@ const FUNNEL_BY_HOOK = {
 const round2 = (n) => Math.round(Math.min(1, Math.max(0, n)) * 100) / 100;
 const pct = (n) => `${Math.round((Number(n) || 0) * 100)}%`;
 
-/** Service category cho ad — gắn skin_rejuvenation nếu thuộc nhóm trẻ hóa. */
-const SKIN_REJU_SERVICES = new Set([
-  "facial_rejuvenation", "anti_aging_consultation", "collagen_stimulation",
-  "lifting_firming", "skin_analysis",
-]);
-// Dịch vụ RÕ RÀNG KHÔNG phải trẻ hóa da mặt — loại cứng dù text có lẫn keyword da
-// (vd ad "giảm mỡ" có nhắc collagen). Tránh lọt giảm béo/nâng ngực/triệt lông/răng/phẫu thuật.
-const NON_SKIN_SERVICES = new Set([
-  "body_slimming", "hair_removal", "surgery", "dental_aesthetics", "facial_contouring", "filler_botox",
-]);
-// Từ khóa dịch vụ khác ngay trong text (loại cứng kể cả khi service_or_product đoán nhầm sang da).
-const NON_SKIN_TEXT_RE = /giảm béo|giảm mỡ|hút mỡ|nâng ngực|độn cằm|nâng mũi|cắt mí|gọt hàm|v-?line|triệt lông|niềng răng|bọc răng|trồng răng/i;
-// VÙNG CƠ THỂ (không phải da MẶT): loại cứng dù text có "trẻ hóa/collagen/căng da".
-// Bắt các ad kiểu "khử thâm/sần mông, cellulite, rạn da, vòng eo…" bị gắn nhầm là trẻ hóa da.
-const BODY_AREA_RE = /mông|đùi|bắp tay|bắp chân|cellulite|sần vỏ cam|rạn da|thâm mông|toàn thân|vùng kín|mỡ bụng|vòng eo|vòng 1|vòng 2|vòng 3|\bbụng\b|tắm trắng (toàn thân|body)/i;
-function inferServiceCategory(ad) {
-  const svc = String(ad.service_or_product || "");
-  const t = lc([ad.headline, ad.primary_text, ad.hook_text].join(" "));
-  // 1) Loại cứng: dịch vụ khác (service/text) HOẶC nhắm vùng cơ thể (không phải da mặt).
-  if (NON_SKIN_SERVICES.has(svc) || NON_SKIN_TEXT_RE.test(t) || BODY_AREA_RE.test(t)) return "other";
-  // 2) Trẻ hóa da mặt.
-  if (SKIN_REJU_SERVICES.has(svc)) return SERVICE_CATEGORY;
-  if (/trẻ hóa|căng bóng|tái tạo da|hifu|thermage|ultherapy|\brf\b|skin booster|collagen|nâng cơ|exosome|mesotherapy/i.test(t)) return SERVICE_CATEGORY;
-  return "other";
-}
+/* Service category: quyết định theo CONTENT TEXT — xem scripts/lib/serviceScope.mjs
+   (fold dấu + chống né lọc "M.Ỡ" + negative thắng trước + core/soft signal). */
 
 /** ad_format enum: image | video | carousel | collection | text_only | unknown. */
 function inferAdFormat(raw) {
