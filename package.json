@@ -26,6 +26,7 @@
     "competitors:status": "node scripts/competitor-discovery-status.mjs",
     "hooks:analyze": "node scripts/hook-intelligence-analysis.mjs",
     "supabase:sync": "node scripts/sync-sheet-to-supabase.mjs",
+    "vi:check": "node scripts/check-vi-dashboard.mjs",
     "seryn:pages": "node scripts/sync-seryn-pages.mjs",
     "seryn:pages:write": "node scripts/sync-seryn-pages.mjs --write"
   },

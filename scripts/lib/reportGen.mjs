@@ -9,10 +9,32 @@
    tăng tốc / đối thủ giảm hoạt động / pattern đáng theo dõi / rủi ro claim".
    ============================================================ */
 
+import { viEnum, viText, viTopList, findEnglishLeaks } from "./viText.mjs";
+
 /** Cảnh báo BẮT BUỘC đính kèm mọi report. */
 export const DATA_DISCLAIMER =
   "Đây là báo cáo dựa trên dữ liệu ads công khai và tín hiệu lặp lại, " +
   "không phải dữ liệu CPA/ROAS/spend thật.";
+
+/* ---- Việt hóa row báo cáo TRƯỚC khi lưu (dashboard hiển thị tiếng Việt
+   ngay từ dữ liệu, không phải dịch đuổi). Field máy đọc (report_id, dates,
+   KPI số) giữ nguyên. ---- */
+const VI_TOP_FIELDS = ["top_services", "top_offers", "top_content_angles", "top_ad_formats", "top_objectives"];
+const VI_TEXT_FIELDS = [
+  "title", "executive_summary", "key_competitor_moves", "notable_content_patterns",
+  "notable_visual_patterns", "risk_warnings", "seryn_implications", "recommended_actions",
+  "seryn_benchmark", "data_quality_note",
+];
+export function viReportRow(row) {
+  const out = { ...row };
+  for (const f of VI_TOP_FIELDS) if (out[f]) out[f] = viTopList(out[f]);
+  for (const f of VI_TEXT_FIELDS) if (out[f]) out[f] = viText(out[f]);
+  // Chốt chặn: cảnh báo nếu còn từ tiếng Anh ngoài whitelist lọt vào narrative.
+  const leaks = new Set();
+  for (const f of VI_TEXT_FIELDS) for (const w of findEnglishLeaks(out[f])) leaks.add(w);
+  if (leaks.size) console.warn(`  [vi] Còn từ tiếng Anh nghi lọt trong báo cáo: ${[...leaks].slice(0, 15).join(", ")} — bổ sung vào scripts/lib/viText.mjs nếu cần dịch.`);
+  return out;
+}
 
 export const num = (v) => {
   const n = Number(String(v ?? "").replace(/[^\d.-]/g, ""));
@@ -127,18 +149,19 @@ export function serynBenchmarkBlock(snapshot, ownNames = []) {
   const serynFormats = keys(own, "main_content_formats"), compFormats = keys(comp, "main_content_formats");
   const missingFormats = compFormats.filter((f) => !lc(serynFormats).includes(f.toLowerCase()));
   const missingServices = keys(comp, "services_running").filter((s) => !lc(keys(own, "services_running")).includes(s.toLowerCase()));
+  const viList = (arr, n) => arr.slice(0, n).map((x) => viEnum(x)).join(", ");
   const parts = [
-    `SERYN active ads: ${serynAds}`,
-    `Trung bình đối thủ active ads: ${compAvg}`,
+    `Ads SERYN đang chạy: ${serynAds}`,
+    `Trung bình ads đang chạy của đối thủ: ${compAvg}`,
     top ? `Đối thủ chạy mạnh nhất: ${clean(top.brand_name)} (${num(top.total_active_ads)})` : "",
-    `Angle SERYN đang dùng: ${serynAngles.slice(0, 4).join(", ") || "—"}`,
-    `Angle đối thủ lặp lại nhưng SERYN chưa dùng: ${missingAngles.slice(0, 4).join(", ") || "(không khác biệt lớn)"}`,
-    `Format SERYN đang thiếu: ${missingFormats.slice(0, 3).join(", ") || "(không lệch lớn)"}`,
-    `Dịch vụ đối thủ đẩy mạnh SERYN chưa push: ${missingServices.slice(0, 4).join(", ") || "—"}`,
-    `Offer đối thủ đang đẩy mạnh: ${keys(comp, "offers_detected").slice(0, 4).join(", ") || "—"}`,
-    serynAds < compAvg ? "SERYN đang thấp hơn trung bình đối thủ về volume ads." : "SERYN ở mức ngang/cao hơn trung bình đối thủ về volume ads.",
-    "Rủi ro nếu copy đối thủ: giữ câu chữ an toàn ('kết quả tùy cơ địa'), tránh before/after cường điệu & neo giá gốc.",
-    `Test đề xuất: ${missingAngles.length ? `test có kiểm soát góc "${missingAngles[0]}" theo tông y khoa` : "củng cố tuyến nội dung giáo dục"}; giữ định vị premium, không đua giá.`,
+    `Góc tiếp cận SERYN đang dùng: ${viList(serynAngles, 4) || "—"}`,
+    `Góc đối thủ lặp lại nhưng SERYN chưa dùng: ${viList(missingAngles, 4) || "(không khác biệt lớn)"}`,
+    `Định dạng SERYN đang thiếu: ${viList(missingFormats, 3) || "(không lệch lớn)"}`,
+    `Dịch vụ đối thủ đẩy mạnh mà SERYN chưa đẩy: ${viList(missingServices, 4) || "—"}`,
+    `Ưu đãi đối thủ đang đẩy mạnh: ${keys(comp, "offers_detected").slice(0, 4).join(", ") || "—"}`,
+    serynAds < compAvg ? "SERYN đang thấp hơn trung bình đối thủ về số lượng ads." : "SERYN ở mức ngang/cao hơn trung bình đối thủ về số lượng ads.",
+    "Rủi ro nếu học theo đối thủ: giữ câu chữ an toàn ('kết quả tùy cơ địa'), tránh trước/sau cường điệu & neo giá gốc.",
+    `Đề xuất thử nghiệm: ${missingAngles.length ? `thử có kiểm soát góc "${viEnum(missingAngles[0])}" theo tông y khoa` : "củng cố tuyến nội dung giáo dục"}; giữ định vị cao cấp, không đua giá.`,
   ];
   return joinList(parts, 12);
 }
@@ -352,7 +375,7 @@ export function buildWeeklyReport(ctx) {
     created_by: ctx.meta.createdBy || "generate-weekly-report",
     seryn_benchmark: serynBenchmarkBlock(snapshot, ctx.ownNames),
   };
-  return { row, notes };
+  return { row: viReportRow(row), notes };
 }
 
 /** Render report row -> markdown text (template PHẦN 10). Dùng cho file .md. */
@@ -581,5 +604,5 @@ export function buildMonthlyReport(ctx) {
     created_by: ctx.meta.createdBy || "generate-monthly-report",
     seryn_benchmark: serynBenchmarkBlock(snapshotMonth, ctx.ownNames),
   };
-  return { row, notes };
+  return { row: viReportRow(row), notes };
 }

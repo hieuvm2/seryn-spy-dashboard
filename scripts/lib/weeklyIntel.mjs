@@ -14,6 +14,7 @@
    - Exa KHÔNG liên quan ở đây (chỉ chạy thủ công).
    ============================================================ */
 import crypto from "node:crypto";
+import { viEnum } from "./viText.mjs";
 
 const str = (v) => (v === undefined || v === null ? "" : String(v));
 const lc = (v) => str(v).toLowerCase();
@@ -140,11 +141,11 @@ export function generateWeeklySummary({ ads = [], snapshot = [], crawlRun = {}, 
   const lead = byBrandActive[0];
   const surger = byBrandNew[0];
   const execBits = [
-    `Tuần ${week_start} → ${week_end}: theo dõi ${totalBrands} brand, ${activeAds.length} ad active (${newAds.length} ad mới).`,
-    lead ? `Dẫn đầu volume: ${lead.key} (${lead.count} ad).` : "",
+    `Tuần ${week_start} → ${week_end}: theo dõi ${totalBrands} brand, ${activeAds.length} ad đang chạy (${newAds.length} ad mới).`,
+    lead ? `Dẫn đầu số lượng: ${lead.key} (${lead.count} ad).` : "",
     surger && surger.count >= 3 ? `Tăng tốc nhiều nhất: ${surger.key} (+${surger.count} ad mới).` : "",
-    topHooks[0] ? `Hook phổ biến nhất: ${topHooks[0].key}.` : "",
-    topOffers[0] ? `Offer nổi bật: ${topOffers[0].key}.` : "",
+    topHooks[0] ? `Hook phổ biến nhất: ${viEnum(topHooks[0].key)}.` : "",
+    topOffers[0] ? `Ưu đãi nổi bật: ${topOffers[0].key}.` : "",
     dq.overall_data_quality_score < 70 ? `⚠ Chất lượng dữ liệu thấp (${dq.overall_data_quality_score}/100) — đọc số liệu thận trọng.` : `Chất lượng dữ liệu: ${dq.overall_data_quality_score}/100.`,
     activeAds.length < 5 ? "⚠ Ít dữ liệu tuần này — kết luận chỉ mang tính tham khảo." : "",
   ].filter(Boolean);
@@ -203,7 +204,7 @@ export function generateActionPlan({ summary, weekDate } = {}) {
     rows.push(mk(b.count >= 10 ? "high" : "medium", "competitor_scaling",
       `${b.key} đang đẩy mạnh ad mới (+${b.count} ad tuần này).`,
       `${b.count} ad mới được phát hiện cho ${b.key}.`,
-      "Review top new ads của brand này và tạo 3 creative phản đòn trong tuần.",
+      "Xem kỹ các ad mới nổi bật của brand này và tạo 3 mẫu quảng cáo phản đòn trong tuần.",
       b.key, ids.join("|")));
   }
 
@@ -211,9 +212,9 @@ export function generateActionPlan({ summary, weekDate } = {}) {
   for (const h of topHooks.slice(0, 2)) {
     if (h.count < 5) continue;
     rows.push(mk(h.count >= 12 ? "high" : "medium", "hook_trend",
-      `Hook "${h.key}" xuất hiện nhiều (${h.count} ad).`,
-      `${h.count} ad dùng hook_type=${h.key}; brand mẫu: ${sampleBrands(activeAds, (a) => a.hook_type === h.key).join(", ")}.`,
-      `Test góc hook "${h.key}" với offer/định vị của SERYN (giữ tông khoa học, không FOMO).`));
+      `Hook "${viEnum(h.key)}" xuất hiện nhiều (${h.count} ad).`,
+      `${h.count} ad dùng hook "${viEnum(h.key)}"; brand tiêu biểu: ${sampleBrands(activeAds, (a) => a.hook_type === h.key).join(", ")}.`,
+      `Thử góc hook "${viEnum(h.key)}" với ưu đãi/định vị của SERYN (giữ tông khoa học, không FOMO).`));
   }
 
   // Rule 3: offer phổ biến nhiều brand
@@ -221,9 +222,9 @@ export function generateActionPlan({ summary, weekDate } = {}) {
     const brands = sampleBrands(activeAds, (a) => a.offer_detected === o.key, 5);
     if (brands.length < 2) continue;
     rows.push(mk("medium", "offer_trend",
-      `Offer "${o.key}" xuất hiện ở nhiều brand (${brands.length}+).`,
-      `Brand dùng offer này: ${brands.join(", ")}.`,
-      "Tạo offer-variant hoặc counter-offer định hướng giá trị (đánh giá nền tảng sinh học) thay vì đua giá."));
+      `Ưu đãi "${o.key}" xuất hiện ở nhiều brand (${brands.length}+).`,
+      `Brand dùng ưu đãi này: ${brands.join(", ")}.`,
+      "Tạo biến thể ưu đãi hoặc ưu đãi phản đòn định hướng giá trị (đánh giá nền tảng sinh học) thay vì đua giá."));
   }
 
   // Rule 4: creative format trend
@@ -231,9 +232,9 @@ export function generateActionPlan({ summary, weekDate } = {}) {
   for (const f of topFormats.slice(0, 3)) {
     if (f.count < 5 || !TREND_FORMATS.some((t) => lc(f.key).includes(t.split("_")[0]))) continue;
     rows.push(mk(f.count >= 12 ? "high" : "medium", "creative_format_trend",
-      `Định dạng creative "${f.key}" đang nhiều (${f.count} ad).`,
-      `${f.count} ad dùng format=${f.key}; brand mẫu: ${sampleBrands(activeAds, (a) => a.content_format === f.key).join(", ")}.`,
-      `Sản xuất 3 creative dùng format "${f.key}" theo tông SERYN.`));
+      `Định dạng "${viEnum(f.key)}" đang nhiều (${f.count} ad).`,
+      `${f.count} ad dùng định dạng "${viEnum(f.key)}"; brand tiêu biểu: ${sampleBrands(activeAds, (a) => a.content_format === f.key).join(", ")}.`,
+      `Sản xuất 3 mẫu quảng cáo theo định dạng "${viEnum(f.key)}" đúng tông SERYN.`));
   }
 
   // giới hạn 15 action, ưu tiên high > medium > low
@@ -261,8 +262,8 @@ export function generateSwipeFileCandidates({ ads = [], visual = [], existingSwi
     let score = 0;
     if (days >= 14) { score += days >= 30 ? 3 : 2; reasons.push(`chạy ${days} ngày (bền)`); }
     if (isTrue(a.is_likely_scaled)) { score += 2; reasons.push("đang nhân rộng"); }
-    if (hotHooks.has(a.hook_type)) { score += 1; reasons.push(`hook trend "${a.hook_type}"`); }
-    if (hotOffers.has(a.offer_detected)) { score += 1; reasons.push(`offer phổ biến "${a.offer_detected}"`); }
+    if (hotHooks.has(a.hook_type)) { score += 1; reasons.push(`hook đang thịnh hành "${viEnum(a.hook_type)}"`); }
+    if (hotOffers.has(a.offer_detected)) { score += 1; reasons.push(`ưu đãi phổ biến "${a.offer_detected}"`); }
     if (isTrue(a.is_new_this_week) && topBrands.has(a.brand_name)) { score += 2; reasons.push(`ad mới của top brand ${a.brand_name}`); }
     if (score < 3) continue;
     const key = str(a.ad_id || a.hook_text).trim().toLowerCase();
@@ -276,7 +277,7 @@ export function generateSwipeFileCandidates({ ads = [], visual = [], existingSwi
       hook: a.hook_text || "", offer: a.offer_detected || "", angle: a.content_angle || "",
       format: a.content_format || (v?.visual_format) || "",
       why_save: reasons.join("; "),
-      how_to_adapt: `Giữ cấu trúc, đổi sang tông SERYN: khoa học, calm, CTA "Đặt lịch phân tích gương mặt". Tránh FOMO/giảm giá sốc.`,
+      how_to_adapt: `Giữ cấu trúc, đổi sang tông SERYN: khoa học, điềm tĩnh, CTA "Đặt lịch phân tích gương mặt". Tránh FOMO/giảm giá sốc.`,
       status: "new", saved_at: new Date().toISOString(),
       _score: score,
     });
