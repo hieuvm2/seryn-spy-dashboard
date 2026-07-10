@@ -22,7 +22,7 @@ function SectionTitle({ tag, title, desc }: { tag: string; title: string; desc?:
 
 function Kpi({ label, value, icon: Icon, accent }: { label: string; value: React.ReactNode; icon: any; accent?: string }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4 transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300">
+    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
       <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${accent || "bg-cyan-50 text-cyan-600"}`}>
         <Icon className="w-5 h-5" />
       </div>
