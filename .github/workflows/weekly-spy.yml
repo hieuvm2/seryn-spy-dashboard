@@ -19,7 +19,8 @@ concurrency:
 jobs:
   spy-weekly:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 30' vì watchlist mới 17 brand / 153 page (~165 page cả SERYN, gấp ~2.5x cũ).
+    timeout-minutes: 30
     # FIX "Premature close" ở oauth2 token: ép IPv4-first + tắt Happy Eyeballs
     # (runner GitHub có IPv6 nửa-mở). Áp dụng cho MỌI step trong job.
     env:
