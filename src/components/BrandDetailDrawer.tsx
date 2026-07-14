@@ -352,7 +352,6 @@ function ContentCard({ c }: { c: AdContentIntelligence }) {
       <div className="relative">
         <AdThumb url={c.thumbnailUrl} format={c.adFormat} />
         {c.adsCount > 1 && <span className="absolute top-1.5 left-1.5 text-[9px] font-extrabold uppercase tracking-wide text-rose-700 bg-rose-50/95 border border-rose-200 px-1.5 py-0.5 rounded">{c.adsCount} QC</span>}
-        <span className="absolute top-1.5 right-1.5 text-[11px] font-extrabold px-1.5 py-0.5 rounded-lg bg-slate-900/85 text-white" title="Điểm tín hiệu content">{c.contentScore}</span>
         {c.exampleAdUrls[0] && <a href={c.exampleAdUrls[0]} target="_blank" rel="noreferrer" className="absolute bottom-1.5 right-1.5 text-[10px] font-bold text-white bg-cyan-600/90 hover:bg-cyan-600 px-2 py-0.5 rounded inline-flex items-center gap-0.5">Mở QC <ExternalLink className="w-3 h-3" /></a>}
       </div>
 

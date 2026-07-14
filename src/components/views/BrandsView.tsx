@@ -61,10 +61,10 @@ export default function BrandsView({
 
   // Tóm tắt content nổi bật theo brand (góc content + objective + tín hiệu).
   const contentByBrand = useMemo(() => {
-    const m: Record<string, { angle: string; objective: string; signal: string; score: number }> = {};
+    const m: Record<string, { angle: string; objective: string; signal: string }> = {};
     data.brandWeeklySnapshot.forEach((r) => {
       const top = buildAdContentIntelligenceForBrand(r.brand_name, data)[0];
-      if (top) m[r.brand_name] = { angle: top.contentAngle, objective: top.inferredObjective, signal: top.scaleSignal, score: top.contentScore };
+      if (top) m[r.brand_name] = { angle: top.contentAngle, objective: top.inferredObjective, signal: top.scaleSignal };
     });
     return m;
   }, [data]);
