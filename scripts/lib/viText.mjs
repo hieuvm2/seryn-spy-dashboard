@@ -107,6 +107,9 @@ const VI_PHRASES = [
   [/\[medium\]/gi, "[Trung bình]"],
   [/\[low\]/gi, "[Thấp]"],
   // ---- bổ sung từ đợt quét dữ liệu cũ ----
+  [/\bwinning\b/gi, "nổi trội"],
+  [/\bunknown\b/gi, "chưa rõ"],
+  [/\bpatterns?\b/gi, "mẫu hình"],
   [/\bblitz\b/gi, "bung ồ ạt"],
   [/\bvolume\b/gi, "số lượng"],
   [/\bexplainer\b/gi, "giải thích"],
@@ -184,6 +187,8 @@ const EN_WHITELIST = new Set([
   "crawl", "brand", "brands", "spend", "roas", "cpa", "weekly", "monthly",
   "fomo", "claim", "claims", "selfie", "own", "brief", "sejung", "aqua", "mega",
   "strategy", "psych", "creative", // tham chiếu file phân tích (strategy.md, psych.md, creative.md)
+  "gangwhoo", "kangnam", "kangdong", "rohto", "aohal", "pensilia", "shynh", "lavender", "visia",
+  "drama", "evergreen", // từ mượn đội quen dùng
 ]);
 
 /**
