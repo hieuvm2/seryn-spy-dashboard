@@ -1,16 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
+import { Sparkles, ArrowRight, ExternalLink, X } from "lucide-react";
+import type { SpyDashboardData, AdLevelAnalysis } from "../types";
+import { viLabel, isMeaningful } from "../utils/spyData";
+import { isOwnRow } from "../utils/ownBrand";
 import {
-  Sparkles, TrendingUp, Target, Layers, Filter, ShieldAlert, FlaskConical, ArrowRight,
-} from "lucide-react";
-import type { SpyDashboardData } from "../types";
-import { viLabel } from "../utils/spyData";
-import {
-  buildSerynSnapshot, buildCompetitorBenchmark, buildSerynVsCompetitorComparison,
+  buildSerynSnapshot, buildSerynVsCompetitorComparison,
   volumePositionNote, type SerynRecommendedTest,
 } from "../utils/serynBenchmark";
 
 /* ============================================================
-   SERYN vs Đối thủ — component dùng chung (Overview + Đối thủ).
+   SERYN benchmark — component dùng chung (Overview + tab SERYN).
    Tín hiệu ads công khai, KHÔNG CPA/ROAS. Wording trung tính.
    ============================================================ */
 
@@ -32,11 +31,13 @@ function Chips({ items, tone = "cyan" }: { items: string[]; tone?: "cyan" | "sla
   );
 }
 
-/** Snapshot ngắn của SERYN + nút mở profile. Dùng ở đầu tab Đối thủ. */
+/** Snapshot ngắn của SERYN + nút mở profile. Dùng ở đầu tab SERYN. */
 export function SerynSnapshotCard({ data, onOpen }: { data: SpyDashboardData; onOpen: () => void }) {
   const s = buildSerynSnapshot(data);
   const topFmt = Object.entries(s.formatMix).sort((a, b) => b[1] - a[1])[0];
   const topFunnel = Object.entries(s.funnelMix).sort((a, b) => b[1] - a[1])[0];
+  // Dịch vụ được chọn -> hiện danh sách QC đang chạy dịch vụ đó ngay dưới card.
+  const [svc, setSvc] = useState<string | null>(null);
   return (
     <div className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50/60 to-white p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -51,13 +52,83 @@ export function SerynSnapshotCard({ data, onOpen }: { data: SpyDashboardData; on
       {!s.hasData ? (
         <p className="text-xs text-slate-500 mt-3">Chưa có dữ liệu ads công khai của SERYN. Thêm page vào tab <span className="font-mono">Own Brand Pages</span> rồi crawl để bật benchmark.</p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
-          <Metric label="Ads đang chạy" value={s.activeAds} />
-          <Metric label="Ads mới" value={`+${s.newAds}`} tone="emerald" />
-          <Metric label="Định dạng chính" value={topFmt ? `${viLabel(topFmt[0])} ${topFmt[1]}%` : "—"} />
-          <Metric label="Mục tiêu chính" value={topFunnel ? `${viLabel(topFunnel[0])} ${topFunnel[1]}%` : "—"} />
-          <div className="col-span-2"><p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1">Dịch vụ</p><Chips items={s.topServices.slice(0, 4)} /></div>
-          <div className="col-span-2"><p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1">Angle nội dung</p><Chips items={s.topContentAngles.slice(0, 4)} /></div>
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+            <Metric label="Ads đang chạy" value={s.activeAds} />
+            <Metric label="Ads mới" value={`+${s.newAds}`} tone="emerald" />
+            <Metric label="Định dạng chính" value={topFmt ? `${viLabel(topFmt[0])} ${topFmt[1]}%` : "—"} />
+            <Metric label="Mục tiêu chính" value={topFunnel ? `${viLabel(topFunnel[0])} ${topFunnel[1]}%` : "—"} />
+            <div className="col-span-2">
+              <p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1">Dịch vụ <span className="normal-case font-sans text-slate-400">(bấm để xem QC)</span></p>
+              <div className="flex flex-wrap gap-1.5">
+                {s.topServices.slice(0, 4).map((sv, i) => (
+                  <button
+                    key={`${sv}-${i}`}
+                    onClick={() => setSvc((cur) => (cur === sv ? null : sv))}
+                    title="Bấm để xem các quảng cáo đang chạy dịch vụ này"
+                    className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border transition cursor-pointer ${svc === sv ? "bg-cyan-600 text-white border-cyan-600 shadow-sm" : "bg-cyan-50 text-cyan-700 border-cyan-100 hover:bg-cyan-100"}`}
+                  >
+                    {viLabel(sv)}
+                  </button>
+                ))}
+                {!s.topServices.length && <span className="text-xs text-slate-400 italic">—</span>}
+              </div>
+            </div>
+            <div className="col-span-2"><p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1">Angle nội dung</p><Chips items={s.topContentAngles.slice(0, 4)} /></div>
+          </div>
+          {svc && <ServiceAdsPanel data={data} service={svc} onClose={() => setSvc(null)} />}
+        </>
+      )}
+    </div>
+  );
+}
+
+const numOf = (v: unknown) => { const n = Number(String(v ?? "").replace(/[^\d.-]/g, "")); return Number.isFinite(n) ? n : 0; };
+const AD_FMT_VI: Record<string, string> = { image: "Ảnh", video: "Video", carousel: "Carousel" };
+
+/** Danh sách QC của SERYN đang chạy 1 dịch vụ — mở khi bấm chip dịch vụ ở snapshot card. */
+function ServiceAdsPanel({ data, service, onClose }: { data: SpyDashboardData; service: string; onClose: () => void }) {
+  const key = String(service).toLowerCase().trim();
+  const ads = (data.adLevelAnalysis ?? [])
+    .filter((a) => isOwnRow(a, data))
+    .filter((a) => String(a.service_or_product || "").toLowerCase().trim() === key)
+    .sort((a, b) => numOf(b.days_active) - numOf(a.days_active));
+
+  const adText = (a: AdLevelAnalysis) => String(a.hook_raw_text || a.hook_text || a.headline || "").trim();
+  const adFmt = (a: AdLevelAnalysis) => {
+    const f = String(a.ad_format || a.media_type || "").toLowerCase();
+    const k = (["video", "carousel", "image"] as const).find((x) => f.includes(x));
+    return k ? AD_FMT_VI[k] : "";
+  };
+
+  return (
+    <div className="mt-3 rounded-xl border border-cyan-200 bg-white p-3">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <p className="text-xs font-extrabold text-slate-800">
+          Quảng cáo SERYN chạy dịch vụ “{viLabel(service)}”
+          <span className="ml-1.5 font-mono text-[11px] text-cyan-700 bg-cyan-50 border border-cyan-100 px-1.5 py-0.5 rounded">{ads.length} QC</span>
+        </p>
+        <button onClick={onClose} aria-label="Đóng danh sách quảng cáo" className="w-6 h-6 rounded-md bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 transition shrink-0"><X className="w-3.5 h-3.5" /></button>
+      </div>
+      {!ads.length ? (
+        <p className="text-xs text-slate-500">Chưa thấy quảng cáo chi tiết (ad-level) nào của SERYN cho dịch vụ này trong dữ liệu hiện có.</p>
+      ) : (
+        <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+          {ads.map((a, i) => (
+            <div key={`${a.ad_id || i}`} className="rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2">
+              <p className="text-[12px] font-semibold text-slate-800 leading-snug">{adText(a) || "(không có nội dung hiển thị)"}</p>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[10px] text-slate-500 font-semibold">
+                {adFmt(a) && <span className="px-1.5 py-0.5 rounded border border-slate-200 bg-white">{adFmt(a)}</span>}
+                {numOf(a.days_active) > 0 && <span>{numOf(a.days_active)} ngày</span>}
+                {isMeaningful(a.offer_detected) && <span className="text-amber-700">{String(a.offer_detected)}</span>}
+                {isMeaningful(a.cta) && <span>CTA: {viLabel(String(a.cta))}</span>}
+                {!!a.page_name && <span className="text-slate-400">{String(a.page_name)}</span>}
+                {!!a.ad_snapshot_url && (
+                  <a href={String(a.ad_snapshot_url)} target="_blank" rel="noreferrer" className="ml-auto text-cyan-700 hover:underline inline-flex items-center gap-0.5 font-bold">Mở QC <ExternalLink className="w-3 h-3" /></a>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -81,7 +152,7 @@ export function SerynBenchmarkCompact({ data, onOpen }: { data: SpyDashboardData
     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2"><Sparkles className="w-4 h-4 text-cyan-600" /> SERYN vs Đối thủ</h3>
-        {onOpen && <button onClick={onOpen} className="text-[11px] font-bold text-cyan-700 hover:underline">Chi tiết ở tab Đối thủ →</button>}
+        {onOpen && <button onClick={onOpen} className="text-[11px] font-bold text-cyan-700 hover:underline">Chi tiết ở tab SERYN →</button>}
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <Metric label="Ads SERYN" value={cmp.serynActiveAds} />
@@ -98,122 +169,7 @@ export function SerynBenchmarkCompact({ data, onOpen }: { data: SpyDashboardData
   );
 }
 
-/** Section so sánh đầy đủ — dùng trong tab Đối thủ. */
-export function SerynVsCompetitorSection({ data }: { data: SpyDashboardData }) {
-  const cmp = buildSerynVsCompetitorComparison(data);
-  const s = buildSerynSnapshot(data), c = buildCompetitorBenchmark(data);
-  const fmt = (m: Record<string, number>) => Object.entries(m).map(([k, v]) => `${viLabel(k)} ${v}%`).join(" · ");
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-1.5 border-l-2 border-cyan-500 pl-4">
-        <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">SO SÁNH</span>
-        <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">SERYN vs Đối thủ</h3>
-        <p className="text-sm text-slate-600 font-medium">So sánh tín hiệu ads công khai của SERYN với thị trường.</p>
-      </div>
-
-      {!cmp.serynHasData && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
-          Chưa có dữ liệu ads công khai của SERYN. Thêm page SERYN vào tab <span className="font-mono">Own Brand Pages</span> và crawl để có benchmark đầy đủ. (Vẫn hiển thị dữ liệu đối thủ bên dưới.)
-        </div>
-      )}
-
-      {/* 1. Volume */}
-      <Card icon={TrendingUp} title="1 · Số lượng ads">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Metric label="SERYN" value={cmp.serynActiveAds} />
-          <Metric label="TB đối thủ" value={cmp.competitorAvgActiveAds} />
-          <Metric label="Đối thủ cao nhất" value={cmp.topCompetitorActiveAds} />
-          <Metric label="Chênh lệch" value={cmp.serynActiveAds - cmp.competitorAvgActiveAds} />
-        </div>
-        <p className="text-[12px] text-slate-600 mt-2">{volumePositionNote(cmp)} Đối thủ cao nhất: <b>{cmp.topCompetitorName}</b>.</p>
-      </Card>
-
-      {/* 2 · Content angles */}
-      <Card icon={Target} title="2 · Angle nội dung">
-        <TwoCol
-          left={{ title: "SERYN đang dùng", items: cmp.serynTopContentAngles }}
-          right={{ title: "Đối thủ lặp lại nhiều", items: cmp.competitorTopContentAngles }}
-        />
-        <GapRow label="Angle SERYN chưa dùng" items={cmp.missingContentAngles} tone="amber" />
-      </Card>
-
-      {/* 3 · Services */}
-      <Card icon={Layers} title="3 · Dịch vụ">
-        <TwoCol
-          left={{ title: "SERYN", items: cmp.serynTopServices }}
-          right={{ title: "Đối thủ", items: cmp.competitorTopServices }}
-        />
-        <GapRow label="Đối thủ đẩy mạnh nhưng SERYN chưa" items={cmp.missingServiceOpportunities} tone="amber" />
-      </Card>
-
-      {/* 4 · Offers */}
-      <Card icon={Layers} title="4 · Ưu đãi (offer)">
-        <TwoCol
-          left={{ title: "SERYN", items: cmp.serynTopOffers }}
-          right={{ title: "Đối thủ", items: cmp.competitorTopOffers }}
-        />
-        <p className="text-[12px] text-slate-600 mt-2">{cmp.offerGapNote}</p>
-      </Card>
-
-      {/* 5 · Format */}
-      <Card icon={Filter} title="5 · Định dạng (ảnh/video/carousel)">
-        <p className="text-[12px] text-slate-600"><b className="text-slate-500">SERYN:</b> {fmt(cmp.serynFormatMix)}</p>
-        <p className="text-[12px] text-slate-600"><b className="text-slate-500">Đối thủ:</b> {fmt(cmp.competitorFormatMix)}</p>
-        <p className="text-[12px] text-cyan-700 mt-1">{cmp.formatGapNote}</p>
-      </Card>
-
-      {/* 6 · Funnel */}
-      <Card icon={Filter} title="6 · Funnel / Mục tiêu">
-        <p className="text-[12px] text-slate-600"><b className="text-slate-500">SERYN:</b> {fmt(cmp.serynFunnelMix)}</p>
-        <p className="text-[12px] text-slate-600"><b className="text-slate-500">Đối thủ:</b> {fmt(cmp.competitorFunnelMix)}</p>
-        <p className="text-[12px] text-cyan-700 mt-1">{cmp.funnelGapNote}</p>
-      </Card>
-
-      {/* 7 · Visual + risk */}
-      <Card icon={ShieldAlert} title="7 · Visual & rủi ro claim">
-        <p className="text-[12px] text-slate-600">{cmp.visualGapNote}</p>
-        <p className="text-[12px] text-amber-700 mt-1">{cmp.riskGapNote}</p>
-        <p className="text-[11px] text-slate-400 mt-1">Bác sĩ đối thủ {c.visualRates.doctor}% · UGC {c.visualRates.ugc}% · banner ưu đãi {c.visualRates.offer_banner}% · rủi ro {c.visualRates.risk}%. (SERYN: bác sĩ {s.visualRates.doctor}%.)</p>
-      </Card>
-
-      {/* 8 · Recommended tests */}
-      <Card icon={FlaskConical} title="8 · Nên test gì tuần tới">
-        {cmp.recommendedTests.length ? (
-          <div className="space-y-2.5">
-            {cmp.recommendedTests.map((t, i) => <div key={i}><TestRow t={t} /></div>)}
-          </div>
-        ) : <p className="text-xs text-slate-400 italic">Chưa đủ dữ liệu để đề xuất test — thêm dữ liệu SERYN + đối thủ.</p>}
-      </Card>
-    </div>
-  );
-}
-
-function Card({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) {
-  return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5">
-      <h4 className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-3"><Icon className="w-4 h-4 text-cyan-500" />{title}</h4>
-      {children}
-    </div>
-  );
-}
-function TwoCol({ left, right }: { left: { title: string; items: string[] }; right: { title: string; items: string[] } }) {
-  return (
-    <div className="grid sm:grid-cols-2 gap-4">
-      <div><p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1.5">{left.title}</p><Chips items={left.items} /></div>
-      <div><p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1.5">{right.title}</p><Chips items={right.items} tone="slate" /></div>
-    </div>
-  );
-}
-function GapRow({ label, items, tone }: { label: string; items: string[]; tone?: "amber" }) {
-  return (
-    <div className="mt-3 pt-3 border-t border-slate-100">
-      <p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1.5">{label}</p>
-      <Chips items={items} tone={tone} />
-    </div>
-  );
-}
-function TestRow({ t }: { t: SerynRecommendedTest }) {
+export function TestRow({ t }: { t: SerynRecommendedTest }) {
   return (
     <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
       <div className="flex items-center gap-2 flex-wrap mb-1">

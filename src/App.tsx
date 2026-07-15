@@ -5,6 +5,7 @@ import BrandDetailDrawer from "./components/BrandDetailDrawer";
 import WeeklyReportModal from "./components/WeeklyReportModal";
 import OverviewView from "./components/views/OverviewView";
 import BrandsView from "./components/views/BrandsView";
+import SerynView from "./components/views/SerynView";
 import ReportsView from "./components/views/ReportsView";
 import CompetitorSetupView from "./components/views/CompetitorSetupView";
 import CompetitorDiscoveryView from "./components/views/CompetitorDiscoveryView";
@@ -40,14 +41,15 @@ async function fetchOnline(): Promise<SpyDashboardData> {
 const VALID_VIEWS: ViewId[] = [
   "overview",
   "brands",
+  "seryn",
   "reports",
   "competitor-discovery",
   "competitor-setup",
   "data-import",
 ];
 
-/** Viewer (chỉ xem) chỉ được vào 3 tab đầu. Admin: tất cả. */
-export const VIEWER_VIEWS: ViewId[] = ["overview", "brands", "reports"];
+/** Viewer (chỉ xem) được vào các tab xem dữ liệu. Admin: tất cả. */
+export const VIEWER_VIEWS: ViewId[] = ["overview", "brands", "seryn", "reports"];
 
 /** Hash cũ -> view mới (tránh app trắng màn hình khi mở bookmark cũ). */
 const VIEW_REDIRECTS: Partial<Record<string, ViewId>> = {
@@ -223,6 +225,7 @@ export default function App({ auth }: AppProps) {
         <main className="p-4 sm:p-6 lg:p-8 flex-1 max-w-7xl w-full mx-auto pb-24">
           {activeSection === "overview" && <OverviewView data={spyData} onSelectBrand={setSelectedBrand} />}
           {activeSection === "brands" && <BrandsView data={spyData} onSelectBrand={setSelectedBrand} />}
+          {activeSection === "seryn" && <SerynView data={spyData} onSelectBrand={setSelectedBrand} />}
           {activeSection === "reports" && <ReportsView data={spyData} />}
           {activeSection === "competitor-setup" && canEdit && <CompetitorSetupView data={spyData} />}
           {activeSection === "competitor-discovery" && canEdit && <CompetitorDiscoveryView data={spyData} />}

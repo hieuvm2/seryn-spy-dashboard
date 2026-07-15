@@ -94,8 +94,8 @@ export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboa
         <Kpi label="QC đã dừng" value={stoppedAds} icon={TrendingDown} accent="bg-amber-50 text-amber-600" />
       </div>
 
-      {/* SERYN vs Đối thủ (ngắn) — chi tiết ở tab Đối thủ */}
-      <SerynBenchmarkCompact data={data} onOpen={() => { window.location.hash = "brands"; }} />
+      {/* SERYN vs Đối thủ (ngắn) — chi tiết ở tab SERYN */}
+      <SerynBenchmarkCompact data={data} onOpen={() => { window.location.hash = "seryn"; }} />
 
       {/* Báo cáo tuần (gộp từ Weekly Intelligence) */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">

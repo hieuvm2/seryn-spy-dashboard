@@ -6,6 +6,7 @@
 export type ViewId =
   | "overview"
   | "brands"
+  | "seryn"
   | "reports"
   | "competitor-discovery"
   | "competitor-setup"

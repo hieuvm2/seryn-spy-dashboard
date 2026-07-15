@@ -1,13 +1,11 @@
 import React, { useState, useMemo } from "react";
 import { motion } from "motion/react";
-import { Search, Flame, ChevronRight, Star } from "lucide-react";
+import { Search, ChevronRight, Star } from "lucide-react";
 import type { SpyDashboardData } from "../../types";
-import { normalizeNumber, splitChips, orUnknown, viLabel, isMissing } from "../../utils/spyData";
+import { normalizeNumber, splitChips, orUnknown, viLabel } from "../../utils/spyData";
 import { useDirectCompetitors, isDirectCompetitor } from "../../utils/directCompetitors";
 import { buildAdContentIntelligenceForBrand, ANGLE_VI } from "../../utils/adContentIntelligence";
 import { isOwnBrand } from "../../utils/ownBrand";
-import { buildSerynSnapshot } from "../../utils/serynBenchmark";
-import { SerynSnapshotCard, SerynVsCompetitorSection } from "../SerynBenchmark";
 
 const SCALE_SHORT: Record<string, string> = {
   "Weak Signal": "Tín hiệu yếu", "Repeated Content": "Content lặp lại",
@@ -18,15 +16,10 @@ const OBJ_SHORT: Record<string, string> = {
   phone_call: "Gọi điện", awareness: "Nhận biết", unknown: "Chưa rõ",
 };
 
-type BrandFilter = "all" | "direct" | "scaled" | "ads-up" | "new-offer" | "new-service" | "new-angle";
+type BrandFilter = "all" | "direct";
 const BRAND_FILTERS: { id: BrandFilter; label: string }[] = [
   { id: "all", label: "Tất cả" },
   { id: "direct", label: "Đối thủ trực tiếp" },
-  { id: "scaled", label: "Có nội dung nhân rộng" },
-  { id: "ads-up", label: "Tăng quảng cáo" },
-  { id: "new-offer", label: "Có ưu đãi mới" },
-  { id: "new-service", label: "Có dịch vụ mới" },
-  { id: "new-angle", label: "Có góc mới" },
 ];
 
 function Chips({ value, max = 4 }: { value?: string; max?: number }) {
@@ -53,12 +46,6 @@ export default function BrandsView({
   const [filter, setFilter] = useState<BrandFilter>("all");
   const direct = useDirectCompetitors();
 
-  const changeByBrand = useMemo(() => {
-    const m: Record<string, (typeof data.weeklyStrategyChange)[number]> = {};
-    data.weeklyStrategyChange.forEach((c) => { m[c.brand_name] = c; });
-    return m;
-  }, [data]);
-
   // Tóm tắt content nổi bật theo brand (góc content + objective + tín hiệu).
   const contentByBrand = useMemo(() => {
     const m: Record<string, { angle: string; objective: string; signal: string }> = {};
@@ -83,35 +70,19 @@ export default function BrandsView({
       if (da !== db) return db - da;
       return normalizeNumber(b.total_active_ads) - normalizeNumber(a.total_active_ads);
     });
-    list = list.filter((r) => {
-      const ch = changeByBrand[r.brand_name];
-      switch (filter) {
-        case "direct": return isDirectCompetitor(r.brand_name, direct);
-        case "scaled": return normalizeNumber(r.scaled_content_count) > 0;
-        case "ads-up": return !!ch && normalizeNumber(ch.active_ads_change) > 0;
-        case "new-offer": return !!ch && !isMissing(ch.new_offers_detected);
-        case "new-service": return !!ch && !isMissing(ch.new_services_detected);
-        case "new-angle": return !!ch && !isMissing(ch.new_content_angles);
-        default: return true;
-      }
-    });
+    if (filter === "direct") list = list.filter((r) => isDirectCompetitor(r.brand_name, direct));
     if (!q.trim()) return list;
     const k = q.toLowerCase();
     return list.filter((r) => Object.values(r).some((v) => String(v).toLowerCase().includes(k)));
-  }, [competitorSnap, q, filter, changeByBrand, direct]);
-
-  const serynName = buildSerynSnapshot(data).ownBrandName;
+  }, [competitorSnap, q, filter, direct]);
 
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div className="flex flex-col gap-1.5 border-l-2 border-cyan-500 pl-4">
         <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">ĐỐI THỦ</span>
         <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Thống kê quảng cáo theo từng đối thủ</h2>
-        <p className="text-sm text-slate-600 font-medium">Nhấp vào một đối thủ để mở hồ sơ chi tiết (lượng quảng cáo · dịch vụ · nội dung · nhân rộng · phân tích content + ảnh quảng cáo).</p>
+        <p className="text-sm text-slate-600 font-medium">Nhấp vào một đối thủ để mở hồ sơ chi tiết (lượng quảng cáo · dịch vụ · nội dung · nhân rộng · phân tích content + ảnh quảng cáo). Dữ liệu của SERYN xem ở tab SERYN.</p>
       </div>
-
-      {/* SERYN Snapshot (own brand) — KHÔNG nằm trong bảng đối thủ */}
-      <SerynSnapshotCard data={data} onOpen={() => onSelectBrand(serynName)} />
 
       <div className="flex items-center gap-2">
         <div className="relative flex-1 max-w-md">
@@ -145,16 +116,14 @@ export default function BrandsView({
               <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] uppercase tracking-wider text-slate-500 font-bold">
                 <th className="px-4 py-3">Đối thủ</th>
                 <th className="px-4 py-3 text-right">QC</th>
-                <th className="px-4 py-3">Góc content</th>
-                <th className="px-4 py-3">Định dạng</th>
-                <th className="px-4 py-3 text-right">Nhân rộng</th>
+                <th className="px-4 py-3">Content angle</th>
+                <th className="px-4 py-3">Định dạng nội dung</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => {
                 const ads = normalizeNumber(r.total_active_ads);
-                const scaled = normalizeNumber(r.scaled_content_count);
                 const isDirect = isDirectCompetitor(r.brand_name, direct);
                 return (
                   <tr
@@ -186,29 +155,17 @@ export default function BrandsView({
                       ) : <span className="text-xs text-slate-300">—</span>}
                     </td>
                     <td className="px-4 py-3"><Chips value={r.main_content_formats} max={3} /></td>
-                    <td className="px-4 py-3 text-right">
-                      {scaled > 0 ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded">
-                          <Flame className="w-3 h-3" />{scaled}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-slate-300">—</span>
-                      )}
-                    </td>
                     <td className="px-4 py-3 text-right"><ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-cyan-500 inline" /></td>
                   </tr>
                 );
               })}
               {!rows.length && (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400 text-sm font-semibold">Không có đối thủ khớp.</td></tr>
+                <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-400 text-sm font-semibold">Không có đối thủ khớp.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
-
-      {/* So sánh SERYN vs Đối thủ */}
-      <SerynVsCompetitorSection data={data} />
     </motion.div>
   );
 }

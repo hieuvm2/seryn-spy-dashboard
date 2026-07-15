@@ -16,6 +16,7 @@ import {
   Search,
   ClipboardList,
   LayoutGrid,
+  Sparkles,
   X,
 } from "lucide-react";
 import type { ViewId } from "../types";
@@ -32,7 +33,7 @@ interface SidebarProps {
 }
 
 /** Tab viewer được thấy. Admin: tất cả. */
-const VIEWER_VIEW_IDS: ViewId[] = ["overview", "brands", "reports"];
+const VIEWER_VIEW_IDS: ViewId[] = ["overview", "brands", "seryn", "reports"];
 
 type MenuItem = { id: ViewId; label: string; icon: any };
 type MenuGroup = { title: string; items: MenuItem[] };
@@ -46,6 +47,12 @@ const menuGroups: MenuGroup[] = [
       { id: "brands", label: "Đối thủ", icon: FileSpreadsheet },
       { id: "reports", label: "Báo cáo", icon: FileText },
       { id: "competitor-discovery", label: "Phát hiện đối thủ", icon: Search },
+    ],
+  },
+  {
+    title: "Thương hiệu của mình",
+    items: [
+      { id: "seryn", label: "SERYN", icon: Sparkles },
     ],
   },
   {

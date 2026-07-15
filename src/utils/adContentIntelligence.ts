@@ -68,6 +68,17 @@ const BANNED: Array<[RegExp, string]> = [
 ];
 function sanitize(text: string): string { let s = String(text || ""); for (const [re, v] of BANNED) s = s.replace(re, v); return s.trim(); }
 
+/** Liệt kê CỤM TỪ vi phạm (claim cấm) tìm thấy trong content — dùng cho tab SERYN (cảnh báo). */
+export function detectBannedPhrases(text: string): string[] {
+  const s = String(text || "");
+  const found: string[] = [];
+  for (const [re] of BANNED) {
+    const m = s.match(new RegExp(re.source, "gi"));
+    if (m) found.push(...m.map((x) => x.trim()));
+  }
+  return [...new Set(found)];
+}
+
 /* ---------- detectors (rule-based) ---------- */
 const ANGLE_RULES: Array<[string, RegExp]> = [
   ["offer_promotion", /ưu đãi|giảm|tặng|combo|chỉ từ|miễn phí|khuyến mãi|trợ giá|đồng giá|sale|\boff\b|\d+\s*k\b|\d+%/i],
@@ -187,12 +198,20 @@ function scaleSignalOf(adsCount: number, activeDays: number): AdContentIntellige
 function repetitionOf(adsCount: number): AdContentIntelligence["repetitionSignal"] {
   return adsCount >= 5 ? "High" : adsCount >= 3 ? "Medium" : "Low";
 }
-function riskOf(text: string, offer: string, beforeAfter: boolean): AdContentIntelligence["riskLevel"] {
+/** Lý do rủi ro (kèm điểm) — tách riêng để tab SERYN liệt kê rõ vì sao content bị cảnh báo. */
+export function detectRiskReasons(text: string, offer: string, beforeAfter: boolean): { reason: string; score: number }[] {
   const t = lc(text + " " + offer);
-  let score = 0;
-  if (/trẻ (hơn|ra)?\s*\d+\s*tuổi|xóa sạch|dứt điểm|100%|cam kết|vĩnh viễn|khỏi hẳn|lột xác|thần kỳ/.test(t)) score += 60;
-  if (/giảm\s*[5-9]\d%|đồng giá|giá sốc/.test(t)) score += 25;
-  if (beforeAfter) score += 25;
+  const out: { reason: string; score: number }[] = [];
+  if (/trẻ (hơn|ra)?\s*\d+\s*tuổi|xóa sạch|dứt điểm|100%|cam kết|vĩnh viễn|khỏi hẳn|lột xác|thần kỳ/.test(t))
+    out.push({ reason: "Claim y khoa mạnh / tuyệt đối (cam kết, dứt điểm, vĩnh viễn…)", score: 60 });
+  if (/giảm\s*[5-9]\d%|đồng giá|giá sốc/.test(t))
+    out.push({ reason: "Giảm giá sâu / đua giá — lệch định vị premium của SERYN", score: 25 });
+  if (beforeAfter)
+    out.push({ reason: "Dựa nhiều vào hình before/after — rủi ro claim hình ảnh", score: 25 });
+  return out;
+}
+function riskOf(text: string, offer: string, beforeAfter: boolean): AdContentIntelligence["riskLevel"] {
+  const score = detectRiskReasons(text, offer, beforeAfter).reduce((a, r) => a + r.score, 0);
   return score >= 60 ? "High" : score >= 30 ? "Medium" : "Low";
 }
 
