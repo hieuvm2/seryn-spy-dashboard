@@ -129,13 +129,21 @@ function alertsFromContent(data: SpyDashboardData): { hasContent: boolean; alert
 /* ---------- tìm QC của SERYN chứa 1 cụm từ (khi bấm chip cụm vi phạm) ---------- */
 export interface MatchedAd {
   adId: string;
-  text: string;
+  text: string;      // tiêu đề/hook của ad
+  snippet: string;   // đoạn văn chứa cụm khớp (có thể = text)
   adFormat: string;
   daysActive: number;
   cta: string;
   offer: string;
   pageName: string;
   url: string;
+}
+export interface PhraseMatchResult {
+  ads: MatchedAd[];
+  /** Cụm thực sự khớp (có thể ngắn hơn phrase khi phải khớp gần đúng). */
+  matchedFragment: string;
+  /** true khi không có QC chứa nguyên cụm, phải khớp theo cụm con dài nhất. */
+  approximate: boolean;
 }
 
 const AD_FMT_VI: Record<string, string> = { image: "Ảnh", video: "Video", carousel: "Carousel" };
@@ -149,9 +157,9 @@ const numOf = (v: unknown) => { const n = Number(String(v ?? "").replace(/[^\d.-
 const norm = (s: unknown) =>
   String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 
-/** Link Thư viện QC Facebook của SERYN — xem trực tiếp ad thật (dashboard chưa
- *  lưu ad-level của own brand). Ưu tiên trang SERYN (view_all_page_id); nếu chưa
- *  cấu hình page thì tìm theo từ khóa tại VN. */
+/** Link Thư viện QC Facebook của SERYN — xem trực tiếp ad thật (nguồn gốc).
+ *  Ưu tiên trang SERYN (view_all_page_id); nếu chưa cấu hình page thì tìm theo
+ *  từ khóa tại VN. */
 export function serynAdLibraryUrl(data: SpyDashboardData, phrase?: string): string {
   const pageId = (data.ownBrandPages ?? []).map((p) => String(p.page_id || "").trim()).find(Boolean);
   if (pageId) {
@@ -161,45 +169,85 @@ export function serynAdLibraryUrl(data: SpyDashboardData, phrase?: string): stri
   return `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=VN&q=${q}&search_type=keyword_unordered&media_type=all`;
 }
 
-/** Các QC của CHÍNH SERYN có nội dung chứa `phrase` (khớp linh hoạt: bỏ dấu, thường hóa).
- *  Tìm trong adLevelAnalysis + scaledContentAnalysis (own). Khử trùng theo ad_id/nội dung.
- *  LƯU Ý: hiện pipeline chỉ crawl ad-level của ĐỐI THỦ — SERYN thường rỗng ở đây. */
-export function findOwnAdsByPhrase(data: SpyDashboardData, phrase: string): MatchedAd[] {
-  const key = norm(phrase);
-  if (!key) return [];
-  const hit = (...vals: unknown[]) => vals.some((v) => norm(v).includes(key));
-  const out: MatchedAd[] = [];
-  const seen = new Set<string>();
-  const add = (m: MatchedAd) => {
-    const dedup = m.adId || m.text.toLowerCase();
-    if (!dedup || seen.has(dedup)) return;
-    seen.add(dedup);
-    out.push(m);
-  };
+/** Trích đoạn ~120 ký tự quanh vị trí khớp `frag` (đã chuẩn hóa) trong text gốc. */
+function snippetAround(fields: string[], frag: string): string {
+  for (const raw of fields) {
+    const i = norm(raw).indexOf(frag);
+    if (i < 0) continue;
+    const full = String(raw).replace(/\s+/g, " ").trim();
+    // vị trí trong bản chuẩn hóa ~ vị trí trong bản gốc (độ dài xấp xỉ) -> lấy cửa sổ rộng.
+    const start = Math.max(0, i - 40);
+    const end = Math.min(full.length, i + frag.length + 80);
+    return (start > 0 ? "…" : "") + full.slice(start, end).trim() + (end < full.length ? "…" : "");
+  }
+  return "";
+}
 
+/** Các QC của CHÍNH SERYN có nội dung chứa `phrase`.
+ *  Tìm trên MỌI field text (hook/headline/primary_text/offer) của adLevelAnalysis +
+ *  scaledContentAnalysis (own). Nếu không QC nào chứa nguyên cụm (cụm trong báo cáo
+ *  thường là bản AI diễn giải), fallback: khớp theo CỤM CON dài nhất (n-gram) — vd
+ *  "vũ khí giữ chồng" -> "giữ chồng". Khử trùng theo ad_id/nội dung. */
+export function findOwnAdsByPhrase(data: SpyDashboardData, phrase: string): PhraseMatchResult {
+  const key = norm(phrase);
+  if (!key) return { ads: [], matchedFragment: "", approximate: false };
+
+  // Gom nguồn own (ad-level + scaled) về 1 dạng chung để quét text.
+  type Src = { adId: string; text: string; fields: string[]; adFormat: string; daysActive: number; cta: string; offer: string; pageName: string; url: string };
+  const srcs: Src[] = [];
   for (const a of data.adLevelAnalysis ?? []) {
     if (!isOwnRow(a, data)) continue;
-    const text = String(a.hook_raw_text || a.hook_text || a.headline || "");
-    if (!hit(text, a.offer_detected, a.service_or_product)) continue;
-    add({
-      adId: String(a.ad_id || ""), text, adFormat: fmtLabel(a),
-      daysActive: numOf(a.days_active), cta: String(a.cta || ""),
-      offer: String(a.offer_detected || ""), pageName: String(a.page_name || ""),
-      url: String(a.ad_snapshot_url || ""),
+    srcs.push({
+      adId: String(a.ad_id || ""),
+      text: String(a.hook_raw_text || a.hook_text || a.headline || a.primary_text || ""),
+      fields: [a.hook_raw_text, a.hook_text, a.headline, a.primary_text, a.hook_normalized, a.offer_detected].map((x) => String(x ?? "")).filter(Boolean),
+      adFormat: fmtLabel(a), daysActive: numOf(a.days_active), cta: String(a.cta || ""),
+      offer: String(a.offer_detected || ""), pageName: String(a.page_name || ""), url: String(a.ad_snapshot_url || ""),
     });
   }
   for (const s of data.scaledContentAnalysis ?? []) {
     if (!isOwnRow(s, data)) continue;
-    const text = String(s.representative_hook || "");
-    if (!hit(text, s.offer_detected, s.service_or_product)) continue;
-    add({
-      adId: String(s.representative_ad_id || s.content_cluster_id || ""), text, adFormat: fmtLabel(s),
-      daysActive: numOf(s.longest_days_active), cta: "",
-      offer: String(s.offer_detected || ""), pageName: "",
-      url: "",
+    srcs.push({
+      adId: String(s.representative_ad_id || s.content_cluster_id || ""),
+      text: String(s.representative_hook || ""),
+      fields: [s.representative_hook, s.offer_detected].map((x) => String(x ?? "")).filter(Boolean),
+      adFormat: fmtLabel(s), daysActive: numOf(s.longest_days_active), cta: "",
+      offer: String(s.offer_detected || ""), pageName: "", url: "",
     });
   }
-  return out.sort((a, b) => b.daysActive - a.daysActive);
+
+  // Các cụm con ứng viên: cụm đầy đủ trước, rồi ngắn dần tới tối thiểu 2 từ
+  // (phrase 1 từ thì để 1). Tránh khớp 1 từ chung chung gây nhiễu.
+  const words = key.split(" ").filter(Boolean);                       // đã bỏ dấu (để khớp)
+  const origWords = String(phrase ?? "").replace(/\s+/g, " ").trim().split(" "); // giữ nguyên (để hiển thị)
+  const nMin = words.length >= 2 ? 2 : 1;
+  const collect = (frag: string): MatchedAd[] => {
+    const seen = new Set<string>();
+    const out: MatchedAd[] = [];
+    for (const s of srcs) {
+      if (!s.fields.some((f) => norm(f).includes(frag))) continue;
+      const dedup = s.adId || s.text.toLowerCase();
+      if (!dedup || seen.has(dedup)) continue;
+      seen.add(dedup);
+      out.push({
+        adId: s.adId, text: s.text, snippet: snippetAround(s.fields, frag) || s.text,
+        adFormat: s.adFormat, daysActive: s.daysActive, cta: s.cta, offer: s.offer, pageName: s.pageName, url: s.url,
+      });
+    }
+    return out.sort((a, b) => b.daysActive - a.daysActive);
+  };
+
+  for (let n = words.length; n >= nMin; n--) {
+    for (let i = 0; i + n <= words.length; i++) {
+      const frag = words.slice(i, i + n).join(" ");
+      const ads = collect(frag);
+      if (ads.length) {
+        const display = origWords.slice(i, i + n).join(" ") || frag; // nhãn giữ dấu
+        return { ads, matchedFragment: display, approximate: n < words.length };
+      }
+    }
+  }
+  return { ads: [], matchedFragment: "", approximate: false };
 }
 
 /** Cảnh báo content SERYN — ưu tiên báo cáo tuần (đồng nhất tab Báo cáo). */

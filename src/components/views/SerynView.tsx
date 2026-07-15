@@ -25,17 +25,20 @@ function SectionTitle({ tag, title, desc }: { tag: string; title: string; desc?:
 
 /* ---------- Panel: các QC của SERYN chứa cụm từ vi phạm được chọn ---------- */
 function PhraseAdsPanel({ data, phrase }: { data: SpyDashboardData; phrase: string }) {
-  const ads = findOwnAdsByPhrase(data, phrase);
+  const { ads, matchedFragment, approximate } = findOwnAdsByPhrase(data, phrase);
   return (
     <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50/40 p-2.5">
       <p className="text-[11px] font-extrabold text-slate-700 mb-1.5">
         Quảng cáo SERYN chứa “{phrase}”
         <span className="ml-1.5 font-mono text-[10px] text-rose-700 bg-white border border-rose-200 px-1.5 py-0.5 rounded">{ads.length} QC</span>
       </p>
+      {approximate && ads.length > 0 && (
+        <p className="text-[10px] text-slate-500 mb-1.5 italic">Không có QC chứa nguyên cụm — hiển thị QC chứa phần khớp gần nhất: “{matchedFragment}”.</p>
+      )}
       {!ads.length ? (
         <div className="space-y-1.5">
           <p className="text-[11px] text-slate-500">
-            Dashboard chưa lưu quảng cáo chi tiết (ad-level) của SERYN — pipeline hiện chỉ thu thập từng QC của <b>đối thủ</b>, còn SERYN chỉ có số tổng. Xem trực tiếp các QC đang chạy của SERYN để tìm cụm này:
+            Không tìm thấy QC nào của SERYN chứa cụm này trong dữ liệu ad-level (cụm trong báo cáo có thể là diễn giải). Xem trực tiếp các QC đang chạy của SERYN:
           </p>
           <a
             href={serynAdLibraryUrl(data, phrase)}
@@ -47,23 +50,36 @@ function PhraseAdsPanel({ data, phrase }: { data: SpyDashboardData; phrase: stri
           </a>
         </div>
       ) : (
-        <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
-          {ads.map((ad, i) => (
-            <div key={`${ad.adId || i}`} className="rounded-md border border-slate-100 bg-white px-2.5 py-1.5">
-              <p className="text-[12px] font-semibold text-slate-800 leading-snug">{ad.text || "(không có nội dung hiển thị)"}</p>
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[10px] text-slate-500 font-semibold">
-                {ad.adFormat && <span className="px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50">{ad.adFormat}</span>}
-                {ad.daysActive > 0 && <span>{ad.daysActive} ngày</span>}
-                {ad.offer && <span className="text-amber-700">{ad.offer}</span>}
-                {ad.cta && <span>CTA: {viLabel(ad.cta)}</span>}
-                {ad.pageName && <span className="text-slate-400">{ad.pageName}</span>}
-                {ad.url && (
-                  <a href={ad.url} target="_blank" rel="noreferrer" className="ml-auto text-cyan-700 hover:underline inline-flex items-center gap-0.5 font-bold">Mở QC <ExternalLink className="w-3 h-3" /></a>
+        <>
+          <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+            {ads.map((ad, i) => (
+              <div key={`${ad.adId || i}`} className="rounded-md border border-slate-100 bg-white px-2.5 py-1.5">
+                <p className="text-[12px] font-semibold text-slate-800 leading-snug">{ad.text || "(không có tiêu đề)"}</p>
+                {ad.snippet && ad.snippet !== ad.text && (
+                  <p className="text-[11px] text-slate-500 leading-snug mt-0.5">{ad.snippet}</p>
                 )}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[10px] text-slate-500 font-semibold">
+                  {ad.adFormat && <span className="px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50">{ad.adFormat}</span>}
+                  {ad.daysActive > 0 && <span>{ad.daysActive} ngày</span>}
+                  {ad.offer && <span className="text-amber-700">{ad.offer}</span>}
+                  {ad.cta && <span>CTA: {viLabel(ad.cta)}</span>}
+                  {ad.pageName && <span className="text-slate-400">{ad.pageName}</span>}
+                  {ad.url && (
+                    <a href={ad.url} target="_blank" rel="noreferrer" className="ml-auto text-cyan-700 hover:underline inline-flex items-center gap-0.5 font-bold">Mở QC <ExternalLink className="w-3 h-3" /></a>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <a
+            href={serynAdLibraryUrl(data, phrase)}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-[10px] font-bold text-cyan-700 hover:underline mt-1.5"
+          >
+            Xem toàn bộ QC của SERYN trên Thư viện QC Facebook <ExternalLink className="w-3 h-3" />
+          </a>
+        </>
       )}
     </div>
   );
