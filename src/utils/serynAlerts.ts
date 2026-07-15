@@ -145,13 +145,29 @@ function fmtLabel(a: { ad_format?: unknown; media_type?: unknown; content_format
   return k ? AD_FMT_VI[k] : "";
 }
 const numOf = (v: unknown) => { const n = Number(String(v ?? "").replace(/[^\d.-]/g, "")); return Number.isFinite(n) ? n : 0; };
+/** Chuẩn hóa để khớp linh hoạt: bỏ dấu, thường hóa, gộp khoảng trắng. */
+const norm = (s: unknown) =>
+  String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 
-/** Các QC của CHÍNH SERYN có nội dung chứa `phrase` (khớp chuỗi, không phân biệt hoa/thường).
- *  Tìm trong adLevelAnalysis + scaledContentAnalysis (own). Khử trùng theo ad_id/nội dung. */
+/** Link Thư viện QC Facebook của SERYN — xem trực tiếp ad thật (dashboard chưa
+ *  lưu ad-level của own brand). Ưu tiên trang SERYN (view_all_page_id); nếu chưa
+ *  cấu hình page thì tìm theo từ khóa tại VN. */
+export function serynAdLibraryUrl(data: SpyDashboardData, phrase?: string): string {
+  const pageId = (data.ownBrandPages ?? []).map((p) => String(p.page_id || "").trim()).find(Boolean);
+  if (pageId) {
+    return `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=VN&view_all_page_id=${encodeURIComponent(pageId)}&media_type=all`;
+  }
+  const q = encodeURIComponent(String(phrase || "").trim());
+  return `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=VN&q=${q}&search_type=keyword_unordered&media_type=all`;
+}
+
+/** Các QC của CHÍNH SERYN có nội dung chứa `phrase` (khớp linh hoạt: bỏ dấu, thường hóa).
+ *  Tìm trong adLevelAnalysis + scaledContentAnalysis (own). Khử trùng theo ad_id/nội dung.
+ *  LƯU Ý: hiện pipeline chỉ crawl ad-level của ĐỐI THỦ — SERYN thường rỗng ở đây. */
 export function findOwnAdsByPhrase(data: SpyDashboardData, phrase: string): MatchedAd[] {
-  const key = String(phrase ?? "").toLowerCase().trim();
+  const key = norm(phrase);
   if (!key) return [];
-  const hit = (...vals: unknown[]) => vals.some((v) => String(v ?? "").toLowerCase().includes(key));
+  const hit = (...vals: unknown[]) => vals.some((v) => norm(v).includes(key));
   const out: MatchedAd[] = [];
   const seen = new Set<string>();
   const add = (m: MatchedAd) => {

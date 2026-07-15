@@ -4,7 +4,7 @@ import { ShieldAlert, ShieldCheck, FlaskConical, ExternalLink, AlertTriangle, Se
 import type { SpyDashboardData } from "../../types";
 import { viLabel } from "../../utils/spyData";
 import { buildSerynSnapshot, getSerynRecommendedTests } from "../../utils/serynBenchmark";
-import { buildSerynAlerts, findOwnAdsByPhrase, type SerynContentAlert } from "../../utils/serynAlerts";
+import { buildSerynAlerts, findOwnAdsByPhrase, serynAdLibraryUrl, type SerynContentAlert } from "../../utils/serynAlerts";
 import { SerynSnapshotCard, TestRow } from "../SerynBenchmark";
 
 const SEV_VI: Record<string, string> = { High: "Cảnh báo cao", Medium: "Cần review" };
@@ -33,7 +33,19 @@ function PhraseAdsPanel({ data, phrase }: { data: SpyDashboardData; phrase: stri
         <span className="ml-1.5 font-mono text-[10px] text-rose-700 bg-white border border-rose-200 px-1.5 py-0.5 rounded">{ads.length} QC</span>
       </p>
       {!ads.length ? (
-        <p className="text-[11px] text-slate-500">Không tìm thấy QC khớp chính xác cụm này trong dữ liệu ad-level (có thể do cách diễn đạt khác, hoặc chưa crawl ad-level của SERYN).</p>
+        <div className="space-y-1.5">
+          <p className="text-[11px] text-slate-500">
+            Dashboard chưa lưu quảng cáo chi tiết (ad-level) của SERYN — pipeline hiện chỉ thu thập từng QC của <b>đối thủ</b>, còn SERYN chỉ có số tổng. Xem trực tiếp các QC đang chạy của SERYN để tìm cụm này:
+          </p>
+          <a
+            href={serynAdLibraryUrl(data, phrase)}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-cyan-600 hover:bg-cyan-500 px-2.5 py-1 rounded-lg transition"
+          >
+            Mở Thư viện QC Facebook của SERYN <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
       ) : (
         <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
           {ads.map((ad, i) => (
