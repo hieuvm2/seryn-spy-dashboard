@@ -138,49 +138,77 @@ export default function CompetitorSetupView({ data }: { data: SpyDashboardData }
           <p className="text-xs text-slate-400 font-medium">Thêm đối thủ ở form trên, hoặc cấu hình Google Sheets để đồng bộ tab Competitors.</p>
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm divide-y divide-slate-100">
-          {rows.map((c) => {
-            const st = statusFor(c);
-            const isEdit = editing === c.id;
-            return (
-              <div key={c.id} className="p-4 flex flex-col md:flex-row md:items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  {isEdit ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <input defaultValue={c.brand} onBlur={(e) => onPatch(c.id, { brand: e.target.value })} className="px-2 py-1 rounded border border-slate-200 text-sm" />
-                      <input defaultValue={c.category || ""} onBlur={(e) => onPatch(c.id, { category: e.target.value })} placeholder="nhóm dịch vụ (category)" className="px-2 py-1 rounded border border-slate-200 text-sm" />
-                      <input defaultValue={c.page_url || ""} onBlur={(e) => onPatch(c.id, { page_url: e.target.value })} placeholder="page_url" className="px-2 py-1 rounded border border-slate-200 text-sm" />
-                      <input defaultValue={c.page_id || ""} onBlur={(e) => onPatch(c.id, { page_id: e.target.value })} placeholder="page_id" className="px-2 py-1 rounded border border-slate-200 text-sm" />
-                      <input defaultValue={c.notes || ""} onBlur={(e) => onPatch(c.id, { notes: e.target.value })} placeholder="ghi chú" className="px-2 py-1 rounded border border-slate-200 text-sm sm:col-span-2" />
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-extrabold text-slate-800">{c.brand}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${STATUS_TONE[st] || STATUS_TONE.inactive}`}>{viLabel(st)}</span>
-                        {c.category && <span className="text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">{viLabel(c.category)}</span>}
-                      </div>
-                      <p className="text-[11px] text-slate-400 font-mono truncate">{c.page_id || "chưa có page_id"}{c.page_url ? ` · ${c.page_url}` : ""}</p>
-                      {c.notes && <p className="text-[11px] text-slate-500 truncate">{c.notes}</p>}
-                    </>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => toggleDirectCompetitor(c.brand)}
-                    title="Đối thủ trực tiếp — ưu tiên hiển thị ở các tab khác"
-                    className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg border transition cursor-pointer ${direct.has(c.brand) ? "text-amber-700 bg-amber-50 border-amber-200" : "text-slate-500 border-slate-200 hover:bg-slate-50"}`}
-                  >
-                    <Star className={`w-3.5 h-3.5 ${direct.has(c.brand) ? "fill-amber-400 text-amber-500" : ""}`} /> Trực tiếp
-                  </button>
-                  <button onClick={() => onCrawl(c)} className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg border border-indigo-100 transition cursor-pointer" title="Kiểm tra crawl"><FlaskConical className="w-3.5 h-3.5" /> Kiểm tra</button>
-                  <button onClick={() => onToggle(c)} className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg border transition cursor-pointer ${c.active ? "text-emerald-600 border-emerald-100 hover:bg-emerald-50" : "text-slate-500 border-slate-200 hover:bg-slate-50"}`}><Power className="w-3.5 h-3.5" /> {c.active ? "Bật" : "Tắt"}</button>
-                  <button onClick={() => setEditing(isEdit ? null : c.id)} className="text-xs font-bold text-slate-600 hover:bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 transition cursor-pointer">{isEdit ? "Xong" : "Sửa"}</button>
-                  <button onClick={() => onDelete(c)} title="Xóa hẳn khỏi danh sách theo dõi" className="flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg border border-rose-100 transition cursor-pointer"><Trash2 className="w-3.5 h-3.5" /> Xóa</button>
-                </div>
-              </div>
-            );
-          })}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+                  <th className="px-4 py-3">Đối thủ</th>
+                  <th className="px-4 py-3">Nhóm dịch vụ</th>
+                  <th className="px-4 py-3">Page</th>
+                  <th className="px-4 py-3">Trạng thái</th>
+                  <th className="px-4 py-3 text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((c) => {
+                  const st = statusFor(c);
+                  const isEdit = editing === c.id;
+                  return (
+                    <React.Fragment key={c.id}>
+                      <tr className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60 align-top">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            {direct.has(c.brand) && <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />}
+                            <span className="font-extrabold text-slate-800">{c.brand}</span>
+                          </div>
+                          {c.notes && <p className="text-[11px] text-slate-500 truncate max-w-[220px]">{c.notes}</p>}
+                        </td>
+                        <td className="px-4 py-3">
+                          {c.category ? <span className="text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">{viLabel(c.category)}</span> : <span className="text-xs text-slate-300">—</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-[11px] text-slate-500 font-mono truncate max-w-[200px]">{c.page_id || "chưa có page_id"}</p>
+                          {c.page_url && <p className="text-[11px] text-slate-400 truncate max-w-[200px]">{c.page_url}</p>}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${STATUS_TONE[st] || STATUS_TONE.inactive}`}>{viLabel(st)}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => toggleDirectCompetitor(c.brand)}
+                              title="Đối thủ trực tiếp — ưu tiên hiển thị ở các tab khác"
+                              className={`p-1.5 rounded-lg border transition cursor-pointer ${direct.has(c.brand) ? "text-amber-700 bg-amber-50 border-amber-200" : "text-slate-400 border-slate-200 hover:bg-slate-50"}`}
+                            >
+                              <Star className={`w-3.5 h-3.5 ${direct.has(c.brand) ? "fill-amber-400 text-amber-500" : ""}`} />
+                            </button>
+                            <button onClick={() => onCrawl(c)} title="Kiểm tra crawl" className="p-1.5 rounded-lg border border-indigo-100 text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"><FlaskConical className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => onToggle(c)} title={c.active ? "Đang bật — bấm để tắt" : "Đang tắt — bấm để bật"} className={`p-1.5 rounded-lg border transition cursor-pointer ${c.active ? "text-emerald-600 border-emerald-100 hover:bg-emerald-50" : "text-slate-400 border-slate-200 hover:bg-slate-50"}`}><Power className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => setEditing(isEdit ? null : c.id)} className="text-xs font-bold text-slate-600 hover:bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 transition cursor-pointer">{isEdit ? "Xong" : "Sửa"}</button>
+                            <button onClick={() => onDelete(c)} title="Xóa hẳn khỏi danh sách theo dõi" className="p-1.5 rounded-lg border border-rose-100 text-rose-600 hover:bg-rose-50 transition cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                      {isEdit && (
+                        <tr className="border-b border-slate-100 last:border-0 bg-slate-50/60">
+                          <td colSpan={5} className="px-4 py-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <input defaultValue={c.brand} onBlur={(e) => onPatch(c.id, { brand: e.target.value })} className="px-2 py-1 rounded border border-slate-200 text-sm" />
+                              <input defaultValue={c.category || ""} onBlur={(e) => onPatch(c.id, { category: e.target.value })} placeholder="nhóm dịch vụ (category)" className="px-2 py-1 rounded border border-slate-200 text-sm" />
+                              <input defaultValue={c.page_url || ""} onBlur={(e) => onPatch(c.id, { page_url: e.target.value })} placeholder="page_url" className="px-2 py-1 rounded border border-slate-200 text-sm" />
+                              <input defaultValue={c.page_id || ""} onBlur={(e) => onPatch(c.id, { page_id: e.target.value })} placeholder="page_id" className="px-2 py-1 rounded border border-slate-200 text-sm" />
+                              <input defaultValue={c.notes || ""} onBlur={(e) => onPatch(c.id, { notes: e.target.value })} placeholder="ghi chú" className="px-2 py-1 rounded border border-slate-200 text-sm sm:col-span-2" />
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
