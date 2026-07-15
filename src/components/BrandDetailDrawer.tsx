@@ -98,6 +98,31 @@ function topCounts(values: (string | undefined)[], n: number): { label: string; 
   return [...map.values()].sort((a, b) => b.count - a.count).slice(0, n);
 }
 
+/** Link page: 1 page chính + các page phụ ẩn sau "Xem thêm" cho gọn header. */
+function PageLinks({ pageIds }: { pageIds: string[] }) {
+  const [showAll, setShowAll] = useState(false);
+  if (!pageIds.length) return null;
+  const extra = pageIds.length - 1;
+  const shown = showAll ? pageIds : pageIds.slice(0, 1);
+  return (
+    <>
+      {shown.map((pid, i) => (
+        <a key={`pid-${i}`} href={`https://www.facebook.com/${pid}`} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline">
+          {i === 0 ? "page chính" : "page phụ"}: <span className="font-mono">{pid}</span> ↗
+        </a>
+      ))}
+      {extra > 0 && (
+        <button
+          onClick={() => setShowAll((v) => !v)}
+          className="text-slate-500 hover:text-slate-800 font-semibold underline decoration-dotted cursor-pointer"
+        >
+          {showAll ? "Thu gọn" : `Xem thêm ${extra} page phụ`}
+        </button>
+      )}
+    </>
+  );
+}
+
 export default function BrandDetailDrawer({
   brandName, data, open, onClose,
 }: { brandName: string | null; data: SpyDashboardData; open: boolean; onClose: () => void }) {
@@ -154,10 +179,8 @@ export default function BrandDetailDrawer({
                     : isDirectCompetitor(brandName) && <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0"><Star className="w-3 h-3 fill-amber-400 text-amber-500" /> Trực tiếp</span>}
                 </h3>
                 {snap && <p className="text-xs text-slate-500 font-medium mt-0.5 max-w-2xl line-clamp-2">{humanizeText(orUnknown(snap.content_strategy_summary))}</p>}
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[11px] text-slate-500">
-                  {pageIds.map((pid, i) => (
-                    <a key={`pid-${i}`} href={`https://www.facebook.com/${pid}`} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline">page_id: <span className="font-mono">{pid}</span> ↗</a>
-                  ))}
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[11px] text-slate-500 items-center">
+                  <React.Fragment key={brandName}><PageLinks pageIds={pageIds} /></React.Fragment>
                   {!!disc?.website_url && <a href={String(disc.website_url)} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline">website ↗</a>}
                   {!!fanpageUrl && <a href={fanpageUrl} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline">fanpage ↗</a>}
                   {!!disc?.phone && <span>☎ {String(disc.phone)}</span>}
