@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "motion/react";
-import { ShieldAlert, ShieldCheck, FlaskConical, ExternalLink, AlertTriangle } from "lucide-react";
+import { ShieldAlert, ShieldCheck, FlaskConical, ExternalLink, AlertTriangle, Search } from "lucide-react";
 import type { SpyDashboardData } from "../../types";
+import { viLabel } from "../../utils/spyData";
 import { buildSerynSnapshot, getSerynRecommendedTests } from "../../utils/serynBenchmark";
-import { buildSerynAlerts, type SerynContentAlert } from "../../utils/serynAlerts";
+import { buildSerynAlerts, findOwnAdsByPhrase, type SerynContentAlert } from "../../utils/serynAlerts";
 import { SerynSnapshotCard, TestRow } from "../SerynBenchmark";
 
 const SEV_VI: Record<string, string> = { High: "Cảnh báo cao", Medium: "Cần review" };
@@ -22,8 +23,44 @@ function SectionTitle({ tag, title, desc }: { tag: string; title: string; desc?:
   );
 }
 
+/* ---------- Panel: các QC của SERYN chứa cụm từ vi phạm được chọn ---------- */
+function PhraseAdsPanel({ data, phrase }: { data: SpyDashboardData; phrase: string }) {
+  const ads = findOwnAdsByPhrase(data, phrase);
+  return (
+    <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50/40 p-2.5">
+      <p className="text-[11px] font-extrabold text-slate-700 mb-1.5">
+        Quảng cáo SERYN chứa “{phrase}”
+        <span className="ml-1.5 font-mono text-[10px] text-rose-700 bg-white border border-rose-200 px-1.5 py-0.5 rounded">{ads.length} QC</span>
+      </p>
+      {!ads.length ? (
+        <p className="text-[11px] text-slate-500">Không tìm thấy QC khớp chính xác cụm này trong dữ liệu ad-level (có thể do cách diễn đạt khác, hoặc chưa crawl ad-level của SERYN).</p>
+      ) : (
+        <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+          {ads.map((ad, i) => (
+            <div key={`${ad.adId || i}`} className="rounded-md border border-slate-100 bg-white px-2.5 py-1.5">
+              <p className="text-[12px] font-semibold text-slate-800 leading-snug">{ad.text || "(không có nội dung hiển thị)"}</p>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[10px] text-slate-500 font-semibold">
+                {ad.adFormat && <span className="px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50">{ad.adFormat}</span>}
+                {ad.daysActive > 0 && <span>{ad.daysActive} ngày</span>}
+                {ad.offer && <span className="text-amber-700">{ad.offer}</span>}
+                {ad.cta && <span>CTA: {viLabel(ad.cta)}</span>}
+                {ad.pageName && <span className="text-slate-400">{ad.pageName}</span>}
+                {ad.url && (
+                  <a href={ad.url} target="_blank" rel="noreferrer" className="ml-auto text-cyan-700 hover:underline inline-flex items-center gap-0.5 font-bold">Mở QC <ExternalLink className="w-3 h-3" /></a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---------- Cảnh báo: liệt kê rõ content SERYN nào bị cảnh báo & vì sao ---------- */
-function AlertCard({ a }: { a: SerynContentAlert }) {
+function AlertCard({ a, data }: { a: SerynContentAlert; data: SpyDashboardData }) {
+  // Cụm từ đang được chọn -> hiện các QC chứa cụm đó ngay dưới.
+  const [phrase, setPhrase] = useState<string | null>(null);
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-2.5">
       <div className="flex items-center gap-2 flex-wrap">
@@ -55,12 +92,20 @@ function AlertCard({ a }: { a: SerynContentAlert }) {
 
       {a.flaggedPhrases.length > 0 && (
         <div>
-          <p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1">Cụm từ vi phạm phát hiện</p>
+          <p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1">Cụm từ vi phạm phát hiện <span className="normal-case font-sans text-slate-400">(bấm để xem QC chứa cụm)</span></p>
           <div className="flex flex-wrap gap-1.5">
             {a.flaggedPhrases.map((p, i) => (
-              <span key={i} className="text-[11px] font-bold px-2 py-0.5 rounded border border-rose-200 bg-rose-50 text-rose-700">“{p}”</span>
+              <button
+                key={i}
+                onClick={() => setPhrase((cur) => (cur === p ? null : p))}
+                title="Bấm để xem các quảng cáo SERYN chứa cụm này"
+                className={`text-[11px] font-bold px-2 py-0.5 rounded border transition cursor-pointer inline-flex items-center gap-1 ${phrase === p ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"}`}
+              >
+                <Search className="w-2.5 h-2.5" />“{p}”
+              </button>
             ))}
           </div>
+          {phrase && <PhraseAdsPanel data={data} phrase={phrase} />}
         </div>
       )}
 
@@ -116,7 +161,7 @@ export default function SerynView({
           </div>
         ) : (
           <div className="grid lg:grid-cols-2 gap-3">
-            {alertsResult.alerts.map((a, i) => <div key={i}><AlertCard a={a} /></div>)}
+            {alertsResult.alerts.map((a, i) => <div key={i}><AlertCard a={a} data={data} /></div>)}
           </div>
         )}
       </div>

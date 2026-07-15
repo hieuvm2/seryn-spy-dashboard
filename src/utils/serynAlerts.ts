@@ -10,7 +10,7 @@ import type { SpyDashboardData, SpyReport } from "../types";
 import {
   buildAdContentIntelligenceForBrand, detectRiskReasons, detectBannedPhrases, ANGLE_VI,
 } from "./adContentIntelligence";
-import { getOwnSnapshotBrandNames } from "./ownBrand";
+import { getOwnSnapshotBrandNames, isOwnRow } from "./ownBrand";
 
 export interface SerynContentAlert {
   severity: "High" | "Medium";
@@ -124,6 +124,66 @@ function alertsFromContent(data: SpyDashboardData): { hasContent: boolean; alert
     a.severity === b.severity ? (b.adsCount ?? 0) - (a.adsCount ?? 0) : a.severity === "High" ? -1 : 1,
   );
   return { hasContent: total > 0, alerts };
+}
+
+/* ---------- tìm QC của SERYN chứa 1 cụm từ (khi bấm chip cụm vi phạm) ---------- */
+export interface MatchedAd {
+  adId: string;
+  text: string;
+  adFormat: string;
+  daysActive: number;
+  cta: string;
+  offer: string;
+  pageName: string;
+  url: string;
+}
+
+const AD_FMT_VI: Record<string, string> = { image: "Ảnh", video: "Video", carousel: "Carousel" };
+function fmtLabel(a: { ad_format?: unknown; media_type?: unknown; content_format?: unknown }): string {
+  const f = `${String(a.ad_format ?? "")} ${String(a.media_type ?? "")} ${String(a.content_format ?? "")}`.toLowerCase();
+  const k = (["video", "carousel", "image"] as const).find((x) => f.includes(x));
+  return k ? AD_FMT_VI[k] : "";
+}
+const numOf = (v: unknown) => { const n = Number(String(v ?? "").replace(/[^\d.-]/g, "")); return Number.isFinite(n) ? n : 0; };
+
+/** Các QC của CHÍNH SERYN có nội dung chứa `phrase` (khớp chuỗi, không phân biệt hoa/thường).
+ *  Tìm trong adLevelAnalysis + scaledContentAnalysis (own). Khử trùng theo ad_id/nội dung. */
+export function findOwnAdsByPhrase(data: SpyDashboardData, phrase: string): MatchedAd[] {
+  const key = String(phrase ?? "").toLowerCase().trim();
+  if (!key) return [];
+  const hit = (...vals: unknown[]) => vals.some((v) => String(v ?? "").toLowerCase().includes(key));
+  const out: MatchedAd[] = [];
+  const seen = new Set<string>();
+  const add = (m: MatchedAd) => {
+    const dedup = m.adId || m.text.toLowerCase();
+    if (!dedup || seen.has(dedup)) return;
+    seen.add(dedup);
+    out.push(m);
+  };
+
+  for (const a of data.adLevelAnalysis ?? []) {
+    if (!isOwnRow(a, data)) continue;
+    const text = String(a.hook_raw_text || a.hook_text || a.headline || "");
+    if (!hit(text, a.offer_detected, a.service_or_product)) continue;
+    add({
+      adId: String(a.ad_id || ""), text, adFormat: fmtLabel(a),
+      daysActive: numOf(a.days_active), cta: String(a.cta || ""),
+      offer: String(a.offer_detected || ""), pageName: String(a.page_name || ""),
+      url: String(a.ad_snapshot_url || ""),
+    });
+  }
+  for (const s of data.scaledContentAnalysis ?? []) {
+    if (!isOwnRow(s, data)) continue;
+    const text = String(s.representative_hook || "");
+    if (!hit(text, s.offer_detected, s.service_or_product)) continue;
+    add({
+      adId: String(s.representative_ad_id || s.content_cluster_id || ""), text, adFormat: fmtLabel(s),
+      daysActive: numOf(s.longest_days_active), cta: "",
+      offer: String(s.offer_detected || ""), pageName: "",
+      url: "",
+    });
+  }
+  return out.sort((a, b) => b.daysActive - a.daysActive);
 }
 
 /** Cảnh báo content SERYN — ưu tiên báo cáo tuần (đồng nhất tab Báo cáo). */
