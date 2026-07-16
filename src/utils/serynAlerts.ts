@@ -129,6 +129,7 @@ function alertsFromContent(data: SpyDashboardData): { hasContent: boolean; alert
 /* ---------- tìm QC của SERYN chứa 1 cụm từ (khi bấm chip cụm vi phạm) ---------- */
 export interface MatchedAd {
   adId: string;
+  pageId: string;    // để mở trang Ad Library của page (link ad lẻ hay bị Meta ẩn)
   text: string;      // tiêu đề/hook của ad
   snippet: string;   // đoạn văn chứa cụm khớp (có thể = text)
   adFormat: string;
@@ -160,11 +161,14 @@ const norm = (s: unknown) =>
 /** Link Thư viện QC Facebook của SERYN — xem trực tiếp ad thật (nguồn gốc).
  *  Ưu tiên trang SERYN (view_all_page_id); nếu chưa cấu hình page thì tìm theo
  *  từ khóa tại VN. */
+/** Trang Ad Library của 1 page cụ thể — luôn mở được (link ad lẻ ?id= hay bị Meta
+ *  ẩn "Ad isn't in the ad library" với ad own mới/ít impression). */
+export function pageAdLibraryUrl(pageId: string): string {
+  return `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=VN&view_all_page_id=${encodeURIComponent(String(pageId).trim())}&media_type=all`;
+}
 export function serynAdLibraryUrl(data: SpyDashboardData, phrase?: string): string {
   const pageId = (data.ownBrandPages ?? []).map((p) => String(p.page_id || "").trim()).find(Boolean);
-  if (pageId) {
-    return `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=VN&view_all_page_id=${encodeURIComponent(pageId)}&media_type=all`;
-  }
+  if (pageId) return pageAdLibraryUrl(pageId);
   const q = encodeURIComponent(String(phrase || "").trim());
   return `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=VN&q=${q}&search_type=keyword_unordered&media_type=all`;
 }
@@ -193,12 +197,12 @@ export function findOwnAdsByPhrase(data: SpyDashboardData, phrase: string): Phra
   if (!key) return { ads: [], matchedFragment: "", approximate: false };
 
   // Gom nguồn own (ad-level + scaled) về 1 dạng chung để quét text.
-  type Src = { adId: string; text: string; fields: string[]; adFormat: string; daysActive: number; cta: string; offer: string; pageName: string; url: string };
+  type Src = { adId: string; pageId: string; text: string; fields: string[]; adFormat: string; daysActive: number; cta: string; offer: string; pageName: string; url: string };
   const srcs: Src[] = [];
   for (const a of data.adLevelAnalysis ?? []) {
     if (!isOwnRow(a, data)) continue;
     srcs.push({
-      adId: String(a.ad_id || ""),
+      adId: String(a.ad_id || ""), pageId: String(a.page_id || ""),
       text: String(a.hook_raw_text || a.hook_text || a.headline || a.primary_text || ""),
       fields: [a.hook_raw_text, a.hook_text, a.headline, a.primary_text, a.hook_normalized, a.offer_detected].map((x) => String(x ?? "")).filter(Boolean),
       adFormat: fmtLabel(a), daysActive: numOf(a.days_active), cta: String(a.cta || ""),
@@ -208,7 +212,7 @@ export function findOwnAdsByPhrase(data: SpyDashboardData, phrase: string): Phra
   for (const s of data.scaledContentAnalysis ?? []) {
     if (!isOwnRow(s, data)) continue;
     srcs.push({
-      adId: String(s.representative_ad_id || s.content_cluster_id || ""),
+      adId: String(s.representative_ad_id || s.content_cluster_id || ""), pageId: String((s as { page_id?: unknown }).page_id || ""),
       text: String(s.representative_hook || ""),
       fields: [s.representative_hook, s.offer_detected].map((x) => String(x ?? "")).filter(Boolean),
       adFormat: fmtLabel(s), daysActive: numOf(s.longest_days_active), cta: "",
@@ -230,7 +234,7 @@ export function findOwnAdsByPhrase(data: SpyDashboardData, phrase: string): Phra
       if (!dedup || seen.has(dedup)) continue;
       seen.add(dedup);
       out.push({
-        adId: s.adId, text: s.text, snippet: snippetAround(s.fields, frag) || s.text,
+        adId: s.adId, pageId: s.pageId, text: s.text, snippet: snippetAround(s.fields, frag) || s.text,
         adFormat: s.adFormat, daysActive: s.daysActive, cta: s.cta, offer: s.offer, pageName: s.pageName, url: s.url,
       });
     }

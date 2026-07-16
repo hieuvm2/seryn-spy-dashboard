@@ -4,7 +4,7 @@ import { ShieldAlert, ShieldCheck, FlaskConical, ExternalLink, AlertTriangle, Se
 import type { SpyDashboardData } from "../../types";
 import { viLabel } from "../../utils/spyData";
 import { buildSerynSnapshot, getSerynRecommendedTests } from "../../utils/serynBenchmark";
-import { buildSerynAlerts, findOwnAdsByPhrase, serynAdLibraryUrl, type SerynContentAlert } from "../../utils/serynAlerts";
+import { buildSerynAlerts, findOwnAdsByPhrase, serynAdLibraryUrl, pageAdLibraryUrl, type SerynContentAlert } from "../../utils/serynAlerts";
 import { SerynSnapshotCard, TestRow } from "../SerynBenchmark";
 
 const SEV_VI: Record<string, string> = { High: "Cảnh báo cao", Medium: "Cần review" };
@@ -64,8 +64,8 @@ function PhraseAdsPanel({ data, phrase }: { data: SpyDashboardData; phrase: stri
                   {ad.offer && <span className="text-amber-700">{ad.offer}</span>}
                   {ad.cta && <span>CTA: {viLabel(ad.cta)}</span>}
                   {ad.pageName && <span className="text-slate-400">{ad.pageName}</span>}
-                  {ad.url && (
-                    <a href={ad.url} target="_blank" rel="noreferrer" className="ml-auto text-cyan-700 hover:underline inline-flex items-center gap-0.5 font-bold">Mở QC <ExternalLink className="w-3 h-3" /></a>
+                  {(ad.pageId || ad.url) && (
+                    <a href={ad.pageId ? pageAdLibraryUrl(ad.pageId) : ad.url} target="_blank" rel="noreferrer" className="ml-auto text-cyan-700 hover:underline inline-flex items-center gap-0.5 font-bold">Xem trên Ad Library <ExternalLink className="w-3 h-3" /></a>
                   )}
                 </div>
               </div>
