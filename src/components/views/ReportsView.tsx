@@ -19,6 +19,24 @@ function parseList(v?: string): string[] {
   return String(v ?? "").split("|").map((s) => s.trim()).filter(Boolean);
 }
 
+/** Đoạn văn dài -> các gạch đầu dòng ngắn: tách mục đánh số "(1)…(2)…" ra dòng
+ *  riêng rồi cắt theo câu. Dùng cho tóm tắt điều hành (đọc nhanh, không lê thê). */
+function toBullets(text?: string): string[] {
+  const s = humanizeText(stripAdsDisclaimer(String(text ?? ""))).trim();
+  if (!s) return [];
+  const withMarks = s.replace(/\s*;?\s*\((\d+)\)\s*/g, "\n($1) "); // mỗi mục (n) xuống dòng
+  return withMarks
+    .split(/\n|(?<=[.!?])\s+/)      // xuống dòng thủ công hoặc hết câu
+    .map((x) => x.trim())
+    .filter((x) => x.length > 1);
+}
+
+/** "YYYY-MM" -> "Tháng MM/YYYY". */
+function monthLabel(m: string): string {
+  const [y, mo] = m.split("-");
+  return y && mo ? `Tháng ${mo}/${y}` : m;
+}
+
 /* ---- Màu biểu đồ (palette validate CVD-safe, giống báo cáo PDF) ---- */
 const CH = { blue: "#2a78d6", aqua: "#1baf7a", red: "#e34948", ink: "#0b0b0b", ink2: "#52514e", muted: "#898781", baseline: "#c3c2b7", grid: "#e1e0d9" };
 
@@ -376,10 +394,25 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
     });
   }, [data.weeklyReports, data.monthlyReports, mode]);
 
+  // Bộ lọc thời gian (theo tháng của period_start) — cho danh sách gọn.
+  const months = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of reports) {
+      const m = String(r.period_start).slice(0, 7);
+      if (/^\d{4}-\d{2}$/.test(m)) set.add(m);
+    }
+    return [...set].sort((a, b) => b.localeCompare(a));
+  }, [reports]);
+  const [month, setMonth] = useState<string>("all");
+  const filteredReports = useMemo(
+    () => (month === "all" ? reports : reports.filter((r) => String(r.period_start).slice(0, 7) === month)),
+    [reports, month],
+  );
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = useMemo(
-    () => reports.find((r) => r.report_id === selectedId) ?? reports[0] ?? null,
-    [reports, selectedId],
+    () => filteredReports.find((r) => r.report_id === selectedId) ?? filteredReports[0] ?? null,
+    [filteredReports, selectedId],
   );
 
   return (
@@ -395,27 +428,44 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
         </p>
       </div>
 
-      {/* Toggle weekly / monthly */}
-      <div className="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200">
-        {([
-          { id: "weekly", label: "Báo cáo tuần", icon: CalendarDays },
-          { id: "monthly", label: "Báo cáo tháng", icon: Calendar },
-        ] as const).map((t) => {
-          const Icon = t.icon;
-          const active = mode === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => { setMode(t.id); setSelectedId(null); }}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold transition ${
-                active ? "bg-white text-cyan-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
-              }`}
+      {/* Toggle weekly / monthly + bộ lọc thời gian */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200">
+          {([
+            { id: "weekly", label: "Báo cáo tuần", icon: CalendarDays },
+            { id: "monthly", label: "Báo cáo tháng", icon: Calendar },
+          ] as const).map((t) => {
+            const Icon = t.icon;
+            const active = mode === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => { setMode(t.id); setSelectedId(null); setMonth("all"); }}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold transition ${
+                  active ? "bg-white text-cyan-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+        {months.length > 1 && (
+          <label className="inline-flex items-center gap-2 text-[13px] text-slate-500 font-semibold">
+            <CalendarDays className="w-4 h-4 text-slate-400" />
+            <select
+              value={month}
+              onChange={(e) => { setMonth(e.target.value); setSelectedId(null); }}
+              className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[13px] font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-300 cursor-pointer"
             >
-              <Icon className="w-4 h-4" />
-              {t.label}
-            </button>
-          );
-        })}
+              <option value="all">Tất cả thời gian ({reports.length})</option>
+              {months.map((m) => (
+                <option key={m} value={m}>{monthLabel(m)}</option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       {/* Xu hướng qua các kỳ — theo dõi nhanh không cần mở từng báo cáo */}
@@ -436,7 +486,10 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-5 items-start">
           {/* List */}
           <div className="space-y-2 lg:max-h-[78vh] lg:overflow-y-auto lg:pr-1">
-            {reports.map((r) => {
+            {month !== "all" && (
+              <p className="text-[11px] text-slate-400 font-semibold px-0.5">{filteredReports.length} báo cáo · {monthLabel(month)}</p>
+            )}
+            {filteredReports.map((r) => {
               const active = selected?.report_id === r.report_id;
               return (
                 <button
@@ -487,10 +540,24 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
           </div>
         </div>
 
-        {/* Executive summary */}
-        <div className="mt-3 rounded-xl bg-slate-50 border border-slate-100 p-3.5">
-          <p className="text-[13px] leading-relaxed text-slate-700">{humanizeText(stripAdsDisclaimer(r.executive_summary))}</p>
-        </div>
+        {/* Executive summary — gạch đầu dòng ngắn gọn */}
+        {(() => {
+          const bullets = toBullets(r.executive_summary);
+          if (!bullets.length) return null;
+          return (
+            <div className="mt-3 rounded-xl bg-slate-50 border border-slate-100 p-3.5">
+              <p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1.5">Tóm tắt điều hành</p>
+              <ul className="space-y-1.5">
+                {bullets.map((b, i) => (
+                  <li key={i} className="flex gap-2 text-[13px] leading-relaxed text-slate-700">
+                    <span className="text-cyan-500 font-bold shrink-0 mt-px">•</span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })()}
 
         {/* KPI snapshot */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3">
