@@ -176,6 +176,18 @@ export function adLibraryPhraseSearchUrl(phrase: string): string {
   return `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=VN&q=${encodeURIComponent(`"${phrase}"`)}&search_type=keyword_exact_phrase&media_type=all`;
 }
 
+/** Mở ĐÚNG 1 bài trên Ad Library: popup chi tiết ad trên nền danh sách QC của page.
+ *  Đã test thật: ad được Meta index -> popup hiện nguyên bài (Library ID + nội dung);
+ *  ad quá mới/0 lượt hiển thị -> popup "Ad isn't in the ad library", đóng popup là
+ *  thấy danh sách QC của page để tìm tay (fallback tốt hơn search ra trang trống). */
+export function adLibraryAdUrl(pageId: string, adId: string): string {
+  const pid = String(pageId ?? "").trim();
+  const aid = String(adId ?? "").trim();
+  return "https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=VN&media_type=all"
+    + (pid ? `&view_all_page_id=${encodeURIComponent(pid)}` : "")
+    + (aid ? `&id=${encodeURIComponent(aid)}` : "");
+}
+
 /** ~9 từ NGUYÊN VĂN đầu tiên của text ad (bỏ ngoặc kép/emoji) — cụm tra exact-phrase. */
 export function searchPhraseOf(text: string, totalWords = 9): string {
   return String(text ?? "")

@@ -3,7 +3,7 @@ import { Sparkles, ArrowRight, ExternalLink, X } from "lucide-react";
 import type { SpyDashboardData, AdLevelAnalysis } from "../types";
 import { viLabel, isMeaningful } from "../utils/spyData";
 import { isOwnRow } from "../utils/ownBrand";
-import { adLibraryPhraseSearchUrl, searchPhraseOf } from "../utils/serynAlerts";
+import { adLibraryAdUrl, adLibraryPhraseSearchUrl, searchPhraseOf } from "../utils/serynAlerts";
 import {
   buildSerynSnapshot, buildSerynVsCompetitorComparison,
   volumePositionNote, type SerynRecommendedTest,
@@ -124,15 +124,15 @@ function ServiceAdsPanel({ data, service, onClose }: { data: SpyDashboardData; s
                 {isMeaningful(a.offer_detected) && <span className="text-amber-700">{String(a.offer_detected)}</span>}
                 {isMeaningful(a.cta) && <span>CTA: {viLabel(String(a.cta))}</span>}
                 {!!a.page_name && <span className="text-slate-400">{String(a.page_name)}</span>}
-                {!!adText(a) && (
+                {(!!a.ad_id || !!adText(a)) && (
                   <a
-                    href={adLibraryPhraseSearchUrl(searchPhraseOf(adText(a)))}
+                    href={a.ad_id ? adLibraryAdUrl(String(a.page_id || ""), String(a.ad_id)) : adLibraryPhraseSearchUrl(searchPhraseOf(adText(a)))}
                     target="_blank"
                     rel="noreferrer"
-                    title="Tra đúng câu mở đầu của bài này trên Ad Library"
+                    title="Mở đúng bài này trên Ad Library (popup chi tiết ad trên nền danh sách QC của page)"
                     className="ml-auto text-cyan-700 hover:underline inline-flex items-center gap-0.5 font-bold"
                   >
-                    Tìm đúng bài này <ExternalLink className="w-3 h-3" />
+                    Mở đúng bài này <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
               </div>
