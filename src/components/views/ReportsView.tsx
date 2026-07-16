@@ -394,26 +394,15 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
     });
   }, [data.weeklyReports, data.monthlyReports, mode]);
 
-  // Bộ lọc thời gian (theo tháng của period_start) — cho danh sách gọn.
-  const months = useMemo(() => {
-    const set = new Set<string>();
-    for (const r of reports) {
-      const m = String(r.period_start).slice(0, 7);
-      if (/^\d{4}-\d{2}$/.test(m)) set.add(m);
-    }
-    return [...set].sort((a, b) => b.localeCompare(a));
-  }, [reports]);
-  const [month, setMonth] = useState<string>("all");
-  const filteredReports = useMemo(
-    () => (month === "all" ? reports : reports.filter((r) => String(r.period_start).slice(0, 7) === month)),
-    [reports, month],
-  );
-
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = useMemo(
-    () => filteredReports.find((r) => r.report_id === selectedId) ?? filteredReports[0] ?? null,
-    [filteredReports, selectedId],
+    () => reports.find((r) => r.report_id === selectedId) ?? reports[0] ?? null,
+    [reports, selectedId],
   );
+
+  // Nhãn kỳ báo cáo cho dropdown: tuần -> "Tuần A → B"; tháng -> "Tháng MM/YYYY".
+  const periodLabel = (r: SpyReport) =>
+    mode === "monthly" ? monthLabel(String(r.period_start).slice(0, 7)) : `Tuần ${r.period_start} → ${r.period_end}`;
 
   return (
     <div className="space-y-6">
@@ -439,7 +428,7 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
           return (
             <button
               key={t.id}
-              onClick={() => { setMode(t.id); setSelectedId(null); setMonth("all"); }}
+              onClick={() => { setMode(t.id); setSelectedId(null); }}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold transition ${
                 active ? "bg-white text-cyan-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
               }`}
@@ -469,25 +458,24 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-5 items-start">
           {/* List */}
           <div className="space-y-2">
-            {/* Bộ lọc thời gian — đặt ngay trên đầu danh sách báo cáo */}
+            {/* Chọn kỳ báo cáo — theo đúng tuần (hoặc tháng), chọn kỳ nào hiện kỳ đó */}
             <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
               <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
               <select
-                value={month}
-                onChange={(e) => { setMonth(e.target.value); setSelectedId(null); }}
+                value={selected?.report_id ?? ""}
+                onChange={(e) => setSelectedId(e.target.value)}
                 className="w-full bg-transparent text-[13px] font-semibold text-slate-700 focus:outline-none cursor-pointer"
               >
-                <option value="all">Tất cả thời gian ({reports.length})</option>
-                {months.map((m) => (
-                  <option key={m} value={m}>{monthLabel(m)}</option>
+                {reports.map((r) => (
+                  <option key={r.report_id} value={r.report_id}>{periodLabel(r)}</option>
                 ))}
               </select>
             </div>
             <p className="text-[11px] text-slate-400 font-semibold px-0.5">
-              {filteredReports.length} báo cáo{month !== "all" ? ` · ${monthLabel(month)}` : ""}
+              {reports.length} {mode === "weekly" ? "báo cáo tuần" : "báo cáo tháng"}
             </p>
             <div className="space-y-2 lg:max-h-[68vh] lg:overflow-y-auto lg:pr-1">
-            {filteredReports.map((r) => {
+            {reports.map((r) => {
               const active = selected?.report_id === r.report_id;
               return (
                 <button
