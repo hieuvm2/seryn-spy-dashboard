@@ -129,9 +129,10 @@ function alertsFromContent(data: SpyDashboardData): { hasContent: boolean; alert
 /* ---------- tìm QC của SERYN chứa 1 cụm từ (khi bấm chip cụm vi phạm) ---------- */
 export interface MatchedAd {
   adId: string;
-  pageId: string;    // để mở trang Ad Library của page (link ad lẻ hay bị Meta ẩn)
-  text: string;      // tiêu đề/hook của ad
-  snippet: string;   // đoạn văn chứa cụm khớp (có thể = text)
+  pageId: string;       // để mở trang Ad Library của page (link ad lẻ hay bị Meta ẩn)
+  text: string;         // tiêu đề/hook của ad
+  snippet: string;      // đoạn văn chứa cụm khớp (có thể = text)
+  searchPhrase: string; // ~9 từ liền nhau quanh chỗ khớp — tra exact-phrase ra ĐÚNG bài
   adFormat: string;
   daysActive: number;
   cta: string;
@@ -166,6 +167,26 @@ const norm = (s: unknown) =>
 export function pageAdLibraryUrl(pageId: string): string {
   return `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=VN&view_all_page_id=${encodeURIComponent(String(pageId).trim())}&media_type=all`;
 }
+
+/** Tra exact-phrase trên Ad Library (VN) — ra ĐÚNG creative chứa câu này.
+ *  Đã test thật: q trong ngoặc kép + search_type=keyword_exact_phrase khớp đúng bài
+ *  (bỏ ngoặc kép trong câu vẫn khớp; dấu phẩy giữ được). Ad quá mới chưa có lượt
+ *  hiển thị thì Meta chưa index -> "No ads match" (dùng link trang page thay thế). */
+export function adLibraryPhraseSearchUrl(phrase: string): string {
+  return `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=VN&q=${encodeURIComponent(`"${phrase}"`)}&search_type=keyword_exact_phrase&media_type=all`;
+}
+
+/** ~9 từ NGUYÊN VĂN đầu tiên của text ad (bỏ ngoặc kép/emoji) — cụm tra exact-phrase. */
+export function searchPhraseOf(text: string, totalWords = 9): string {
+  return String(text ?? "")
+    .replace(/["“”'‘’]/g, " ")
+    .replace(/[^0-9a-zA-ZÀ-ỹà-ỹ\s.,!?%–-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .slice(0, totalWords)
+    .join(" ");
+}
 export function serynAdLibraryUrl(data: SpyDashboardData, phrase?: string): string {
   const pageId = (data.ownBrandPages ?? []).map((p) => String(p.page_id || "").trim()).find(Boolean);
   if (pageId) return pageAdLibraryUrl(pageId);
@@ -183,6 +204,35 @@ function snippetAround(fields: string[], frag: string): string {
     const start = Math.max(0, i - 40);
     const end = Math.min(full.length, i + frag.length + 80);
     return (start > 0 ? "…" : "") + full.slice(start, end).trim() + (end < full.length ? "…" : "");
+  }
+  return "";
+}
+
+/** ~9 từ NGUYÊN VĂN liền nhau quanh chỗ khớp `frag` — dùng tra exact-phrase ra đúng bài.
+ *  Bỏ ngoặc kép/emoji đầu-cuối từ (Meta vẫn khớp khi thiếu ngoặc, đã test thật). */
+function searchPhraseAround(fields: string[], frag: string, totalWords = 9): string {
+  const fragWords = frag.split(" ").filter(Boolean).length;
+  for (const raw of fields) {
+    const full = String(raw).replace(/\s+/g, " ").trim();
+    const idx = norm(full).indexOf(frag); // norm giữ nguyên độ dài (bỏ dấu + thường hóa)
+    if (idx < 0) continue;
+    const words = full.split(" ");
+    // tìm chỉ số TỪ chứa vị trí khớp
+    let pos = 0, wStart = 0;
+    for (let w = 0; w < words.length; w++) {
+      const end = pos + words[w].length;
+      if (idx < end) { wStart = w; break; }
+      pos = end + 1;
+    }
+    const before = Math.max(0, Math.floor((totalWords - fragWords) / 2));
+    const s = Math.max(0, wStart - before);
+    const chunk = words.slice(s, s + Math.max(totalWords, fragWords + 2)).join(" ");
+    // bỏ ngoặc kép + ký tự ngoài chữ/số/dấu câu cơ bản (emoji…) rồi gọn khoảng trắng
+    return chunk
+      .replace(/["“”'‘’]/g, " ")
+      .replace(/[^0-9a-zA-ZÀ-ỹà-ỹ\s.,!?%–-]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   }
   return "";
 }
@@ -235,6 +285,7 @@ export function findOwnAdsByPhrase(data: SpyDashboardData, phrase: string): Phra
       seen.add(dedup);
       out.push({
         adId: s.adId, pageId: s.pageId, text: s.text, snippet: snippetAround(s.fields, frag) || s.text,
+        searchPhrase: searchPhraseAround(s.fields, frag) || s.text.slice(0, 80),
         adFormat: s.adFormat, daysActive: s.daysActive, cta: s.cta, offer: s.offer, pageName: s.pageName, url: s.url,
       });
     }

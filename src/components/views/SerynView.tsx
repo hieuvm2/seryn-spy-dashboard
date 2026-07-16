@@ -4,7 +4,7 @@ import { ShieldAlert, ShieldCheck, FlaskConical, ExternalLink, AlertTriangle, Se
 import type { SpyDashboardData } from "../../types";
 import { viLabel } from "../../utils/spyData";
 import { buildSerynSnapshot, getSerynRecommendedTests } from "../../utils/serynBenchmark";
-import { buildSerynAlerts, findOwnAdsByPhrase, serynAdLibraryUrl, pageAdLibraryUrl, type SerynContentAlert } from "../../utils/serynAlerts";
+import { buildSerynAlerts, findOwnAdsByPhrase, serynAdLibraryUrl, adLibraryPhraseSearchUrl, type SerynContentAlert } from "../../utils/serynAlerts";
 import { SerynSnapshotCard, TestRow } from "../SerynBenchmark";
 
 const SEV_VI: Record<string, string> = { High: "Cảnh báo cao", Medium: "Cần review" };
@@ -64,21 +64,32 @@ function PhraseAdsPanel({ data, phrase }: { data: SpyDashboardData; phrase: stri
                   {ad.offer && <span className="text-amber-700">{ad.offer}</span>}
                   {ad.cta && <span>CTA: {viLabel(ad.cta)}</span>}
                   {ad.pageName && <span className="text-slate-400">{ad.pageName}</span>}
-                  {(ad.pageId || ad.url) && (
-                    <a href={ad.pageId ? pageAdLibraryUrl(ad.pageId) : ad.url} target="_blank" rel="noreferrer" className="ml-auto text-cyan-700 hover:underline inline-flex items-center gap-0.5 font-bold">Xem trên Ad Library <ExternalLink className="w-3 h-3" /></a>
+                  {ad.searchPhrase && (
+                    <a
+                      href={adLibraryPhraseSearchUrl(ad.searchPhrase)}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={`Tra đúng câu trong bài này trên Ad Library: “${ad.searchPhrase}”`}
+                      className="ml-auto text-cyan-700 hover:underline inline-flex items-center gap-0.5 font-bold"
+                    >
+                      Tìm đúng bài này <ExternalLink className="w-3 h-3" />
+                    </a>
                   )}
                 </div>
               </div>
             ))}
           </div>
-          <a
-            href={serynAdLibraryUrl(data, phrase)}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 text-[10px] font-bold text-cyan-700 hover:underline mt-1.5"
-          >
-            Xem toàn bộ QC của SERYN trên Thư viện QC Facebook <ExternalLink className="w-3 h-3" />
-          </a>
+          <div className="mt-1.5 space-y-0.5">
+            <a
+              href={serynAdLibraryUrl(data, phrase)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-cyan-700 hover:underline"
+            >
+              Xem toàn bộ QC của SERYN trên Thư viện QC Facebook <ExternalLink className="w-3 h-3" />
+            </a>
+            <p className="text-[10px] text-slate-400">Bài quá mới (chưa có lượt hiển thị) có thể chưa tra được bằng “Tìm đúng bài này” — khi đó dùng link xem toàn bộ ở trên.</p>
+          </div>
         </>
       )}
     </div>
