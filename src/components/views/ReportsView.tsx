@@ -428,44 +428,27 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
         </p>
       </div>
 
-      {/* Toggle weekly / monthly + bộ lọc thời gian */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200">
-          {([
-            { id: "weekly", label: "Báo cáo tuần", icon: CalendarDays },
-            { id: "monthly", label: "Báo cáo tháng", icon: Calendar },
-          ] as const).map((t) => {
-            const Icon = t.icon;
-            const active = mode === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => { setMode(t.id); setSelectedId(null); setMonth("all"); }}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold transition ${
-                  active ? "bg-white text-cyan-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
-        {months.length > 1 && (
-          <label className="inline-flex items-center gap-2 text-[13px] text-slate-500 font-semibold">
-            <CalendarDays className="w-4 h-4 text-slate-400" />
-            <select
-              value={month}
-              onChange={(e) => { setMonth(e.target.value); setSelectedId(null); }}
-              className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[13px] font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-300 cursor-pointer"
+      {/* Toggle weekly / monthly */}
+      <div className="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200">
+        {([
+          { id: "weekly", label: "Báo cáo tuần", icon: CalendarDays },
+          { id: "monthly", label: "Báo cáo tháng", icon: Calendar },
+        ] as const).map((t) => {
+          const Icon = t.icon;
+          const active = mode === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => { setMode(t.id); setSelectedId(null); setMonth("all"); }}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold transition ${
+                active ? "bg-white text-cyan-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              }`}
             >
-              <option value="all">Tất cả thời gian ({reports.length})</option>
-              {months.map((m) => (
-                <option key={m} value={m}>{monthLabel(m)}</option>
-              ))}
-            </select>
-          </label>
-        )}
+              <Icon className="w-4 h-4" />
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Xu hướng qua các kỳ — theo dõi nhanh không cần mở từng báo cáo */}
@@ -485,10 +468,25 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-5 items-start">
           {/* List */}
-          <div className="space-y-2 lg:max-h-[78vh] lg:overflow-y-auto lg:pr-1">
-            {month !== "all" && (
-              <p className="text-[11px] text-slate-400 font-semibold px-0.5">{filteredReports.length} báo cáo · {monthLabel(month)}</p>
-            )}
+          <div className="space-y-2">
+            {/* Bộ lọc thời gian — đặt ngay trên đầu danh sách báo cáo */}
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
+              <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
+              <select
+                value={month}
+                onChange={(e) => { setMonth(e.target.value); setSelectedId(null); }}
+                className="w-full bg-transparent text-[13px] font-semibold text-slate-700 focus:outline-none cursor-pointer"
+              >
+                <option value="all">Tất cả thời gian ({reports.length})</option>
+                {months.map((m) => (
+                  <option key={m} value={m}>{monthLabel(m)}</option>
+                ))}
+              </select>
+            </div>
+            <p className="text-[11px] text-slate-400 font-semibold px-0.5">
+              {filteredReports.length} báo cáo{month !== "all" ? ` · ${monthLabel(month)}` : ""}
+            </p>
+            <div className="space-y-2 lg:max-h-[68vh] lg:overflow-y-auto lg:pr-1">
             {filteredReports.map((r) => {
               const active = selected?.report_id === r.report_id;
               return (
@@ -510,6 +508,7 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
                 </button>
               );
             })}
+            </div>
           </div>
 
           {/* Detail */}
