@@ -115,29 +115,34 @@ function ServiceAdsPanel({ data, service, onClose }: { data: SpyDashboardData; s
         <p className="text-xs text-slate-500">Chưa thấy quảng cáo chi tiết (ad-level) nào của SERYN cho dịch vụ này trong dữ liệu hiện có.</p>
       ) : (
         <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-          {ads.map((a, i) => (
+          {ads.map((a, i) => {
+            const full = String(a.primary_text || adText(a) || "").trim();
+            return (
             <div key={`${a.ad_id || i}`} className="rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2">
-              <p className="text-[12px] font-semibold text-slate-800 leading-snug">{adText(a) || "(không có nội dung hiển thị)"}</p>
+              {!!adText(a) && <p className="text-[12px] font-bold text-slate-800 leading-snug">{adText(a)}</p>}
+              <p className="text-[11px] text-slate-600 leading-snug mt-0.5 whitespace-pre-wrap line-clamp-3">{full || "(không có nội dung hiển thị)"}</p>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[10px] text-slate-500 font-semibold">
                 {adFmt(a) && <span className="px-1.5 py-0.5 rounded border border-slate-200 bg-white">{adFmt(a)}</span>}
                 {numOf(a.days_active) > 0 && <span>{numOf(a.days_active)} ngày</span>}
                 {isMeaningful(a.offer_detected) && <span className="text-amber-700">{String(a.offer_detected)}</span>}
                 {isMeaningful(a.cta) && <span>CTA: {viLabel(String(a.cta))}</span>}
-                {!!a.page_name && <span className="text-slate-400">{String(a.page_name)}</span>}
+                {!!a.page_name && <span className="text-slate-400 truncate max-w-[140px]">{String(a.page_name)}</span>}
+                {!!a.ad_id && <span className="font-mono text-slate-400">ID: {String(a.ad_id)}</span>}
                 {(!!a.ad_id || !!adText(a)) && (
                   <a
                     href={a.ad_id ? adLibraryAdUrl(String(a.page_id || ""), String(a.ad_id)) : adLibraryPhraseSearchUrl(searchPhraseOf(adText(a)))}
                     target="_blank"
                     rel="noreferrer"
-                    title="Mở đúng bài này trên Ad Library (popup chi tiết ad trên nền danh sách QC của page)"
+                    title="Mở trên Facebook Ad Library — chỉ được nếu Meta đã index (bài đã có lượt hiển thị)"
                     className="ml-auto text-cyan-700 hover:underline inline-flex items-center gap-0.5 font-bold"
                   >
-                    Mở đúng bài này <ExternalLink className="w-3 h-3" />
+                    Mở trên Facebook <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

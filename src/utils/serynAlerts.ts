@@ -131,7 +131,9 @@ export interface MatchedAd {
   adId: string;
   pageId: string;       // để mở trang Ad Library của page (link ad lẻ hay bị Meta ẩn)
   text: string;         // tiêu đề/hook của ad
+  fullText: string;     // TOÀN VĂN nội dung ad (primary_text) — hiển thị thẳng, không cần Facebook
   snippet: string;      // đoạn văn chứa cụm khớp (có thể = text)
+  thumbnail: string;    // ảnh creative (fbcdn, có thể hết hạn token -> fallback placeholder)
   searchPhrase: string; // ~9 từ liền nhau quanh chỗ khớp — tra exact-phrase ra ĐÚNG bài
   adFormat: string;
   daysActive: number;
@@ -258,14 +260,26 @@ export function findOwnAdsByPhrase(data: SpyDashboardData, phrase: string): Phra
   const key = norm(phrase);
   if (!key) return { ads: [], matchedFragment: "", approximate: false };
 
+  // Index ảnh creative theo ad_id (từ visualAnalysis) — để hiện thẳng trong dashboard.
+  const thumbById = new Map<string, string>();
+  for (const v of data.visualAnalysis ?? []) {
+    const id = String((v as any).ad_id || "");
+    if (!id) continue;
+    const t = (v as any).thumbnail_url || (v as any).media_url || ((v as any).image_urls || [])[0] || (v as any).video_preview_url || "";
+    if (t) thumbById.set(id, String(t));
+  }
+
   // Gom nguồn own (ad-level + scaled) về 1 dạng chung để quét text.
-  type Src = { adId: string; pageId: string; text: string; fields: string[]; adFormat: string; daysActive: number; cta: string; offer: string; pageName: string; url: string };
+  type Src = { adId: string; pageId: string; text: string; fullText: string; thumbnail: string; fields: string[]; adFormat: string; daysActive: number; cta: string; offer: string; pageName: string; url: string };
   const srcs: Src[] = [];
   for (const a of data.adLevelAnalysis ?? []) {
     if (!isOwnRow(a, data)) continue;
+    const adId = String(a.ad_id || "");
     srcs.push({
-      adId: String(a.ad_id || ""), pageId: String(a.page_id || ""),
+      adId, pageId: String(a.page_id || ""),
       text: String(a.hook_raw_text || a.hook_text || a.headline || a.primary_text || ""),
+      fullText: String(a.primary_text || a.hook_raw_text || a.hook_text || a.headline || ""),
+      thumbnail: thumbById.get(adId) || "",
       fields: [a.hook_raw_text, a.hook_text, a.headline, a.primary_text, a.hook_normalized, a.offer_detected].map((x) => String(x ?? "")).filter(Boolean),
       adFormat: fmtLabel(a), daysActive: numOf(a.days_active), cta: String(a.cta || ""),
       offer: String(a.offer_detected || ""), pageName: String(a.page_name || ""), url: String(a.ad_snapshot_url || ""),
@@ -273,9 +287,12 @@ export function findOwnAdsByPhrase(data: SpyDashboardData, phrase: string): Phra
   }
   for (const s of data.scaledContentAnalysis ?? []) {
     if (!isOwnRow(s, data)) continue;
+    const repId = String(s.representative_ad_id || "");
     srcs.push({
       adId: String(s.representative_ad_id || s.content_cluster_id || ""), pageId: String((s as { page_id?: unknown }).page_id || ""),
       text: String(s.representative_hook || ""),
+      fullText: String(s.representative_hook || ""),
+      thumbnail: thumbById.get(repId) || "",
       fields: [s.representative_hook, s.offer_detected].map((x) => String(x ?? "")).filter(Boolean),
       adFormat: fmtLabel(s), daysActive: numOf(s.longest_days_active), cta: "",
       offer: String(s.offer_detected || ""), pageName: "", url: "",
@@ -296,7 +313,8 @@ export function findOwnAdsByPhrase(data: SpyDashboardData, phrase: string): Phra
       if (!dedup || seen.has(dedup)) continue;
       seen.add(dedup);
       out.push({
-        adId: s.adId, pageId: s.pageId, text: s.text, snippet: snippetAround(s.fields, frag) || s.text,
+        adId: s.adId, pageId: s.pageId, text: s.text, fullText: s.fullText, thumbnail: s.thumbnail,
+        snippet: snippetAround(s.fields, frag) || s.text,
         searchPhrase: searchPhraseAround(s.fields, frag) || s.text.slice(0, 80),
         adFormat: s.adFormat, daysActive: s.daysActive, cta: s.cta, offer: s.offer, pageName: s.pageName, url: s.url,
       });

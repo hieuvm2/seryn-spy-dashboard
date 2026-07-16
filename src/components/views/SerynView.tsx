@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
-import { ShieldAlert, ShieldCheck, FlaskConical, ExternalLink, AlertTriangle, Search } from "lucide-react";
+import { ShieldAlert, ShieldCheck, FlaskConical, ExternalLink, AlertTriangle, Search, Copy, Check } from "lucide-react";
 import type { SpyDashboardData } from "../../types";
 import { viLabel } from "../../utils/spyData";
 import { buildSerynSnapshot, getSerynRecommendedTests } from "../../utils/serynBenchmark";
-import { buildSerynAlerts, findOwnAdsByPhrase, serynAdLibraryUrl, adLibraryAdUrl, adLibraryPhraseSearchUrl, type SerynContentAlert } from "../../utils/serynAlerts";
+import { buildSerynAlerts, findOwnAdsByPhrase, serynAdLibraryUrl, adLibraryAdUrl, adLibraryPhraseSearchUrl, type SerynContentAlert, type MatchedAd } from "../../utils/serynAlerts";
 import { SerynSnapshotCard, TestRow } from "../SerynBenchmark";
 
 const SEV_VI: Record<string, string> = { High: "Cảnh báo cao", Medium: "Cần review" };
@@ -19,6 +19,53 @@ function SectionTitle({ tag, title, desc }: { tag: string; title: string; desc?:
       <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">{tag}</span>
       <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">{title}</h2>
       {desc && <p className="text-sm text-slate-600 font-medium">{desc}</p>}
+    </div>
+  );
+}
+
+/* ---------- 1 dòng QC: toàn văn (mở rộng) + ID copy + link Facebook ---------- */
+function AdRow({ ad }: { ad: MatchedAd }) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const body = ad.fullText || ad.snippet || ad.text;
+  const long = body.length > 160;
+  const copyId = async () => {
+    try { await navigator.clipboard.writeText(ad.adId); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* noop */ }
+  };
+  return (
+    <div className="rounded-md border border-slate-100 bg-white p-2.5">
+      {ad.text && <p className="text-[12px] font-bold text-slate-800 leading-snug">{ad.text}</p>}
+      <p className={`text-[11px] text-slate-600 leading-snug mt-0.5 whitespace-pre-wrap ${open ? "" : "line-clamp-3"}`}>{body}</p>
+      {long && (
+        <button onClick={() => setOpen((v) => !v)} className="text-[10px] font-bold text-cyan-700 hover:underline mt-0.5 cursor-pointer">
+          {open ? "Thu gọn" : "Xem toàn văn"}
+        </button>
+      )}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[10px] text-slate-500 font-semibold">
+        {ad.adFormat && <span className="px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50">{ad.adFormat}</span>}
+        {ad.daysActive > 0 && <span>{ad.daysActive} ngày</span>}
+        {ad.offer && <span className="text-amber-700">{ad.offer}</span>}
+        {ad.cta && <span>CTA: {viLabel(ad.cta)}</span>}
+        {ad.pageName && <span className="text-slate-400 truncate max-w-[140px]">{ad.pageName}</span>}
+      </div>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
+        {ad.adId && (
+          <button onClick={copyId} title="Sao chép ID quảng cáo" className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-slate-600 bg-slate-50 border border-slate-200 hover:bg-slate-100 px-1.5 py-0.5 rounded cursor-pointer">
+            {copied ? <Check className="w-2.5 h-2.5 text-emerald-600" /> : <Copy className="w-2.5 h-2.5" />} ID: {ad.adId}
+          </button>
+        )}
+        {(ad.adId || ad.searchPhrase) && (
+          <a
+            href={ad.adId ? adLibraryAdUrl(ad.pageId, ad.adId) : adLibraryPhraseSearchUrl(ad.searchPhrase)}
+            target="_blank"
+            rel="noreferrer"
+            title="Mở trên Facebook Ad Library — chỉ được nếu Meta đã index (bài đã có lượt hiển thị)"
+            className="text-[10px] font-bold text-cyan-700 hover:underline inline-flex items-center gap-0.5"
+          >
+            Mở trên Facebook <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
+      </div>
     </div>
   );
 }
@@ -51,45 +98,12 @@ function PhraseAdsPanel({ data, phrase }: { data: SpyDashboardData; phrase: stri
         </div>
       ) : (
         <>
-          <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
-            {ads.map((ad, i) => (
-              <div key={`${ad.adId || i}`} className="rounded-md border border-slate-100 bg-white px-2.5 py-1.5">
-                <p className="text-[12px] font-semibold text-slate-800 leading-snug">{ad.text || "(không có tiêu đề)"}</p>
-                {ad.snippet && ad.snippet !== ad.text && (
-                  <p className="text-[11px] text-slate-500 leading-snug mt-0.5">{ad.snippet}</p>
-                )}
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[10px] text-slate-500 font-semibold">
-                  {ad.adFormat && <span className="px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50">{ad.adFormat}</span>}
-                  {ad.daysActive > 0 && <span>{ad.daysActive} ngày</span>}
-                  {ad.offer && <span className="text-amber-700">{ad.offer}</span>}
-                  {ad.cta && <span>CTA: {viLabel(ad.cta)}</span>}
-                  {ad.pageName && <span className="text-slate-400">{ad.pageName}</span>}
-                  {(ad.adId || ad.searchPhrase) && (
-                    <a
-                      href={ad.adId ? adLibraryAdUrl(ad.pageId, ad.adId) : adLibraryPhraseSearchUrl(ad.searchPhrase)}
-                      target="_blank"
-                      rel="noreferrer"
-                      title="Mở đúng bài này trên Ad Library (popup chi tiết ad trên nền danh sách QC của page)"
-                      className="ml-auto text-cyan-700 hover:underline inline-flex items-center gap-0.5 font-bold"
-                    >
-                      Mở đúng bài này <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="space-y-1.5 max-h-96 overflow-y-auto pr-1">
+            {ads.map((ad, i) => <div key={`${ad.adId || i}`}><AdRow ad={ad} /></div>)}
           </div>
-          <div className="mt-1.5 space-y-0.5">
-            <a
-              href={serynAdLibraryUrl(data, phrase)}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 text-[10px] font-bold text-cyan-700 hover:underline"
-            >
-              Xem toàn bộ QC của SERYN trên Thư viện QC Facebook <ExternalLink className="w-3 h-3" />
-            </a>
-            <p className="text-[10px] text-slate-400">Bài quá mới (chưa có lượt hiển thị) sẽ hiện “Ad isn't in the ad library” — đóng thông báo đó là thấy danh sách QC của page để tìm theo ngày chạy.</p>
-          </div>
+          <p className="text-[10px] text-slate-400 mt-1.5">
+            Toàn văn ad lấy từ dữ liệu spy — đọc trực tiếp tại đây (dùng nút <b>Xem toàn văn</b> nếu bị cắt). Nút “Mở trên Facebook” chỉ hoạt động khi Meta đã index (bài đã có lượt hiển thị); bài quá mới sẽ báo “Ad isn't in the ad library”.
+          </p>
         </>
       )}
     </div>
