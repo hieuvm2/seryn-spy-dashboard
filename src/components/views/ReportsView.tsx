@@ -417,27 +417,43 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
         </p>
       </div>
 
-      {/* Toggle weekly / monthly */}
-      <div className="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200">
-        {([
-          { id: "weekly", label: "Báo cáo tuần", icon: CalendarDays },
-          { id: "monthly", label: "Báo cáo tháng", icon: Calendar },
-        ] as const).map((t) => {
-          const Icon = t.icon;
-          const active = mode === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => { setMode(t.id); setSelectedId(null); }}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold transition ${
-                active ? "bg-white text-cyan-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
-              }`}
+      {/* Toggle weekly / monthly + chọn kỳ báo cáo (trên cùng) */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200">
+          {([
+            { id: "weekly", label: "Báo cáo tuần", icon: CalendarDays },
+            { id: "monthly", label: "Báo cáo tháng", icon: Calendar },
+          ] as const).map((t) => {
+            const Icon = t.icon;
+            const active = mode === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => { setMode(t.id); setSelectedId(null); }}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold transition ${
+                  active ? "bg-white text-cyan-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+        {reports.length > 0 && (
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 min-w-[240px]">
+            <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
+            <select
+              value={selected?.report_id ?? ""}
+              onChange={(e) => setSelectedId(e.target.value)}
+              className="w-full bg-transparent text-[13px] font-semibold text-slate-700 focus:outline-none cursor-pointer"
             >
-              <Icon className="w-4 h-4" />
-              {t.label}
-            </button>
-          );
-        })}
+              {reports.map((r) => (
+                <option key={r.report_id} value={r.report_id}>{periodLabel(r)}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Xu hướng qua các kỳ — theo dõi nhanh không cần mở từng báo cáo */}
@@ -455,53 +471,7 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
       {reports.length === 0 ? (
         <EmptyState mode={mode} />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-5 items-start">
-          {/* List */}
-          <div className="space-y-2">
-            {/* Chọn kỳ báo cáo — theo đúng tuần (hoặc tháng), chọn kỳ nào hiện kỳ đó */}
-            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
-              <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
-              <select
-                value={selected?.report_id ?? ""}
-                onChange={(e) => setSelectedId(e.target.value)}
-                className="w-full bg-transparent text-[13px] font-semibold text-slate-700 focus:outline-none cursor-pointer"
-              >
-                {reports.map((r) => (
-                  <option key={r.report_id} value={r.report_id}>{periodLabel(r)}</option>
-                ))}
-              </select>
-            </div>
-            <p className="text-[11px] text-slate-400 font-semibold px-0.5">
-              {reports.length} {mode === "weekly" ? "báo cáo tuần" : "báo cáo tháng"}
-            </p>
-            <div className="space-y-2 lg:max-h-[68vh] lg:overflow-y-auto lg:pr-1">
-            {reports.map((r) => {
-              const active = selected?.report_id === r.report_id;
-              return (
-                <button
-                  key={r.report_id}
-                  onClick={() => setSelectedId(r.report_id)}
-                  className={`w-full text-left rounded-xl border p-3.5 transition ${
-                    active ? "border-cyan-300 bg-cyan-50/60 shadow-sm" : "border-slate-200 bg-white hover:border-slate-300"
-                  }`}
-                >
-                  <p className="text-[13px] font-bold text-slate-800 leading-snug">{r.title}</p>
-                  <p className="text-[11px] font-mono text-slate-400 mt-0.5">{r.period_start} → {r.period_end}</p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-2 text-[11px] font-semibold">
-                    <span className="text-slate-600">{num(r.total_active_ads)} đang chạy</span>
-                    <span className="text-emerald-600">+{num(r.total_new_ads)} mới</span>
-                    <span className="text-rose-500">−{num(r.total_stopped_ads)} dừng</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 mt-1.5">Tạo: {fmtDateTime(r.generated_at)}</p>
-                </button>
-              );
-            })}
-            </div>
-          </div>
-
-          {/* Detail */}
-          {selected && <ReportDetail report={selected} />}
-        </div>
+        selected && <ReportDetail report={selected} />
       )}
 
     </div>
