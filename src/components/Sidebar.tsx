@@ -43,9 +43,9 @@ const menuGroups: MenuGroup[] = [
   {
     title: "Spy Ads đối thủ",
     items: [
-      { id: "overview", label: "Tổng quan", icon: LayoutDashboard },
-      { id: "brands", label: "Đối thủ", icon: FileSpreadsheet },
-      { id: "reports", label: "Báo cáo", icon: FileText },
+      { id: "overview", label: "Tổng quan thị trường trẻ hóa", icon: LayoutDashboard },
+      { id: "brands", label: "Theo dõi đối thủ", icon: FileSpreadsheet },
+      { id: "reports", label: "Phân tích báo cáo", icon: FileText },
       { id: "competitor-discovery", label: "Phát hiện đối thủ", icon: Search },
     ],
   },
@@ -137,7 +137,7 @@ export default function Sidebar({ activeSection, setActiveSection, mobileOpen = 
                     {/* active accent bar */}
                     {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-cyan-600" />}
                     <Icon className={`w-[18px] h-[18px] shrink-0 ${isActive ? "text-cyan-600" : "text-slate-400 group-hover:text-slate-600"}`} />
-                    <span className="truncate">{item.label}</span>
+                    <span className="leading-tight text-left">{item.label}</span>
                   </button>
                 );
               })}
