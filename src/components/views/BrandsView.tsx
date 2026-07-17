@@ -28,9 +28,9 @@ function Chips({ value, max = 4 }: { value?: string; max?: number }) {
   return (
     <div className="flex flex-wrap gap-1">
       {items.slice(0, max).map((it, i) => (
-        <span key={`${it}-${i}`} className="bg-slate-50 border border-slate-200 text-slate-600 px-2 py-0.5 rounded text-[11px] font-semibold">{viLabel(it)}</span>
+        <span key={`${it}-${i}`} className="bg-slate-50 border border-slate-200 text-slate-700 px-2 py-0.5 rounded text-[13px] font-semibold">{viLabel(it)}</span>
       ))}
-      {items.length > max && <span className="text-[11px] text-slate-400 font-semibold">+{items.length - max}</span>}
+      {items.length > max && <span className="text-[13px] text-slate-400 font-semibold">+{items.length - max}</span>}
     </div>
   );
 }
@@ -78,10 +78,10 @@ export default function BrandsView({
 
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <div className="flex flex-col gap-1.5 border-l-2 border-cyan-500 pl-4">
-        <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">ĐỐI THỦ</span>
-        <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Thống kê quảng cáo theo từng đối thủ</h2>
-        <p className="text-sm text-slate-600 font-medium">Nhấp vào một đối thủ để mở hồ sơ chi tiết (lượng quảng cáo · dịch vụ · nội dung · nhân rộng · phân tích content + ảnh quảng cáo). Dữ liệu của SERYN xem ở tab SERYN.</p>
+      <div className="flex flex-col gap-1.5 border-l-4 border-cyan-500 pl-4">
+        <span className="text-[11px] uppercase font-mono tracking-widest text-cyan-600 font-bold">ĐỐI THỦ</span>
+        <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Thống kê quảng cáo theo từng đối thủ</h2>
+        <p className="text-[15px] text-slate-600 font-medium">Nhấp vào một đối thủ để mở hồ sơ chi tiết (lượng quảng cáo · dịch vụ · nội dung · nhân rộng · phân tích content + ảnh quảng cáo). Dữ liệu của SERYN xem ở tab SERYN.</p>
       </div>
 
       <div className="flex items-center gap-2">
@@ -91,10 +91,10 @@ export default function BrandsView({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Tìm đối thủ, dịch vụ, ưu đãi…"
-            className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-300"
+            className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-white text-[15px] font-medium focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-300"
           />
         </div>
-        <span className="text-xs text-slate-500 font-semibold font-mono">{rows.length} / {competitorSnap.length} đối thủ</span>
+        <span className="text-sm text-slate-600 font-bold font-mono">{rows.length} / {competitorSnap.length} đối thủ</span>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -102,7 +102,7 @@ export default function BrandsView({
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${filter === f.id ? "bg-cyan-600 text-white border-cyan-600 shadow-sm" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
+            className={`px-4 py-2 rounded-lg text-sm font-bold border transition cursor-pointer ${filter === f.id ? "bg-cyan-600 text-white border-cyan-600 shadow-sm" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
           >
             {f.label}
           </button>
@@ -111,14 +111,14 @@ export default function BrandsView({
 
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-[15px]">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] uppercase tracking-wider text-slate-500 font-bold">
-                <th className="px-4 py-3">Đối thủ</th>
-                <th className="px-4 py-3 text-right">QC</th>
-                <th className="px-4 py-3">Content angle</th>
-                <th className="px-4 py-3">Định dạng nội dung</th>
-                <th className="px-4 py-3"></th>
+              <tr className="bg-slate-50 border-b border-slate-200 text-left text-xs uppercase tracking-wider text-slate-500 font-bold">
+                <th className="px-4 py-3.5">Đối thủ</th>
+                <th className="px-4 py-3.5 text-right">QC</th>
+                <th className="px-4 py-3.5">Content angle</th>
+                <th className="px-4 py-3.5">Định dạng nội dung</th>
+                <th className="px-4 py-3.5"></th>
               </tr>
             </thead>
             <tbody>
@@ -131,31 +131,31 @@ export default function BrandsView({
                     onClick={() => onSelectBrand(r.brand_name)}
                     className={`border-b border-slate-100 last:border-0 cursor-pointer transition group ${isDirect ? "bg-amber-50/40 hover:bg-amber-50/70" : "hover:bg-cyan-50/40"}`}
                   >
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
-                        {isDirect && <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />}
-                        <span className="font-extrabold text-slate-800 group-hover:text-cyan-700">{r.brand_name}</span>
-                        {isDirect && <span className="text-[9px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">Trực tiếp</span>}
+                        {isDirect && <Star className="w-4 h-4 fill-amber-400 text-amber-500 shrink-0" />}
+                        <span className="font-extrabold text-[15px] text-slate-800 group-hover:text-cyan-700">{r.brand_name}</span>
+                        {isDirect && <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded">Trực tiếp</span>}
                       </div>
-                      <div className="text-[11px] text-slate-400 font-medium truncate max-w-[220px]">{orUnknown(r.weekly_change_summary)}</div>
+                      <div className="text-[12px] text-slate-500 font-medium truncate max-w-[240px]">{orUnknown(r.weekly_change_summary)}</div>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className={`font-mono font-extrabold px-2 py-0.5 rounded text-[11px] ${ads > 0 ? "text-cyan-700 bg-cyan-50 border border-cyan-100" : "text-slate-400 bg-slate-50 border border-slate-200"}`}>{ads}</span>
+                    <td className="px-4 py-3.5 text-right">
+                      <span className={`font-mono font-extrabold px-2.5 py-1 rounded-lg text-sm ${ads > 0 ? "text-cyan-700 bg-cyan-50 border border-cyan-200" : "text-slate-400 bg-slate-50 border border-slate-200"}`}>{ads}</span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5">
                       {contentByBrand[r.brand_name] ? (
-                        <div className="space-y-1 max-w-[180px]">
-                          <span className="inline-block text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded">{ANGLE_VI[contentByBrand[r.brand_name].angle] || viLabel(contentByBrand[r.brand_name].angle)}</span>
-                          <div className="flex flex-wrap gap-1 text-[10px] text-slate-500 font-semibold">
+                        <div className="space-y-1 max-w-[190px]">
+                          <span className="inline-block text-[12px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">{ANGLE_VI[contentByBrand[r.brand_name].angle] || viLabel(contentByBrand[r.brand_name].angle)}</span>
+                          <div className="flex flex-wrap gap-1 text-[11px] text-slate-500 font-semibold">
                             <span>{OBJ_SHORT[contentByBrand[r.brand_name].objective] || "Chưa rõ"}</span>
                             <span className="text-slate-300">·</span>
                             <span>{SCALE_SHORT[contentByBrand[r.brand_name].signal]}</span>
                           </div>
                         </div>
-                      ) : <span className="text-xs text-slate-300">—</span>}
+                      ) : <span className="text-sm text-slate-300">—</span>}
                     </td>
-                    <td className="px-4 py-3"><Chips value={r.main_content_formats} max={3} /></td>
-                    <td className="px-4 py-3 text-right"><ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-cyan-500 inline" /></td>
+                    <td className="px-4 py-3.5"><Chips value={r.main_content_formats} max={3} /></td>
+                    <td className="px-4 py-3.5 text-right"><ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-cyan-500 inline" /></td>
                   </tr>
                 );
               })}

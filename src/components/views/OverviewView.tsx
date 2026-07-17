@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "motion/react";
-import { Flame, Layers, TrendingUp, TrendingDown, Building2, Activity, Star } from "lucide-react";
+import { Flame, Layers, TrendingUp, TrendingDown, Building2, Activity, Star, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import type { SpyDashboardData } from "../../types";
 import { normalizeNumber, countChips, scaleMeta, viLabel } from "../../utils/spyData";
 import { useDirectCompetitors, isDirectCompetitor } from "../../utils/directCompetitors";
@@ -12,36 +12,41 @@ import { SerynBenchmarkCompact } from "../SerynBenchmark";
 
 function SectionTitle({ tag, title, desc }: { tag: string; title: string; desc?: string }) {
   return (
-    <div className="flex flex-col gap-1.5 border-l-2 border-cyan-500 pl-4">
-      <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-600 font-bold">{tag}</span>
-      <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">{title}</h2>
-      {desc && <p className="text-sm text-slate-600 font-medium">{desc}</p>}
+    <div className="flex flex-col gap-1.5 border-l-4 border-cyan-500 pl-4">
+      <span className="text-[11px] uppercase font-mono tracking-widest text-cyan-600 font-bold">{tag}</span>
+      <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">{title}</h2>
+      {desc && <p className="text-[15px] text-slate-600 font-medium">{desc}</p>}
     </div>
   );
 }
 
-function Kpi({ label, value, icon: Icon, accent }: { label: string; value: React.ReactNode; icon: any; accent?: string }) {
+/** tone: "up" = tăng (xanh, mũi tên lên) · "down" = giảm (đỏ, mũi tên xuống). */
+function Kpi({ label, value, icon: Icon, accent, tone }: { label: string; value: React.ReactNode; icon: any; accent?: string; tone?: "up" | "down" }) {
+  const toneCls = tone === "up" ? "text-emerald-600" : tone === "down" ? "text-rose-600" : "text-slate-900";
+  const Arrow = tone === "up" ? ArrowUpRight : tone === "down" ? ArrowDownRight : null;
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${accent || "bg-cyan-50 text-cyan-600"}`}>
-        <Icon className="w-5 h-5" />
+    <div className={`bg-white border rounded-2xl p-5 shadow-sm flex items-center gap-4 ${tone === "up" ? "border-emerald-200" : tone === "down" ? "border-rose-200" : "border-slate-200"}`}>
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${accent || "bg-cyan-50 text-cyan-600"}`}>
+        <Icon className="w-6 h-6" />
       </div>
       <div className="min-w-0">
-        <p className="text-[11px] uppercase font-mono tracking-wider text-slate-500 font-bold truncate">{label}</p>
-        <p className="text-2xl font-extrabold text-slate-900 leading-tight">{value}</p>
+        <p className="text-xs uppercase font-mono tracking-wider text-slate-500 font-bold truncate">{label}</p>
+        <p className={`text-3xl font-extrabold leading-tight flex items-center gap-0.5 ${toneCls}`}>
+          {Arrow && <Arrow className="w-6 h-6 shrink-0" strokeWidth={3} />}{value}
+        </p>
       </div>
     </div>
   );
 }
 
 function ChipList({ items }: { items: { label: string; n: number }[] }) {
-  if (!items.length) return <span className="text-xs text-slate-400 font-semibold">chưa rõ</span>;
+  if (!items.length) return <span className="text-sm text-slate-400 font-semibold">chưa rõ</span>;
   return (
     <div className="flex flex-wrap gap-2">
       {items.slice(0, 10).map((it) => (
-        <span key={it.label} className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-bold">
+        <span key={it.label} className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 text-slate-800 px-3 py-1.5 rounded-lg text-sm font-bold">
           {viLabel(it.label)}
-          <b className="text-cyan-600 font-mono">{it.n}</b>
+          <b className="text-cyan-700 font-mono text-base">{it.n}</b>
         </span>
       ))}
     </div>
@@ -90,8 +95,8 @@ export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboa
         <Kpi label="Đang chạy quảng cáo" value={`${activeBrands} / ${totalBrands}`} icon={Activity} accent="bg-emerald-50 text-emerald-600" />
         <Kpi label="Tổng QC đang chạy" value={totalAds.toLocaleString("vi-VN")} icon={Layers} accent="bg-indigo-50 text-indigo-600" />
         <Kpi label="Nội dung nhân rộng" value={totalScaled} icon={Flame} accent="bg-rose-50 text-rose-600" />
-        <Kpi label="QC mới tuần này" value={newAds} icon={TrendingUp} accent="bg-emerald-50 text-emerald-600" />
-        <Kpi label="QC đã dừng" value={stoppedAds} icon={TrendingDown} accent="bg-amber-50 text-amber-600" />
+        <Kpi label="QC mới tuần này" value={`+${newAds.toLocaleString("vi-VN")}`} icon={TrendingUp} accent="bg-emerald-50 text-emerald-600" tone="up" />
+        <Kpi label="QC đã dừng" value={`−${stoppedAds.toLocaleString("vi-VN")}`} icon={TrendingDown} accent="bg-rose-50 text-rose-600" tone="down" />
       </div>
 
       {/* SERYN vs Đối thủ (ngắn) — chi tiết ở tab SERYN */}
@@ -99,51 +104,51 @@ export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboa
 
       {/* Báo cáo tuần (gộp từ Weekly Intelligence) */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-2">Báo cáo tuần</h3>
-        <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 border border-slate-100 rounded-xl p-3">{execSummary}</p>
+        <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wider mb-2">Báo cáo tuần</h3>
+        <p className="text-[15px] text-slate-800 leading-relaxed bg-slate-50 border border-slate-100 rounded-xl p-4">{execSummary}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
           <div>
-            <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-3">Top dịch vụ đang chạy</h3>
+            <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wider mb-3">Top dịch vụ đang chạy</h3>
             <ChipList items={topServices} />
           </div>
           <div>
-            <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-3">Top định dạng nội dung</h3>
+            <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wider mb-3">Top định dạng nội dung</h3>
             <ChipList items={topFormats} />
           </div>
           <div>
-            <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-3">Top góc tiếp cận</h3>
+            <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wider mb-3">Top góc tiếp cận</h3>
             <ChipList items={topAngles} />
           </div>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-1">
-            <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Đối thủ nhân rộng mạnh nhất</h3>
-            <Flame className="w-4 h-4 text-rose-500" />
+            <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wider">Đối thủ nhân rộng mạnh nhất</h3>
+            <Flame className="w-5 h-5 text-rose-500" />
           </div>
-          <p className="text-xs text-slate-500 font-medium mb-4">Theo cấp nhân rộng cao + số cụm</p>
+          <p className="text-sm text-slate-500 font-medium mb-4">Theo cấp nhân rộng cao + số cụm</p>
           <div className="space-y-3">
             {topScaling.length ? (
               topScaling.slice(0, 6).map((r, i) => {
                 const meta = scaleMeta(r.maxLvl);
                 return (
                   <div key={r.brand} className="flex items-center gap-3">
-                    <span className="w-5 h-5 rounded bg-slate-100 font-mono text-[10px] font-bold text-slate-600 flex items-center justify-center border border-slate-200">{i + 1}</span>
-                    {isDirectCompetitor(r.brand, direct) && <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />}
-                    <span className="font-bold text-slate-800 flex-1 truncate">{r.brand}</span>
-                    <span className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded">{meta.label}</span>
-                    <span className="text-xs font-mono text-slate-500">{r.clusters} cụm</span>
+                    <span className="w-6 h-6 rounded bg-slate-100 font-mono text-xs font-bold text-slate-600 flex items-center justify-center border border-slate-200 shrink-0">{i + 1}</span>
+                    {isDirectCompetitor(r.brand, direct) && <Star className="w-4 h-4 fill-amber-400 text-amber-500 shrink-0" />}
+                    <span className="font-bold text-[15px] text-slate-800 flex-1 truncate">{r.brand}</span>
+                    <span className="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-1 rounded">{meta.label}</span>
+                    <span className="text-sm font-mono font-semibold text-slate-600 shrink-0">{r.clusters} cụm</span>
                   </div>
                 );
               })
             ) : (
-              <p className="text-xs text-slate-400 font-semibold">Chưa có nội dung nhân rộng.</p>
+              <p className="text-sm text-slate-400 font-semibold">Chưa có nội dung nhân rộng.</p>
             )}
           </div>
-          <p className="mt-5 text-[11px] text-slate-500 font-medium border-t border-slate-100 pt-3 leading-relaxed">
+          <p className="mt-5 text-xs text-slate-500 font-medium border-t border-slate-100 pt-3 leading-relaxed">
             Lưu ý: “khả năng đang nhân rộng dựa trên thời lượng chạy + lặp lại — chưa xác nhận hiệu quả/lợi nhuận”. Không có dữ liệu ngân sách/chuyển đổi.
           </p>
         </div>

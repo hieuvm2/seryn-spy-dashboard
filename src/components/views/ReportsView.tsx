@@ -137,10 +137,14 @@ function CopyButton({ label, getText }: { label: string; getText: () => string }
 
 function Kpi({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "new" | "stopped" }) {
   const color = tone === "new" ? "text-emerald-600" : tone === "stopped" ? "text-rose-600" : "text-slate-900";
+  const Arrow = tone === "new" ? TrendingUp : tone === "stopped" ? TrendingDown : null;
+  const border = tone === "new" ? "border-emerald-200 bg-emerald-50/40" : tone === "stopped" ? "border-rose-200 bg-rose-50/40" : "border-slate-100 bg-slate-50";
   return (
-    <div className="bg-slate-50 rounded-xl border border-slate-100 px-3 py-2.5">
-      <p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold">{label}</p>
-      <p className={`text-lg font-bold mt-0.5 ${color}`}>{value}</p>
+    <div className={`rounded-xl border px-3 py-2.5 ${border}`}>
+      <p className="text-[11px] uppercase font-mono tracking-wide text-slate-500 font-bold">{label}</p>
+      <p className={`text-2xl font-extrabold mt-0.5 leading-tight flex items-center gap-1 ${color}`}>
+        {Arrow && <Arrow className="w-5 h-5 shrink-0" strokeWidth={2.75} />}{value}
+      </p>
     </div>
   );
 }
@@ -189,10 +193,10 @@ function ObservationTable({ title, body }: { title?: string; body?: string }) {
             const badge = (head && (PRIO_BADGE[head.toLowerCase()] || HEAD_BADGE[head.toLowerCase()])) || "bg-slate-50 border-slate-200 text-slate-700";
             return (
               <tr key={i} className="border-b border-slate-100 last:border-0 align-top">
-                <td className="py-1.5 pr-3 w-32 sm:w-44">
-                  {head && <span className={`inline-block px-2 py-0.5 rounded-md border text-[11px] font-bold leading-snug ${badge}`}>{head}</span>}
+                <td className="py-2 pr-3 w-32 sm:w-44">
+                  {head && <span className={`inline-block px-2 py-0.5 rounded-md border text-[12px] font-bold leading-snug ${badge}`}>{head}</span>}
                 </td>
-                <td className="py-1.5 text-[13px] leading-relaxed text-slate-600">{rest}</td>
+                <td className="py-2 text-[14px] leading-relaxed text-slate-700">{rest}</td>
               </tr>
             );
           })}
@@ -456,7 +460,7 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
         <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="w-4 h-4 text-cyan-500" />
-            <h3 className="text-sm font-bold text-slate-800">Xu hướng qua các kỳ {mode === "weekly" ? "tuần" : "tháng"}</h3>
+            <h3 className="text-base font-bold text-slate-800">Xu hướng qua các kỳ {mode === "weekly" ? "tuần" : "tháng"}</h3>
           </div>
           <ChartLegend items={[{ color: CH.blue, label: "Ads đang chạy" }, { color: CH.aqua, label: "Ads mới" }, { color: CH.red, label: "Ads dừng" }]} />
           <TrendChart reports={reports} />
@@ -498,11 +502,11 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
           if (!bullets.length) return null;
           return (
             <div className="mt-3 rounded-xl bg-slate-50 border border-slate-100 p-3.5">
-              <p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1.5">Tóm tắt điều hành</p>
-              <ul className="space-y-1.5">
+              <p className="text-[11px] uppercase font-mono tracking-wide text-slate-500 font-bold mb-2">Tóm tắt điều hành</p>
+              <ul className="space-y-2">
                 {bullets.map((b, i) => (
-                  <li key={i} className="flex gap-2 text-[13px] leading-relaxed text-slate-700">
-                    <span className="text-cyan-500 font-bold shrink-0 mt-px">•</span>
+                  <li key={i} className="flex gap-2 text-[15px] leading-relaxed text-slate-800">
+                    <span className="text-cyan-600 font-bold shrink-0 mt-0.5">•</span>
                     <span>{b}</span>
                   </li>
                 ))}
@@ -524,7 +528,7 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
       <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5">
         <div className="flex items-center gap-2 mb-1">
           <TrendingUp className="w-4 h-4 text-cyan-500" />
-          <h3 className="text-sm font-bold text-slate-800">Biến động top 5 đối thủ trong kỳ</h3>
+          <h3 className="text-base font-bold text-slate-800">Biến động top 5 đối thủ trong kỳ</h3>
         </div>
         {parseBrandCounts(r.top_new_ads_brands).length + parseBrandCounts(r.top_stopped_ads_brands).length > 0 ? (
           <>
@@ -550,7 +554,7 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
       <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Target className="w-4 h-4 text-cyan-500" />
-          <h3 className="text-sm font-bold text-slate-800">Tín hiệu nổi bật</h3>
+          <h3 className="text-base font-bold text-slate-800">Tín hiệu nổi bật</h3>
         </div>
         <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4">
           <MiniBars title="Dịch vụ" value={r.top_services} />
@@ -566,7 +570,7 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
         <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
           <div className="flex items-center gap-2">
             <ListChecks className="w-4 h-4 text-violet-500" />
-            <h3 className="text-sm font-bold text-slate-800">Mẫu nội dung & hình ảnh đáng chú ý</h3>
+            <h3 className="text-base font-bold text-slate-800">Mẫu nội dung &amp; hình ảnh đáng chú ý</h3>
           </div>
           <ObservationTable title="Nội dung" body={r.notable_content_patterns} />
           <ObservationTable title="Hình ảnh / creative" body={r.notable_visual_patterns} />
@@ -578,7 +582,7 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
         <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4 text-emerald-500" />
-            <h3 className="text-sm font-bold text-slate-800">Khuyến nghị cho SERYN</h3>
+            <h3 className="text-base font-bold text-slate-800">Khuyến nghị cho SERYN</h3>
           </div>
           <ObservationTable title="Hàm ý chiến lược" body={r.seryn_implications} />
           <ObservationTable title="Hành động đề xuất" body={r.recommended_actions} />

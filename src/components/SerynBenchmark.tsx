@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Sparkles, ArrowRight, ExternalLink, X } from "lucide-react";
+import { Sparkles, ArrowRight, ArrowUpRight, ArrowDownRight, ExternalLink, X } from "lucide-react";
 import type { SpyDashboardData, AdLevelAnalysis } from "../types";
 import { viLabel, isMeaningful } from "../utils/spyData";
 import { isOwnRow } from "../utils/ownBrand";
@@ -27,7 +27,7 @@ function Chips({ items, tone = "cyan" }: { items: string[]; tone?: "cyan" | "sla
     : "bg-cyan-50 text-cyan-700 border-cyan-100";
   return (
     <div className="flex flex-wrap gap-1.5">
-      {items.map((it, i) => <span key={`${it}-${i}`} className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border ${cls}`}>{viLabel(it)}</span>)}
+      {items.map((it, i) => <span key={`${it}-${i}`} className={`px-2.5 py-1 rounded-md text-[13px] font-semibold border ${cls}`}>{viLabel(it)}</span>)}
     </div>
   );
 }
@@ -44,30 +44,30 @@ export function SerynSnapshotCard({ data, onOpen }: { data: SpyDashboardData; on
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-cyan-700 bg-white border border-cyan-200 px-2 py-0.5 rounded-full"><Sparkles className="w-3 h-3" /> Thương hiệu của mình</span>
-          <h3 className="text-base font-extrabold text-slate-900">Tổng quan nhanh {s.ownBrandName}</h3>
+          <h3 className="text-lg font-extrabold text-slate-900">Tổng quan nhanh {s.ownBrandName}</h3>
         </div>
-        <button onClick={onOpen} className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-500 px-3 py-1.5 rounded-lg transition">
-          Xem phân tích SERYN <ArrowRight className="w-3.5 h-3.5" />
+        <button onClick={onOpen} className="inline-flex items-center gap-1.5 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 px-3.5 py-2 rounded-lg transition">
+          Xem phân tích SERYN <ArrowRight className="w-4 h-4" />
         </button>
       </div>
       {!s.hasData ? (
-        <p className="text-xs text-slate-500 mt-3">Chưa có dữ liệu ads công khai của SERYN. Thêm page vào tab <span className="font-mono">Own Brand Pages</span> rồi crawl để bật benchmark.</p>
+        <p className="text-sm text-slate-600 mt-3">Chưa có dữ liệu ads công khai của SERYN. Thêm page vào tab <span className="font-mono">Own Brand Pages</span> rồi crawl để bật benchmark.</p>
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
             <Metric label="Ads đang chạy" value={s.activeAds} />
-            <Metric label="Ads mới" value={`+${s.newAds}`} tone="emerald" />
+            <Metric label="Ads mới" value={`+${s.newAds}`} tone="up" />
             <Metric label="Định dạng chính" value={topFmt ? `${viLabel(topFmt[0])} ${topFmt[1]}%` : "—"} />
             <Metric label="Mục tiêu chính" value={topFunnel ? `${viLabel(topFunnel[0])} ${topFunnel[1]}%` : "—"} />
             <div className="col-span-2">
-              <p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1">Dịch vụ <span className="normal-case font-sans text-slate-400">(bấm để xem QC)</span></p>
+              <p className="text-[11px] uppercase font-mono tracking-wide text-slate-500 font-bold mb-1.5">Dịch vụ <span className="normal-case font-sans text-slate-400">(bấm để xem QC)</span></p>
               <div className="flex flex-wrap gap-1.5">
                 {s.topServices.slice(0, 4).map((sv, i) => (
                   <button
                     key={`${sv}-${i}`}
                     onClick={() => setSvc((cur) => (cur === sv ? null : sv))}
                     title="Bấm để xem các quảng cáo đang chạy dịch vụ này"
-                    className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border transition cursor-pointer ${svc === sv ? "bg-cyan-600 text-white border-cyan-600 shadow-sm" : "bg-cyan-50 text-cyan-700 border-cyan-100 hover:bg-cyan-100"}`}
+                    className={`px-2.5 py-1 rounded-md text-[13px] font-semibold border transition cursor-pointer ${svc === sv ? "bg-cyan-600 text-white border-cyan-600 shadow-sm" : "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"}`}
                   >
                     {viLabel(sv)}
                   </button>
@@ -75,7 +75,7 @@ export function SerynSnapshotCard({ data, onOpen }: { data: SpyDashboardData; on
                 {!s.topServices.length && <span className="text-xs text-slate-400 italic">—</span>}
               </div>
             </div>
-            <div className="col-span-2"><p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1">Angle nội dung</p><Chips items={s.topContentAngles.slice(0, 4)} /></div>
+            <div className="col-span-2"><p className="text-[11px] uppercase font-mono tracking-wide text-slate-500 font-bold mb-1.5">Angle nội dung</p><Chips items={s.topContentAngles.slice(0, 4)} /></div>
           </div>
           {svc && <ServiceAdsPanel data={data} service={svc} onClose={() => setSvc(null)} />}
         </>
@@ -149,11 +149,15 @@ function ServiceAdsPanel({ data, service, onClose }: { data: SpyDashboardData; s
   );
 }
 
-function Metric({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "emerald" }) {
+function Metric({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "up" | "down" | "emerald" }) {
+  const up = tone === "up" || tone === "emerald";
+  const down = tone === "down";
+  const cls = up ? "text-emerald-600" : down ? "text-rose-600" : "text-slate-900";
+  const Arrow = up ? ArrowUpRight : down ? ArrowDownRight : null;
   return (
-    <div className="bg-white rounded-xl border border-slate-100 px-3 py-2">
-      <p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold">{label}</p>
-      <p className={`text-lg font-bold mt-0.5 ${tone === "emerald" ? "text-emerald-600" : "text-slate-900"}`}>{value}</p>
+    <div className={`bg-white rounded-xl border px-3 py-2.5 ${up ? "border-emerald-200" : down ? "border-rose-200" : "border-slate-100"}`}>
+      <p className="text-[11px] uppercase font-mono tracking-wide text-slate-500 font-bold">{label}</p>
+      <p className={`text-2xl font-extrabold mt-0.5 leading-tight flex items-center gap-0.5 ${cls}`}>{Arrow && <Arrow className="w-5 h-5 shrink-0" strokeWidth={3} />}{value}</p>
     </div>
   );
 }
@@ -165,19 +169,19 @@ export function SerynBenchmarkCompact({ data, onOpen }: { data: SpyDashboardData
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2"><Sparkles className="w-4 h-4 text-cyan-600" /> SERYN vs Đối thủ</h3>
-        {onOpen && <button onClick={onOpen} className="text-[11px] font-bold text-cyan-700 hover:underline">Chi tiết ở tab SERYN →</button>}
+        <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2"><Sparkles className="w-5 h-5 text-cyan-600" /> SERYN vs Đối thủ</h3>
+        {onOpen && <button onClick={onOpen} className="text-xs font-bold text-cyan-700 hover:underline">Chi tiết ở tab SERYN →</button>}
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <Metric label="Ads SERYN" value={cmp.serynActiveAds} />
         <Metric label="TB đối thủ" value={cmp.competitorAvgActiveAds} />
         <Metric label="Đối thủ mạnh nhất" value={cmp.topCompetitorActiveAds} />
       </div>
-      <div className="mt-3 space-y-1.5 text-[12px] text-slate-600">
-        <p><b className="text-slate-500">Số lượng:</b> {volumePositionNote(cmp)}</p>
-        <p><b className="text-slate-500">Angle còn thiếu:</b> {cmp.missingContentAngles.slice(0, 3).map(viLabel).join(", ") || "không khác biệt lớn"}</p>
-        <p><b className="text-slate-500">Chênh lệch định dạng:</b> {cmp.formatGapNote}</p>
-        {test && <p className="text-cyan-700"><b>Test tuần này:</b> {test.recommendation}</p>}
+      <div className="mt-3 space-y-2 text-sm text-slate-700 leading-relaxed">
+        <p><b className="text-slate-900">Số lượng:</b> {volumePositionNote(cmp)}</p>
+        <p><b className="text-slate-900">Angle còn thiếu:</b> {cmp.missingContentAngles.slice(0, 3).map(viLabel).join(", ") || "không khác biệt lớn"}</p>
+        <p><b className="text-slate-900">Chênh lệch định dạng:</b> {cmp.formatGapNote}</p>
+        {test && <p className="text-cyan-800 bg-cyan-50 border border-cyan-100 rounded-lg px-3 py-2"><b>Test tuần này:</b> {test.recommendation}</p>}
       </div>
     </div>
   );
@@ -185,15 +189,15 @@ export function SerynBenchmarkCompact({ data, onOpen }: { data: SpyDashboardData
 
 export function TestRow({ t }: { t: SerynRecommendedTest }) {
   return (
-    <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
-      <div className="flex items-center gap-2 flex-wrap mb-1">
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${PRIO_TONE[t.priority]}`}>{viLabel(t.priority)}</span>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-cyan-200 bg-cyan-50 text-cyan-700">{viLabel(t.testType)}</span>
+    <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3.5">
+      <div className="flex items-center gap-2 flex-wrap mb-1.5">
+        <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${PRIO_TONE[t.priority]}`}>{viLabel(t.priority)}</span>
+        <span className="text-[11px] font-bold px-2 py-0.5 rounded border border-cyan-200 bg-cyan-50 text-cyan-700">{viLabel(t.testType)}</span>
       </div>
-      <p className="text-[13px] font-semibold text-slate-800">{t.recommendation}</p>
-      <p className="text-[11px] text-slate-500 mt-0.5">{t.reason}</p>
-      <p className="text-[11px] text-slate-400 mt-0.5">Bằng chứng: {t.evidence}</p>
-      {t.riskNote && <p className="text-[11px] text-amber-700 mt-0.5">⚠ {t.riskNote}</p>}
+      <p className="text-[15px] font-bold text-slate-900 leading-snug">{t.recommendation}</p>
+      <p className="text-[13px] text-slate-600 mt-1">{t.reason}</p>
+      <p className="text-[13px] text-slate-500 mt-0.5">Bằng chứng: {t.evidence}</p>
+      {t.riskNote && <p className="text-[13px] font-semibold text-amber-700 mt-1">⚠ {t.riskNote}</p>}
     </div>
   );
 }
