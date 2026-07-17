@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
   FileText, CalendarDays, Calendar, Copy, Check, TrendingUp, TrendingDown,
-  Sparkles, ListChecks, Target, ShieldAlert, Info,
+  Sparkles, ListChecks, Target, Info,
 } from "lucide-react";
 import type { SpyDashboardData, SpyReport, SpyReportType } from "../../types";
 import { viLabel, humanizeText, isAdsDisclaimer, stripAdsDisclaimer } from "../../utils/spyData";
@@ -105,11 +105,9 @@ function composeFullReport(r: SpyReport): string {
     `6. CREATIVE / FORMAT / FUNNEL\n- Format: ${r.top_ad_formats || "—"}\n- Objective: ${r.top_objectives || "—"}`,
     sec("Visual patterns", r.notable_visual_patterns),
     "",
-    sec("7. RỦI RO CLAIM", r.risk_warnings),
+    sec("7. HÀM Ý CHO SERYN", r.seryn_implications),
     "",
-    sec("8. HÀM Ý CHO SERYN", r.seryn_implications),
-    "",
-    sec("9. HÀNH ĐỘNG ĐỀ XUẤT", r.recommended_actions),
+    sec("8. HÀNH ĐỘNG ĐỀ XUẤT", r.recommended_actions),
     "",
     sec("SERYN VS ĐỐI THỦ", r.seryn_benchmark),
   ].join("\n");
@@ -261,8 +259,6 @@ function TopChips({ title, value }: { title: string; value?: string }) {
 
 /* ---------------- charts (SVG thuần, palette validate) ---------------- */
 
-const trunc20 = (s: string) => (s.length > 20 ? s.slice(0, 19) + "…" : s);
-
 function ChartLegend({ items }: { items: { color: string; label: string }[] }) {
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-1 mb-1.5">
@@ -275,7 +271,9 @@ function ChartLegend({ items }: { items: { color: string; label: string }[] }) {
   );
 }
 
-/** Biến động top 5 đối thủ trong kỳ — diverging: dừng (đỏ, trái) vs mới (xanh, phải). */
+/** Biến động top 5 đối thủ trong kỳ — diverging: dừng (đỏ, trái) vs mới (xanh, phải).
+ *  Dựng bằng HTML để hiện ĐỦ tên đối thủ + căn trái/phải đồng bộ (cột số cố định 2 bên,
+ *  hai thanh đối xứng quanh trục giữa). */
 function MoversChart({ newBrands, stoppedBrands }: { newBrands?: string; stoppedBrands?: string }) {
   const news = parseBrandCounts(newBrands);
   const stops = parseBrandCounts(stoppedBrands);
@@ -288,31 +286,28 @@ function MoversChart({ newBrands, stoppedBrands }: { newBrands?: string; stopped
   }
   const rows = [...byName.values()].sort((a, b) => (b.added + b.stopped) - (a.added + a.stopped)).slice(0, 5);
   if (!rows.length) return null;
-
-  const NAME_W = 128, ROW_H = 28, BAR_H = 13, W = 560;
   const max = Math.max(...rows.map((r) => Math.max(r.added, r.stopped)), 1);
-  const cx = NAME_W + (W - NAME_W) / 2;
-  const armW = (W - NAME_W) / 2 - 34;
-  const h = 6 + rows.length * ROW_H + 4;
+  const barW = (v: number) => (v > 0 ? `${Math.max((v / max) * 100, 4)}%` : "0%");
+
   return (
-    <svg viewBox={`0 0 ${W} ${h}`} width="100%" role="img" aria-label="QC mới và QC dừng theo đối thủ trong kỳ">
-      <line x1={cx} y1={4} x2={cx} y2={h - 2} stroke={CH.baseline} strokeWidth="1" />
-      {rows.map((r, i) => {
-        const y = 6 + i * ROW_H + (ROW_H - BAR_H) / 2;
-        const wNew = (r.added / max) * armW;
-        const wStop = (r.stopped / max) * armW;
-        return (
-          <g key={r.name}>
-            <title>{`${r.name}: +${r.added} mới · −${r.stopped} dừng`}</title>
-            <text x={NAME_W - 8} y={y + BAR_H / 2} textAnchor="end" dominantBaseline="middle" fontSize="11" fill={CH.ink2} fontWeight={600}>{trunc20(r.name)}</text>
-            {r.stopped > 0 && <rect x={cx - wStop} y={y} width={Math.max(wStop, 2)} height={BAR_H} rx="3" fill={CH.red} />}
-            {r.added > 0 && <rect x={cx + 1} y={y} width={Math.max(wNew, 2)} height={BAR_H} rx="3" fill={CH.blue} />}
-            <text x={cx - wStop - 5} y={y + BAR_H / 2} textAnchor="end" dominantBaseline="middle" fontSize="10" fontWeight={700} fill={CH.ink} style={{ fontVariantNumeric: "tabular-nums" }}>{r.stopped ? `−${r.stopped}` : ""}</text>
-            <text x={cx + wNew + 6} y={y + BAR_H / 2} dominantBaseline="middle" fontSize="10" fontWeight={700} fill={CH.ink} style={{ fontVariantNumeric: "tabular-nums" }}>{r.added ? `+${r.added}` : ""}</text>
-          </g>
-        );
-      })}
-    </svg>
+    <div className="space-y-2.5">
+      {rows.map((r) => (
+        <div key={r.name} className="flex items-center gap-2" title={`${r.name}: +${r.added} mới · −${r.stopped} dừng`}>
+          {/* Tên đối thủ — hiện đầy đủ, căn phải về phía trục */}
+          <div className="w-28 sm:w-52 shrink-0 text-right text-[12px] font-semibold text-slate-700 leading-tight">{r.name}</div>
+          {/* Số QC dừng — cột cố định, căn phải (đồng bộ mọi hàng) */}
+          <span className="w-9 shrink-0 text-right text-[11px] font-bold tabular-nums" style={{ color: CH.red }}>{r.stopped > 0 ? `−${r.stopped}` : ""}</span>
+          {/* Thanh "đã dừng" — mọc từ trục sang trái */}
+          <div className="flex-1 flex justify-end min-w-0"><div className="h-3.5 rounded-sm" style={{ width: barW(r.stopped), background: CH.red }} /></div>
+          {/* Trục giữa */}
+          <div className="w-px self-stretch bg-slate-300 shrink-0" />
+          {/* Thanh "mới" — mọc từ trục sang phải */}
+          <div className="flex-1 flex justify-start min-w-0"><div className="h-3.5 rounded-sm" style={{ width: barW(r.added), background: CH.blue }} /></div>
+          {/* Số QC mới — cột cố định, căn trái (đồng bộ mọi hàng) */}
+          <span className="w-9 shrink-0 text-left text-[11px] font-bold tabular-nums" style={{ color: CH.blue }}>{r.added > 0 ? `+${r.added}` : ""}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -575,17 +570,6 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
           </div>
           <ObservationTable title="Nội dung" body={r.notable_content_patterns} />
           <ObservationTable title="Hình ảnh / creative" body={r.notable_visual_patterns} />
-        </div>
-      )}
-
-      {/* Rủi ro — bảng brand | rủi ro */}
-      {!!String(r.risk_warnings ?? "").trim() && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-amber-500" />
-            <h3 className="text-sm font-bold text-slate-800">Rủi ro tuyên bố (claim)</h3>
-          </div>
-          <ObservationTable body={r.risk_warnings} />
         </div>
       )}
 
