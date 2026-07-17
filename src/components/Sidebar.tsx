@@ -81,17 +81,17 @@ export default function Sidebar({ activeSection, setActiveSection, mobileOpen = 
 
   return (
     <>
-      {/* Backdrop (chỉ mobile, khi drawer mở) */}
+      {/* Backdrop — hiện khi drawer mở (mọi kích thước; drawer là dạng trượt) */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-30 lg:hidden"
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-30"
           onClick={onClose}
           aria-hidden="true"
         />
       )}
 
       <aside
-        className={`w-64 max-w-[85vw] bg-white border-r border-slate-200 text-slate-800 flex flex-col fixed top-0 bottom-0 left-0 z-40 shadow-sm transition-transform duration-300 lg:translate-x-0 ${
+        className={`w-64 max-w-[85vw] bg-white border-r border-slate-200 text-slate-800 flex flex-col fixed top-0 bottom-0 left-0 z-40 shadow-sm transition-transform duration-300 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -102,10 +102,10 @@ export default function Sidebar({ activeSection, setActiveSection, mobileOpen = 
           <h1 className="font-brand text-2xl font-bold tracking-[0.18em] text-slate-900 leading-none">SERYN</h1>
           <p className="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold mt-1">Competitor Intelligence</p>
         </div>
-        {/* Nút đóng drawer (mobile) */}
+        {/* Nút đóng/thu gọn drawer */}
         <button
           onClick={onClose}
-          className="ml-auto lg:hidden w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 transition shrink-0"
+          className="ml-auto w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 transition shrink-0"
           aria-label="Đóng menu"
         >
           <X className="w-4 h-4" />

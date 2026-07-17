@@ -37,11 +37,12 @@ export default function TopHeader({ dataSource, market = "Vietnam", weekDate, is
   return (
     <header className="sticky top-0 z-20 w-full h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-2 text-slate-800">
       <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-        {/* Hamburger — chỉ mobile/tablet */}
+        {/* Hamburger — hiện ở MỌI kích thước để thu gọn / mở menu */}
         <button
           onClick={onMenuClick}
-          className="lg:hidden w-9 h-9 -ml-1 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 transition shrink-0"
-          aria-label="Mở menu"
+          className="w-9 h-9 -ml-1 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 transition shrink-0"
+          aria-label="Mở / thu gọn menu"
+          title="Mở / thu gọn menu"
         >
           <Menu className="w-5 h-5" />
         </button>

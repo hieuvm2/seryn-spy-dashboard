@@ -208,7 +208,7 @@ export default function App({ auth }: AppProps) {
         canEdit={canEdit}
       />
 
-      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen min-w-0">
+      <div className="flex-1 flex flex-col min-h-screen min-w-0">
         <TopHeader
           dataSource={dataSource}
           market="Vietnam"
