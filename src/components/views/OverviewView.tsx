@@ -2,7 +2,7 @@ import React from "react";
 import { motion } from "motion/react";
 import { Flame, Layers, TrendingUp, TrendingDown, Building2, Activity, Star, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import type { SpyDashboardData } from "../../types";
-import { normalizeNumber, countChips, scaleMeta, viLabel } from "../../utils/spyData";
+import { normalizeNumber, countChips, viLabel } from "../../utils/spyData";
 import { useDirectCompetitors, isDirectCompetitor } from "../../utils/directCompetitors";
 import { latestWeek, dataQualityReport } from "../../utils/weeklyIntel";
 import { composeExecSummary } from "../../utils/reportData";
@@ -68,14 +68,16 @@ export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboa
   const topFormats = countChips(snap, "main_content_formats");
   const topAngles = countChips(snap, "main_angles");
 
-  const scalingMap: Record<string, { brand: string; clusters: number; maxLvl: number }> = {};
-  data.scaledContentAnalysis.forEach((s) => {
-    const b = s.brand_name;
-    if (!scalingMap[b]) scalingMap[b] = { brand: b, clusters: 0, maxLvl: 0 };
-    scalingMap[b].clusters++;
-    scalingMap[b].maxLvl = Math.max(scalingMap[b].maxLvl, normalizeNumber(s.scale_level));
-  });
-  const topScaling = Object.values(scalingMap).sort((a, b) => b.maxLvl - a.maxLvl || b.clusters - a.clusters);
+  // Đối thủ THAY ĐỔI ads nhiều nhất tuần này = tổng (ad mới + ad dừng).
+  const topChanged = snap
+    .map((b) => ({
+      brand: b.brand_name,
+      added: normalizeNumber(b.new_ads_count),
+      stopped: normalizeNumber(b.stopped_ads_count),
+    }))
+    .map((x) => ({ ...x, total: x.added + x.stopped }))
+    .filter((x) => x.total > 0)
+    .sort((a, b) => b.total - a.total);
 
   const summary = latestWeek(data.weeklySummary ?? []);
   const dq = dataQualityReport(summary);
@@ -126,30 +128,27 @@ export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboa
 
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-1">
-            <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wider">Đối thủ nhân rộng mạnh nhất</h3>
+            <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wider">Đối thủ thay đổi ads nhiều nhất</h3>
             <Flame className="w-5 h-5 text-rose-500" />
           </div>
-          <p className="text-sm text-slate-500 font-medium mb-4">Theo cấp nhân rộng cao + số cụm</p>
+          <p className="text-sm text-slate-500 font-medium mb-4">Theo tổng số quảng cáo mới + dừng trong tuần</p>
           <div className="space-y-3">
-            {topScaling.length ? (
-              topScaling.slice(0, 6).map((r, i) => {
-                const meta = scaleMeta(r.maxLvl);
-                return (
-                  <div key={r.brand} className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded bg-slate-100 font-mono text-xs font-bold text-slate-600 flex items-center justify-center border border-slate-200 shrink-0">{i + 1}</span>
-                    {isDirectCompetitor(r.brand, direct) && <Star className="w-4 h-4 fill-amber-400 text-amber-500 shrink-0" />}
-                    <span className="font-bold text-[15px] text-slate-800 flex-1 truncate">{r.brand}</span>
-                    <span className="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-1 rounded">{meta.label}</span>
-                    <span className="text-sm font-mono font-semibold text-slate-600 shrink-0">{r.clusters} cụm</span>
-                  </div>
-                );
-              })
+            {topChanged.length ? (
+              topChanged.slice(0, 6).map((r, i) => (
+                <div key={r.brand} className="flex items-center gap-3">
+                  <span className="w-6 h-6 rounded bg-slate-100 font-mono text-xs font-bold text-slate-600 flex items-center justify-center border border-slate-200 shrink-0">{i + 1}</span>
+                  {isDirectCompetitor(r.brand, direct) && <Star className="w-4 h-4 fill-amber-400 text-amber-500 shrink-0" />}
+                  <span className="font-bold text-[15px] text-slate-800 flex-1 truncate">{r.brand}</span>
+                  <span className="inline-flex items-center gap-0.5 text-sm font-extrabold text-emerald-600 tabular-nums shrink-0"><TrendingUp className="w-4 h-4" strokeWidth={2.75} />+{r.added}</span>
+                  <span className="inline-flex items-center gap-0.5 text-sm font-extrabold text-rose-600 tabular-nums shrink-0"><TrendingDown className="w-4 h-4" strokeWidth={2.75} />−{r.stopped}</span>
+                </div>
+              ))
             ) : (
-              <p className="text-sm text-slate-400 font-semibold">Chưa có nội dung nhân rộng.</p>
+              <p className="text-sm text-slate-400 font-semibold">Chưa có thay đổi quảng cáo tuần này.</p>
             )}
           </div>
           <p className="mt-5 text-xs text-slate-500 font-medium border-t border-slate-100 pt-3 leading-relaxed">
-            Lưu ý: “khả năng đang nhân rộng dựa trên thời lượng chạy + lặp lại — chưa xác nhận hiệu quả/lợi nhuận”. Không có dữ liệu ngân sách/chuyển đổi.
+            Xếp theo số quảng cáo <b className="text-emerald-600">mới</b> + <b className="text-rose-600">dừng</b> trong tuần — mức độ đối thủ xoay/đổi creative. Không có dữ liệu ngân sách/chuyển đổi.
           </p>
         </div>
       </div>
