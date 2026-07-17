@@ -16,12 +16,15 @@ const CASES = [
   { want: SKIN, name: "collagen tái tạo", headline: "Kích thích collagen tái tạo da", primary_text: "Công nghệ chuẩn FDA" },
   { want: SKIN, name: "nếp nhăn chảy xệ", headline: "Nếp nhăn, chảy xệ vùng mặt?", primary_text: "Trao đổi với đội ngũ chuyên môn" },
   { want: SKIN, name: "căng da mặt + nhắc filler dạng phủ định", headline: "Căng da mặt không đơ cứng như filler", primary_text: "Phác đồ cá nhân hóa từng gương mặt" },
-  /* ---- PHẢI GIỮ: dịch vụ da mặt lân cận (nám/mụn/soi da/sẹo rỗ) ---- */
-  { want: SKIN, name: "trị nám", headline: "Trị nám tàn nhang chuẩn y khoa", primary_text: "Soi da miễn phí cùng bác sĩ da liễu" },
-  { want: SKIN, name: "mụn diagnosis-reframe", headline: "Trị mụn cứ hết rồi lại bùng — rất mệt và tốn", primary_text: "Da cải thiện rồi lại xuất hiện? Phân tích da cùng bác sĩ" },
-  { want: SKIN, name: "sẹo rỗ (da mặt)", headline: "Sẹo rỗ càng để lâu càng khó trị", primary_text: "Điều trị sẹo kết hợp 3 công nghệ, đăng ký thăm khám" },
-  { want: SKIN, name: "se khít lỗ chân lông", headline: "Chỉ 168k/suất se khít lỗ chân lông", primary_text: "Đặt lịch ngay" },
-  { want: SKIN, name: "soi da phân tích", headline: "Buổi phân tích da chuyên sâu", primary_text: "Chụp và phân tích da đa tầng, đánh giá cấu trúc gương mặt" },
+  /* ---- PHẢI LOẠI: dịch vụ da mặt KHÁC trẻ hóa (nám/mụn/sẹo/lỗ chân lông/soi da) —
+     danh sách chốt KHÔNG gồm các dịch vụ này, bộ lọc CŨ để lọt ---- */
+  { want: "other", name: "trị nám", headline: "Trị nám tàn nhang chuẩn y khoa", primary_text: "Soi da miễn phí cùng bác sĩ da liễu" },
+  { want: "other", name: "mụn diagnosis-reframe", headline: "Trị mụn cứ hết rồi lại bùng — rất mệt và tốn", primary_text: "Da cải thiện rồi lại xuất hiện? Phân tích da cùng bác sĩ" },
+  { want: "other", name: "sẹo rỗ (da mặt)", headline: "Sẹo rỗ càng để lâu càng khó trị", primary_text: "Điều trị sẹo kết hợp 3 công nghệ, đăng ký thăm khám" },
+  { want: "other", name: "se khít lỗ chân lông", headline: "Chỉ 168k/suất se khít lỗ chân lông", primary_text: "Đặt lịch ngay" },
+  { want: "other", name: "soi da phân tích (không có tín hiệu trẻ hóa)", headline: "Buổi phân tích da chuyên sâu", primary_text: "Chụp và phân tích da đa tầng, đánh giá cấu trúc gương mặt" },
+  /* ---- Ranh giới: nám/mụn NHƯNG có tín hiệu trẻ hóa lõi -> vẫn GIỮ ---- */
+  { want: SKIN, name: "nám + trẻ hóa (headline có core)", headline: "Hết nám, căng bóng trẻ hóa da", primary_text: "Soi da miễn phí" },
   /* ---- PHẢI LOẠI: dịch vụ khác hẳn ---- */
   { want: "other", name: "cấy tóc", headline: "Cấy tóc hiện có Ưu đãi khủng => IB ngay", primary_text: "Địa chỉ cấy tóc uy tín" },
   { want: "other", name: "phun môi", headline: "Môi hồng tự nhiên — không cần tô son mỗi ngày", primary_text: "Giải pháp PHUN MÔI chuẩn y khoa an toàn" },
