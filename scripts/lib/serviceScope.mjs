@@ -18,9 +18,13 @@
      - deobfuscate(): "HÚT M.Ỡ" → "hút mỡ" (bỏ . * · giữa 2 chữ cái).
      - Từ đơn dễ va chạm sau khi bỏ dấu match bằng regex CÓ DẤU (NEG_*_VI).
 
+   CHẶT (thà bỏ nhầm còn hơn bỏ sót — user chốt 2026-07-20): hễ có tín hiệu
+   NÁM/MỤN/SẮC TỐ/SẸO/LỖ CHÂN LÔNG ở BẤT KỲ ĐÂU thì LOẠI, kể cả bài có nhắc trẻ
+   hóa (ad "trộn"). Chấp nhận rớt vài ad trẻ hóa thật để không lẫn nám.
+
    Thứ tự quyết định (negative thắng trước):
      1. Headline dính dịch vụ KHÁC HẲN / vùng cơ thể khác        → other
-     2. Headline dẫn NÁM/MỤN/SẮC TỐ/SẸO… mà KHÔNG có tín hiệu trẻ hóa → other
+     2. Có NÁM/MỤN/SẮC TỐ/SẸO/LỖ CHÂN LÔNG ở BẤT KỲ ĐÂU          → other
      3. Body dính dịch vụ khác hẳn mà headline không có tín hiệu trẻ hóa → other
      4. Tín hiệu LÕI trẻ hóa/căng da/nâng cơ/xóa nhăn (bất kỳ đâu) → skin_rejuvenation
      5. Còn lại                                                   → other
@@ -97,9 +101,10 @@ export function explainServiceScope(ad) {
   const negHead = NEG_OTHER.exec(headF) || NEG_BODY_VI.exec(headVi);
   if (negHead) return { category: "other", reason: "headline_other_service", evidence: negHead[0] };
 
-  // 2. Headline dẫn nám/mụn/sắc tố/sẹo… mà KHÔNG có tín hiệu trẻ hóa → ad nám/mụn.
-  const negFacialHead = NEG_FACIAL_VI.exec(headVi);
-  if (negFacialHead && !coreHead) return { category: "other", reason: "headline_other_facial_service", evidence: negFacialHead[0] };
+  // 2. CHẶT: có nám/mụn/sắc tố/sẹo/lỗ chân lông ở BẤT KỲ ĐÂU → loại (kể cả bài
+  //    có nhắc trẻ hóa). Thà bỏ nhầm còn hơn để lẫn nám.
+  const negFacial = NEG_FACIAL_VI.exec(fullVi);
+  if (negFacial) return { category: "other", reason: "other_facial_service_strict", evidence: negFacial[0] };
 
   // 3. Body nhắc dịch vụ khác hẳn (ad menu đa dịch vụ) & headline không có tín hiệu trẻ hóa → other.
   const negBody = NEG_OTHER.exec(fullF) || NEG_BODY_VI.exec(fullVi);

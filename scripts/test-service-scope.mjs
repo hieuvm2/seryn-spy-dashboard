@@ -23,8 +23,9 @@ const CASES = [
   { want: "other", name: "sẹo rỗ (da mặt)", headline: "Sẹo rỗ càng để lâu càng khó trị", primary_text: "Điều trị sẹo kết hợp 3 công nghệ, đăng ký thăm khám" },
   { want: "other", name: "se khít lỗ chân lông", headline: "Chỉ 168k/suất se khít lỗ chân lông", primary_text: "Đặt lịch ngay" },
   { want: "other", name: "soi da phân tích (không có tín hiệu trẻ hóa)", headline: "Buổi phân tích da chuyên sâu", primary_text: "Chụp và phân tích da đa tầng, đánh giá cấu trúc gương mặt" },
-  /* ---- Ranh giới: nám/mụn NHƯNG có tín hiệu trẻ hóa lõi -> vẫn GIỮ ---- */
-  { want: SKIN, name: "nám + trẻ hóa (headline có core)", headline: "Hết nám, căng bóng trẻ hóa da", primary_text: "Soi da miễn phí" },
+  /* ---- CHẶT: ad "trộn" nám + trẻ hóa -> vẫn LOẠI (thà bỏ nhầm còn hơn bỏ sót) ---- */
+  { want: "other", name: "nám + trẻ hóa (trộn, có nám -> loại)", headline: "Hết nám, căng bóng trẻ hóa da", primary_text: "Soi da miễn phí" },
+  { want: SKIN, name: "trẻ hóa thuần (không nhắc nám) -> giữ", headline: "Nâng cơ HIFU trẻ hóa, xóa nhăn chảy xệ", primary_text: "Kích thích collagen, kết quả tùy cơ địa" },
   /* ---- PHẢI LOẠI: dịch vụ khác hẳn ---- */
   { want: "other", name: "cấy tóc", headline: "Cấy tóc hiện có Ưu đãi khủng => IB ngay", primary_text: "Địa chỉ cấy tóc uy tín" },
   { want: "other", name: "phun môi", headline: "Môi hồng tự nhiên — không cần tô son mỗi ngày", primary_text: "Giải pháp PHUN MÔI chuẩn y khoa an toàn" },
@@ -44,8 +45,8 @@ const CASES = [
   { want: "other", name: "quà tặng túi xách", headline: "Sở hữu chiếc túi CHANEL danh giá", primary_text: "Đặc quyền thượng lưu cho khách hàng may mắn" },
   { want: "other", name: "text trống", headline: "", primary_text: "" },
   { want: "other", name: "chỉ 'mong muốn' (không phải mông)", headline: "Mong muốn của chị là gì?", primary_text: "Hãy chia sẻ cùng chúng tôi" },
-  /* ---- Ranh giới: menu đa dịch vụ ---- */
-  { want: SKIN, name: "headline trẻ hóa, body nhắc menu có nách", headline: "Trẻ hóa vùng mắt chỉ 168k", primary_text: "Menu ưu đãi: trẻ hóa mắt, trị thâm nách, se khít lỗ chân lông" },
+  /* ---- Ranh giới: menu đa dịch vụ — CHẶT: body có lỗ chân lông -> loại dù headline trẻ hóa ---- */
+  { want: "other", name: "headline trẻ hóa nhưng body menu có lỗ chân lông (chặt -> loại)", headline: "Trẻ hóa vùng mắt chỉ 168k", primary_text: "Menu ưu đãi: trẻ hóa mắt, trị thâm nách, se khít lỗ chân lông" },
   { want: "other", name: "headline generic, body bán da tay", headline: "Chỉ 168k/suất làm đẹp | ĐẶT LỊCH NGAY", primary_text: "Ưu đãi ủ trắng da tay, tặng suất chăm sóc" },
 ];
 
