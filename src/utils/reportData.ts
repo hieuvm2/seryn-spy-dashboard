@@ -8,6 +8,7 @@ import {
   normalizeNumber, countChips, firstChip, viLabel, SOURCE_LABELS,
 } from "./spyData";
 import { latestWeek, dataQualityReport, parseTopList } from "./weeklyIntel";
+import { isOwnBrand } from "./ownBrand";
 
 export type ReportRecAction = "adapt" | "counter" | "avoid" | "copy" | "monitor";
 
@@ -73,7 +74,7 @@ function topFrom(rawList: unknown, rows: Array<Record<string, any>>, field: stri
  * khác (status=active) -> lệch số và sai cả định tính (vd sai brand dẫn đầu).
  */
 export function composeExecSummary(data: SpyDashboardData): string {
-  const snap = data.brandWeeklySnapshot ?? [];
+  const snap = (data.brandWeeklySnapshot ?? []).filter((b) => !isOwnBrand(b.brand_name, data.ownBrandPages ?? []));
   const scaled = data.scaledContentAnalysis ?? [];
   const dq = dataQualityReport(latestWeek(data.weeklySummary ?? []));
   const weekDate = snap[0]?.week_date || "—";
@@ -104,7 +105,7 @@ export function composeExecSummary(data: SpyDashboardData): string {
 }
 
 export function buildReportModel(data: SpyDashboardData, dataSource: DataSourceType): ReportModel {
-  const snap = data.brandWeeklySnapshot ?? [];
+  const snap = (data.brandWeeklySnapshot ?? []).filter((b) => !isOwnBrand(b.brand_name, data.ownBrandPages ?? []));
   const scaled = data.scaledContentAnalysis ?? [];
   const summary = latestWeek(data.weeklySummary ?? []);
   const dq = dataQualityReport(summary);

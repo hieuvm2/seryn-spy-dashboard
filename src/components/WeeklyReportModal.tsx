@@ -19,11 +19,11 @@ const CH = {
 };
 
 const ACTION_LABEL: Record<ReportRecAction, string> = {
-  adapt: "ADAPT — Học hỏi & làm tốt hơn",
-  counter: "COUNTER — Phản đòn định vị",
-  avoid: "AVOID — Tránh, lệch định vị",
-  copy: "COPY — Có thể áp dụng trực tiếp",
-  monitor: "MONITOR — Theo dõi tiếp",
+  adapt: "ADAPT · Học & làm tốt hơn",
+  counter: "COUNTER · Phản đòn",
+  avoid: "AVOID · Tránh",
+  copy: "COPY · Áp dụng",
+  monitor: "MONITOR · Theo dõi",
 };
 
 const pct = (r: number) => `${Math.round((r || 0) * 100)}%`;
@@ -267,8 +267,7 @@ export default function WeeklyReportModal({
             </div>
             <h1 className="rpt-title">Báo cáo Spy Ads đối thủ — Tuần {m.weekDate}</h1>
             <div className="rpt-meta">
-              Phạm vi: QC trẻ hóa da · {m.kpis.totalBrands} đối thủ trong danh sách theo dõi · Thị trường Việt Nam
-              {m.generatedAt ? ` · Xuất lúc ${m.generatedAt}` : ""} · Nguồn: {m.sourceLabel}
+              QC trẻ hóa da · {m.kpis.totalBrands} đối thủ · Việt Nam{m.generatedAt ? ` · ${m.generatedAt}` : ""}
             </div>
           </header>
 
@@ -300,7 +299,6 @@ export default function WeeklyReportModal({
                 <tr>
                   <th>Đối thủ</th><th className="num">Đang chạy</th><th className="num">Mới</th>
                   <th className="num">Dừng</th><th className="num">Nhân rộng</th>
-                  <th className="num">Video</th><th className="num">Msg</th>
                   <th>Định dạng chính</th><th>Hook chính</th>
                 </tr>
               </thead>
@@ -312,8 +310,6 @@ export default function WeeklyReportModal({
                     <td className="num pos">{b.newAds ? `+${b.newAds}` : "0"}</td>
                     <td className="num neg">{b.stopped ? `−${b.stopped}` : "0"}</td>
                     <td className="num">{vn(b.scaled)}</td>
-                    <td className="num">{b.active ? pct(b.videoRate) : "—"}</td>
-                    <td className="num">{b.active ? pct(b.msgRate) : "—"}</td>
                     <td>{viLabel(b.topFormat) || "—"}</td>
                     <td>{viLabel(b.topHook) || "—"}</td>
                   </tr>
@@ -365,8 +361,8 @@ export default function WeeklyReportModal({
                     <li key={i}>
                       <b>{it.brand}</b>
                       {it.format ? ` · ${viLabel(it.format)}` : ""}
-                      {it.hook ? ` — “${trunc(it.hook, 90)}”` : ""}
-                      {it.reframe ? <div className="rpt-rec-reframe">→ {trunc(it.reframe, 160)}</div> : null}
+                      {it.hook ? ` — “${trunc(it.hook, 60)}”` : ""}
+                      {it.reframe ? <div className="rpt-rec-reframe">→ {trunc(it.reframe, 110)}</div> : null}
                     </li>
                   ))}
                 </ul>
@@ -387,7 +383,7 @@ export default function WeeklyReportModal({
                     <td className="rpt-strong">{s.brand}</td>
                     <td className="num">{vn(s.ads)}</td>
                     <td>{viLabel(s.format) || "—"}</td>
-                    <td>{trunc(s.hook, 70) || "—"}</td>
+                    <td>{trunc(s.hook, 52) || "—"}</td>
                     <td className="rpt-action-cell">{s.action || "—"}</td>
                   </tr>
                 )) : <tr><td colSpan={5} className="rpt-muted">Chưa có cụm nội dung nhân rộng.</td></tr>}
@@ -416,9 +412,7 @@ export default function WeeklyReportModal({
           <footer className="rpt-footer">
             <div className="rpt-footer-brand">SERYN Clinic · Spy Ads Intelligence</div>
             <p className="rpt-footer-note">
-              Phạm vi spy: chỉ QC <b>căng da / trẻ hóa da mặt</b> của {m.kpis.totalBrands} đối thủ trong danh sách theo dõi
-              (đã loại nâng ngực, hút mỡ, nâng mũi, răng, triệt lông, filler/botox thuần…). Brand hiển thị 0 QC
-              trẻ hóa da có thể vẫn chạy QC dịch vụ khác. Báo cáo nội bộ — không chia sẻ ra ngoài.
+              Chỉ tính QC <b>trẻ hóa da mặt</b> ({m.kpis.totalBrands} đối thủ; đã loại nâng ngực/hút mỡ/mũi/răng/triệt lông/filler…). SERYN tính riêng. Báo cáo nội bộ.
             </p>
           </footer>
         </article>
