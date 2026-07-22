@@ -9,7 +9,7 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Download, Loader2, X } from "lucide-react";
 import type { SpyDashboardData, DataSourceType, SpyReport } from "../types";
-import { viLabel } from "../utils/spyData";
+import { viLabel, isAdsDisclaimer } from "../utils/spyData";
 import { buildReportModel, type ReportBrandRow } from "../utils/reportData";
 
 /* ---- Màu biểu đồ (palette đã validate: CVD ΔE 21.2, aqua dùng nhãn trực tiếp) ---- */
@@ -28,12 +28,13 @@ const toBullets = (t?: string) =>
   String(t ?? "").replace(/\s*;?\s*\((\d+)\)\s*/g, "\n($1) ")
     .split(/\n|(?<=[.!?])\s+/).map((s) => s.trim()).filter((s) => s.length > 1);
 
-/** Danh sách "Đầu mục: nội dung" -> in đậm đầu mục (nếu có). */
+/** Danh sách "Đầu mục: nội dung" -> in đậm đầu mục (nếu có). Bỏ câu miễn trừ dữ liệu. */
 function ObsList({ items }: { items: string[] }) {
-  if (!items.length) return null;
+  const list = items.filter((s) => !isAdsDisclaimer(s));
+  if (!list.length) return null;
   return (
     <ul className="rpt-narr">
-      {items.map((raw, i) => {
+      {list.map((raw, i) => {
         const j = raw.indexOf(":");
         const head = j > 0 && j <= 46 ? raw.slice(0, j).trim() : null;
         const rest = head ? raw.slice(j + 1).trim() : raw;
@@ -43,12 +44,13 @@ function ObsList({ items }: { items: string[] }) {
   );
 }
 
-/** Danh sách hành động "[Ưu tiên cao] …" -> badge mức ưu tiên. */
+/** Danh sách hành động "[Ưu tiên cao] …" -> badge mức ưu tiên. Bỏ câu miễn trừ dữ liệu. */
 function ActionList({ items }: { items: string[] }) {
-  if (!items.length) return null;
+  const list = items.filter((s) => !isAdsDisclaimer(s));
+  if (!list.length) return null;
   return (
     <ul className="rpt-narr">
-      {items.map((raw, i) => {
+      {list.map((raw, i) => {
         const pm = raw.match(/^\[(.+?)\]\s*(.*)$/);
         const prio = pm ? pm[1] : null;
         const rest = pm ? pm[2] : raw;
@@ -228,7 +230,7 @@ export default function WeeklyReportModal({
   const report: SpyReport | null = [...(data.weeklyReports ?? [])].sort((a, b) =>
     String(b.period_start).localeCompare(String(a.period_start)) ||
     String(b.generated_at).localeCompare(String(a.generated_at)))[0] ?? null;
-  const execBullets = toBullets(report?.executive_summary);
+  const execBullets = toBullets(report?.executive_summary).filter((b) => !isAdsDisclaimer(b));
 
   const kpiCards: Array<{ label: string; value: string }> = [
     { label: "Đối thủ theo dõi", value: vn(m.kpis.totalBrands) },

@@ -616,7 +616,17 @@ const FREE_TEXT_EN: Array<[RegExp, string]> = [
   [/\bblitz\b/gi, "bung ồ ạt"],
 ];
 /* ---- Lọc câu miễn trừ "tín hiệu ads, không phải ROAS/CPA..." khỏi nội dung hiển thị ---- */
-const DISCLAIMER_RE = /(không phải|ko phải)\s+(dữ liệu\s+|kết quả\s+)?(hiệu quả|ROAS|CPA|chuyển đổi|spend|ngân sách)/i;
+const DISCLAIMER_RE = new RegExp(
+  [
+    "(không phải|ko phải)\\s+(dữ liệu\\s+|kết quả\\s+)?(hiệu quả|ROAS|CPA|chuyển đổi|spend|ngân sách)",
+    "không có\\s+(số liệu|dữ liệu)[^.;]{0,60}(chi phí|spend|cpa|chuyển đổi|bán hàng)",
+    "(chi phí quảng cáo|spend|cpa)[^.;]{0,40}(nên|do)[^.;]{0,40}suy đoán",
+    "chỉ là\\s+suy đoán",
+    "con số\\s+(khuyến mãi|offer|ưu đãi)\\s+bị nhiễu",
+    "(máy đọc chữ|ocr)[^.;]{0,40}(so giá|so sánh giá)",
+  ].join("|"),
+  "i",
+);
 
 /** Cả chuỗi là một câu miễn trừ dữ liệu (để bỏ hẳn item khỏi list). */
 export function isAdsDisclaimer(value?: string): boolean {
