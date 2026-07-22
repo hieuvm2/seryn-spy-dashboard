@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef } from "react";
 import {
-  FileText, CalendarDays, Calendar, Copy, Check, TrendingUp, TrendingDown,
+  FileText, CalendarDays, Calendar, TrendingUp, TrendingDown,
   Sparkles, ListChecks, Target, Info,
 } from "lucide-react";
 import type { SpyDashboardData, SpyReport, SpyReportType } from "../../types";
@@ -61,79 +61,7 @@ function fmtDateTime(iso?: string): string {
   catch { return d.toISOString().slice(0, 16).replace("T", " "); }
 }
 
-function crawlRateLabel(v: unknown): string {
-  const s = String(v ?? "").trim();
-  if (!s) return "—";
-  return s.includes("%") ? s : `${s}%`;
-}
-
-/** Ghép full report text để "Copy Full Report" (đọc được, có cảnh báo dữ liệu). */
-function composeFullReport(r: SpyReport): string {
-  const sec = (title: string, body?: string) => {
-    const items = parseList(body);
-    const content = items.length > 1 ? items.map((s) => `- ${s}`).join("\n") : (body || "—");
-    return `${title}\n${content}`;
-  };
-  const isMonthly = r.report_type === "monthly";
-  const head = isMonthly
-    ? `BÁO CÁO TỔNG KẾT THÁNG ${r.period_start.slice(0, 7)}`
-    : `BÁO CÁO SPY ADS TUẦN ${r.period_start} → ${r.period_end}`;
-  return [
-    head,
-    `(tạo lúc ${fmtDateTime(r.generated_at)} · múi giờ ${r.timezone})`,
-    "",
-    sec("1. TÓM TẮT ĐIỀU HÀNH", r.executive_summary),
-    "",
-    "2. CHỈ SỐ CHÍNH",
-    `- Đối thủ theo dõi: ${num(r.total_brands_tracked)}`,
-    `- Ads đang chạy${isMonthly ? " (cuối tháng)" : ""}: ${num(r.total_active_ads)}`,
-    `- Ads mới: ${num(r.total_new_ads)}`,
-    `- Ads dừng: ${num(r.total_stopped_ads)}`,
-    `- Page theo dõi: ${num(r.total_pages_tracked)}`,
-    `- Tỉ lệ crawl thành công: ${crawlRateLabel(r.crawl_success_rate)}`,
-    "",
-    sec("3. BIẾN ĐỘNG ĐỐI THỦ", r.key_competitor_moves),
-    `Biến động mạnh nhất (top movers): ${r.top_movers || "—"}`,
-    `Tăng ad mới: ${r.top_new_ads_brands || "—"}`,
-    `Giảm/dừng: ${r.top_stopped_ads_brands || "—"}`,
-    "",
-    `4. DỊCH VỤ / ƯU ĐÃI NỔI BẬT\n- Dịch vụ: ${r.top_services || "—"}\n- Ưu đãi: ${r.top_offers || "—"}`,
-    "",
-    sec("5. CONTENT ANGLE NỔI BẬT", r.notable_content_patterns),
-    `Angle: ${r.top_content_angles || "—"}`,
-    "",
-    `6. CREATIVE / FORMAT / FUNNEL\n- Format: ${r.top_ad_formats || "—"}\n- Objective: ${r.top_objectives || "—"}`,
-    sec("Visual patterns", r.notable_visual_patterns),
-    "",
-    sec("7. HÀM Ý CHO SERYN", r.seryn_implications),
-    "",
-    sec("8. HÀNH ĐỘNG ĐỀ XUẤT", r.recommended_actions),
-    "",
-    sec("SERYN VS ĐỐI THỦ", r.seryn_benchmark),
-  ].join("\n");
-}
-
 /* ---------------- small presentational pieces ---------------- */
-
-function CopyButton({ label, getText }: { label: string; getText: () => string }) {
-  const [done, setDone] = useState(false);
-  const onClick = async () => {
-    try {
-      await navigator.clipboard.writeText(getText());
-      setDone(true);
-      setTimeout(() => setDone(false), 1800);
-    } catch { /* clipboard có thể bị chặn — bỏ qua êm */ }
-  };
-  return (
-    <button
-      onClick={onClick}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition"
-    >
-      {done ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-      {done ? "Đã copy" : label}
-    </button>
-  );
-}
 
 function Kpi({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "new" | "stopped" }) {
   const color = tone === "new" ? "text-emerald-600" : tone === "stopped" ? "text-rose-600" : "text-slate-900";
@@ -537,11 +465,6 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
             <p className="text-xs font-mono text-slate-400 mt-0.5">
               {r.period_start} → {r.period_end} · Múi giờ {r.timezone} · {fmtDateTime(r.generated_at)}
             </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <CopyButton label="Copy tóm tắt điều hành" getText={() => r.executive_summary} />
-            <CopyButton label="Copy hành động đề xuất" getText={() => parseList(r.recommended_actions).map((s) => `- ${s}`).join("\n")} />
-            <CopyButton label="Copy toàn bộ báo cáo" getText={() => composeFullReport(r)} />
           </div>
         </div>
 
