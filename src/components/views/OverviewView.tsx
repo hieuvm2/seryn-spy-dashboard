@@ -12,29 +12,28 @@ import { SerynBenchmarkCompact } from "../SerynBenchmark";
 
 function SectionTitle({ tag, title, desc }: { tag: string; title: string; desc?: string }) {
   return (
-    <div className="flex flex-col gap-1.5 border-l-4 border-cyan-500 pl-4">
-      <span className="text-[11px] uppercase font-mono tracking-widest text-cyan-600 font-bold">{tag}</span>
-      <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">{title}</h2>
+    <div className="hm-accent-bar pl-4 flex flex-col gap-1.5">
+      <span className="hm-eyebrow">{tag}</span>
+      <h2 className="hm-page-title text-2xl">{title}</h2>
       {desc && <p className="text-[15px] text-slate-600 font-medium">{desc}</p>}
     </div>
   );
 }
 
-/** tone: "up" = tăng (xanh, mũi tên lên) · "down" = giảm (đỏ, mũi tên xuống). */
-function Kpi({ label, value, icon: Icon, accent, tone }: { label: string; value: React.ReactNode; icon: any; accent?: string; tone?: "up" | "down" }) {
+/** tone: "up" = tăng (xanh, mũi tên lên) · "down" = giảm (đỏ, mũi tên xuống).
+    Voice hallmark: bỏ ô icon vuông; icon nhỏ mono cạnh nhãn, số lớn canh cột. */
+function Kpi({ label, value, icon: Icon, tone }: { label: string; value: React.ReactNode; icon: any; accent?: string; tone?: "up" | "down" }) {
   const toneCls = tone === "up" ? "text-emerald-600" : tone === "down" ? "text-rose-600" : "text-slate-900";
   const Arrow = tone === "up" ? ArrowUpRight : tone === "down" ? ArrowDownRight : null;
   return (
-    <div className={`bg-white border rounded-2xl p-5 shadow-sm flex items-center gap-4 ${tone === "up" ? "border-emerald-200" : tone === "down" ? "border-rose-200" : "border-slate-200"}`}>
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${accent || "bg-cyan-50 text-cyan-600"}`}>
-        <Icon className="w-6 h-6" />
+    <div className="hm-panel p-5 flex flex-col gap-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <Icon className="w-4 h-4 shrink-0 text-slate-400" strokeWidth={2.25} />
+        <p className="hm-eyebrow truncate">{label}</p>
       </div>
-      <div className="min-w-0">
-        <p className="text-xs uppercase font-mono tracking-wider text-slate-500 font-bold truncate">{label}</p>
-        <p className={`text-3xl font-extrabold leading-tight flex items-center gap-0.5 ${toneCls}`}>
-          {Arrow && <Arrow className="w-6 h-6 shrink-0" strokeWidth={3} />}{value}
-        </p>
-      </div>
+      <p className={`text-[2rem] font-extrabold leading-none tabular-nums flex items-center gap-1 ${toneCls}`}>
+        {Arrow && <Arrow className="w-6 h-6 shrink-0" strokeWidth={3} />}{value}
+      </p>
     </div>
   );
 }
@@ -105,13 +104,13 @@ export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboa
       <SerynBenchmarkCompact data={data} onOpen={() => { window.location.hash = "seryn"; }} />
 
       {/* Báo cáo tuần (gộp từ Weekly Intelligence) */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+      <div className="hm-panel p-6">
         <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wider mb-2">Báo cáo tuần</h3>
         <p className="text-[15px] text-slate-800 leading-relaxed bg-slate-50 border border-slate-100 rounded-xl p-4">{execSummary}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
+        <div className="hm-panel p-6 space-y-5">
           <div>
             <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wider mb-3">Top dịch vụ đang chạy</h3>
             <ChipList items={topServices} />
@@ -126,7 +125,7 @@ export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboa
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <div className="hm-panel p-6">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wider">Đối thủ thay đổi ads nhiều nhất</h3>
             <Flame className="w-5 h-5 text-rose-500" />

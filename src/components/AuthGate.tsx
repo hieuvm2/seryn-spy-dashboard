@@ -41,8 +41,8 @@ function GoogleIcon() {
 
 function AuthShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 font-sans text-slate-800">
-      <div className="w-full max-w-sm bg-white border border-slate-200 rounded-2xl shadow-sm p-8 flex flex-col items-center text-center gap-4">
+    <div className="min-h-screen bg-[#F5F0E8] flex items-center justify-center p-6 font-sans text-slate-800">
+      <div className="w-full max-w-sm hm-panel shadow-sm p-8 flex flex-col items-center text-center gap-4">
         <img src="/seryn-mark.png" alt="SERYN" className="w-12 h-12 object-contain" />
         <div>
           <h1 className="font-brand text-2xl font-bold tracking-[0.18em] text-slate-900">SERYN</h1>

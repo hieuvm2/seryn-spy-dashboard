@@ -201,12 +201,20 @@ export function buildWeeklyReport(ctx) {
   const recs = (t.contentRecs || []).filter((r) => !r.week_date || inRange(r.week_date, period_start, period_end));
   const actions = (t.actionPlan || []).filter((r) => !r.week_start || inRange(r.week_start, period_start, period_end));
 
-  const brands = [...new Set(snapshot.map((r) => clean(r.brand_name)).filter(Boolean))];
+  // Loại own brand (SERYN) khỏi MỌI thống kê/danh sách ĐỐI THỦ — SERYN có block benchmark riêng.
+  const notOwn = (name) => !isOwnName(name, ctx.ownNames);
+  const comp = snapshot.filter((r) => notOwn(r.brand_name));
+  const compAds = ads.filter((r) => String(r.brand_type ?? "").toLowerCase() !== "own" && notOwn(r.brand_name));
+  const compScaled = scaled.filter((s) => notOwn(s.brand_name));
+  const compStrat = strat.filter((r) => notOwn(r.brand_name));
+  const compChanges = changes.filter((c) => notOwn(c.brand));
+
+  const brands = [...new Set(comp.map((r) => clean(r.brand_name)).filter(Boolean))];
   const totalBrands = brands.length;
-  const totalActiveAds = snapshot.reduce((a, r) => a + num(r.total_active_ads), 0);
-  const totalNewAds = snapshot.reduce((a, r) => a + num(r.new_ads_count), 0);
-  const totalStoppedAds = snapshot.reduce((a, r) => a + num(r.stopped_ads_count), 0);
-  const totalPages = snapshot.reduce((a, r) => a + num(r.num_pages_running), 0);
+  const totalActiveAds = comp.reduce((a, r) => a + num(r.total_active_ads), 0);
+  const totalNewAds = comp.reduce((a, r) => a + num(r.new_ads_count), 0);
+  const totalStoppedAds = comp.reduce((a, r) => a + num(r.stopped_ads_count), 0);
+  const totalPages = comp.reduce((a, r) => a + num(r.num_pages_running), 0);
 
   // crawl success rate (latest weekly_spy run trong kỳ)
   const spyRuns = crawl.filter((r) => !r.run_type || /spy/i.test(r.run_type));
@@ -223,7 +231,7 @@ export function buildWeeklyReport(ctx) {
     const ch = num(r.active_ads_change);
     return ch !== 0 ? ch : (num(r.new_ads_count) - num(r.stopped_ads_count));
   };
-  const stratByBrand = strat.length ? strat : snapshot.map((s) => ({
+  const stratByBrand = compStrat.length ? compStrat : comp.map((s) => ({
     brand_name: s.brand_name, active_ads_change: s.weekly_change_summary ? "" : "",
     new_ads_count: s.new_ads_count, stopped_ads_count: s.stopped_ads_count,
   }));
@@ -234,38 +242,38 @@ export function buildWeeklyReport(ctx) {
     .map((r) => `${clean(r.brand_name)} ▼${moverScore(r)}`);
   const topMovers = joinList([...risers, ...decliners], 7);
 
-  const byNew = [...snapshot].sort((a, b) => num(b.new_ads_count) - num(a.new_ads_count))
+  const byNew = [...comp].sort((a, b) => num(b.new_ads_count) - num(a.new_ads_count))
     .filter((r) => num(r.new_ads_count) > 0).slice(0, 5)
     .map((r) => `${clean(r.brand_name)} (${num(r.new_ads_count)} mới)`);
-  const byStopped = [...snapshot].sort((a, b) => num(b.stopped_ads_count) - num(a.stopped_ads_count))
+  const byStopped = [...comp].sort((a, b) => num(b.stopped_ads_count) - num(a.stopped_ads_count))
     .filter((r) => num(r.stopped_ads_count) > 0).slice(0, 5)
     .map((r) => `${clean(r.brand_name)} (${num(r.stopped_ads_count)} dừng)`);
 
-  // ---- top patterns ----
-  const topServices = topToString(countChips(snapshot, "services_running")) ||
-    topToString(countChips(ads, "service_or_product"));
-  const topOffers = topToString(countChips(snapshot, "offers_detected")) ||
-    topToString(countChips(ads, "offer_detected"));
-  const topAngles = topToString(countChips(snapshot, "main_angles")) ||
-    topToString(countChips(ads, "content_angle"));
-  const topFormats = topToString(countChips(snapshot, "main_content_formats")) ||
-    topToString(countChips(ads, "ad_format"));
-  const topObjectives = topToString(countChips(ads, "inferred_objective")) ||
-    topToString(countChips(snapshot, "skin_rejuvenation_top_inferred_objective"));
+  // ---- top patterns (chỉ đối thủ) ----
+  const topServices = topToString(countChips(comp, "services_running")) ||
+    topToString(countChips(compAds, "service_or_product"));
+  const topOffers = topToString(countChips(comp, "offers_detected")) ||
+    topToString(countChips(compAds, "offer_detected"));
+  const topAngles = topToString(countChips(comp, "main_angles")) ||
+    topToString(countChips(compAds, "content_angle"));
+  const topFormats = topToString(countChips(comp, "main_content_formats")) ||
+    topToString(countChips(compAds, "ad_format"));
+  const topObjectives = topToString(countChips(compAds, "inferred_objective")) ||
+    topToString(countChips(comp, "skin_rejuvenation_top_inferred_objective"));
 
   // ---- narrative sections ----
   const keyMoves = joinList([
-    ...strat
+    ...compStrat
       .filter((r) => clean(r.change_summary))
       .sort((a, b) => Math.abs(moverScore(b)) - Math.abs(moverScore(a)))
       .map((r) => `${clean(r.brand_name)}: ${clean(r.change_summary)}`),
-    ...changes
+    ...compChanges
       .filter((c) => /high|medium/i.test(String(c.severity)))
       .map((c) => `${clean(c.brand)}: ${clean(c.summary)}`),
   ], 6);
 
   const contentPatterns = joinList([
-    ...[...scaled]
+    ...[...compScaled]
       .sort((a, b) => num(b.number_of_similar_ads) - num(a.number_of_similar_ads))
       .map((s) => {
         const ads_n = num(s.number_of_similar_ads);
@@ -279,10 +287,10 @@ export function buildWeeklyReport(ctx) {
 
   const visualPatterns = joinList([
     ...(t.visualPatterns || [])
-      .filter((v) => inRange(v.week_date, period_start, period_end) || !v.week_date)
+      .filter((v) => (inRange(v.week_date, period_start, period_end) || !v.week_date) && notOwn(v.brand))
       .map((v) => `${clean(v.brand)}: ${clean(v.summary)}${num(v.ad_count) ? ` (${num(v.ad_count)} ad)` : ""}`),
     ...(t.brandVisualSummary || [])
-      .filter((v) => inRange(v.week_date, period_start, period_end) || !v.week_date)
+      .filter((v) => (inRange(v.week_date, period_start, period_end) || !v.week_date) && notOwn(v.brand))
       .map((v) => {
         const a = clean(v.dominant_visual_angle);
         const f = clean(v.top_visual_formats);
@@ -298,7 +306,7 @@ export function buildWeeklyReport(ctx) {
       riskItems.push(`${clean(v.brand)}: rủi ro claim — ${clean(v.visual_insight_summary) || clean(v.text_overlay_summary)}`);
     }
   }
-  for (const c of changes) {
+  for (const c of compChanges) {
     if (/offer_changed/i.test(String(c.change_type)) && /high|medium/i.test(String(c.severity))) {
       riskItems.push(`${clean(c.brand)}: thay đổi offer mạnh (${clean(c.current_value)}) — theo dõi rủi ro đua giá.`);
     }
@@ -306,8 +314,8 @@ export function buildWeeklyReport(ctx) {
   const riskWarnings = joinList(riskItems.length ? riskItems : ["Chưa phát hiện rủi ro claim nổi bật trong kỳ."], 6);
 
   const serynImplications = joinList([
-    ...strat.filter((r) => clean(r.seryn_implication)).map((r) => `${clean(r.brand_name)}: ${clean(r.seryn_implication)}`),
-    ...snapshot.filter((r) => clean(r.seryn_opportunity)).map((r) => `${clean(r.brand_name)}: ${clean(r.seryn_opportunity)}`),
+    ...compStrat.filter((r) => clean(r.seryn_implication)).map((r) => `${clean(r.brand_name)}: ${clean(r.seryn_implication)}`),
+    ...comp.filter((r) => clean(r.seryn_opportunity)).map((r) => `${clean(r.brand_name)}: ${clean(r.seryn_opportunity)}`),
     ...recs.filter((r) => clean(r.insight)).map((r) => clean(r.insight)),
   ], 6);
 
@@ -319,8 +327,8 @@ export function buildWeeklyReport(ctx) {
   ], 8);
 
   // ---- executive summary ----
-  const leader = [...snapshot].sort((a, b) => num(b.total_active_ads) - num(a.total_active_ads))[0];
-  const riser = [...snapshot].sort((a, b) => num(b.new_ads_count) - num(a.new_ads_count))[0];
+  const leader = [...comp].sort((a, b) => num(b.total_active_ads) - num(a.total_active_ads))[0];
+  const riser = [...comp].sort((a, b) => num(b.new_ads_count) - num(a.new_ads_count))[0];
   const execParts = [
     `Tuần ${period_start} → ${period_end}: theo dõi ${totalBrands} đối thủ, ` +
       `${totalActiveAds.toLocaleString("vi-VN")} ad trẻ hóa da đang chạy ` +
@@ -493,9 +501,12 @@ export function buildMonthlyReport(ctx) {
   const wrSorted = [...wr].sort((a, b) => String(a.period_start).localeCompare(String(b.period_start)));
   const lastWeekly = wrSorted[wrSorted.length - 1];
 
-  const snapshotMonth = (t.snapshot || []).filter((r) => inRange(r.week_date, period_start, period_end));
+  // Loại own brand (SERYN) khỏi snapshot fallback — SERYN không tính là đối thủ.
+  const notOwn = (name) => !isOwnName(name, ctx.ownNames);
+  const snapshotMonth = (t.snapshot || [])
+    .filter((r) => inRange(r.week_date, period_start, period_end) && notOwn(r.brand_name));
 
-  // total brands: max theo tuần (watchlist ổn định) hoặc distinct snapshot.
+  // total brands: max theo tuần (watchlist ổn định) hoặc distinct snapshot (đã loại own).
   const totalBrands = Math.max(
     0,
     ...wr.map((r) => num(r.total_brands_tracked)),

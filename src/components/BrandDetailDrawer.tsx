@@ -166,7 +166,7 @@ export default function BrandDetailDrawer({
           <motion.aside
             initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 320, damping: 34 }}
-            className="fixed top-0 right-0 bottom-0 w-full max-w-5xl bg-[#F8FAFC] z-50 shadow-2xl flex flex-col"
+            className="fixed top-0 right-0 bottom-0 w-full max-w-5xl bg-[#F5F0E8] z-50 shadow-2xl flex flex-col"
           >
             {/* Sticky header */}
             <div className="px-6 py-4 bg-white border-b border-slate-200 shrink-0 flex items-start justify-between gap-3">

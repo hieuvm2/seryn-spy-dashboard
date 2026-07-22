@@ -97,7 +97,7 @@ export default function CompetitorSetupView({ data }: { data: SpyDashboardData }
 
       <div className="grid grid-cols-3 gap-4">
         {[{ label: "Tổng đối thủ", value: kpi.total, tone: "text-slate-900" }, { label: "Đang chạy", value: kpi.active, tone: "text-emerald-600" }, { label: "Thiếu page_id", value: kpi.needsId, tone: "text-amber-600" }].map((c) => (
-          <div key={c.label} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm"><p className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">{c.label}</p><p className={`text-2xl font-extrabold ${c.tone}`}>{c.value}</p></div>
+          <div key={c.label} className="hm-panel p-4 shadow-sm"><p className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">{c.label}</p><p className={`text-2xl font-extrabold ${c.tone}`}>{c.value}</p></div>
         ))}
       </div>
 
@@ -138,7 +138,7 @@ export default function CompetitorSetupView({ data }: { data: SpyDashboardData }
           <p className="text-xs text-slate-400 font-medium">Thêm đối thủ ở form trên, hoặc cấu hình Google Sheets để đồng bộ tab Competitors.</p>
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="hm-panel shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -244,7 +244,7 @@ function SerynPagesSection({ data }: { data: SpyDashboardData }) {
           <p className="text-xs text-slate-500 font-medium max-w-xl mx-auto">Nếu muốn hệ thống so sánh SERYN với đối thủ, hãy thêm <b>page_id</b> của các page SERYN vào tab <code className="bg-slate-100 px-1 rounded">Own Brand Pages</code> (Google Sheets) với <code className="bg-slate-100 px-1 rounded">is_active=TRUE</code> và <code className="bg-slate-100 px-1 rounded">crawl_enabled=TRUE</code>.</p>
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm divide-y divide-slate-100">
+        <div className="hm-panel shadow-sm divide-y divide-slate-100">
           {pages.map((p, i) => {
             const on = isTruthyFlag(p.is_active) && isTruthyFlag(p.crawl_enabled) && String(p.page_id || "").trim();
             return (

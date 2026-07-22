@@ -190,7 +190,7 @@ export default function DataImportView({
       </div>
 
       {/* Data Health Check */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+      <div className="hm-panel p-5 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
           <Activity className="w-4 h-4 text-cyan-600" />
           <h3 className="text-sm font-extrabold text-slate-800">Kiểm tra sức khỏe dữ liệu</h3>
@@ -222,7 +222,7 @@ export default function DataImportView({
       </div>
 
       {/* Weekly Snapshot History */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+      <div className="hm-panel p-5 shadow-sm">
         <div className="flex items-center gap-2 mb-1">
           <History className="w-4 h-4 text-cyan-600" />
           <h3 className="text-sm font-extrabold text-slate-800">Lịch sử tuần đã lưu</h3>
@@ -257,7 +257,7 @@ export default function DataImportView({
       </div>
 
       <p className="text-[11px] uppercase font-mono tracking-wider text-slate-400 font-bold pt-1">Hoặc nhập thủ công từng bảng</p>
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm divide-y divide-slate-100">
+      <div className="hm-panel shadow-sm divide-y divide-slate-100">
         {TABLE_ORDER.map((t, idx) => (
           <div key={t} className="flex items-center justify-between gap-4 p-4">
             <div className="flex items-center gap-3 min-w-0">

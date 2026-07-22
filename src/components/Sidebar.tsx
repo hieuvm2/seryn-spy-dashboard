@@ -116,9 +116,7 @@ export default function Sidebar({ activeSection, setActiveSection, mobileOpen = 
       <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
         {groups.map((group) => (
           <div key={group.title}>
-            <p className="px-3 pb-1.5 text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold">
-              {group.title}
-            </p>
+            <p className="hm-eyebrow px-3 pb-2">{group.title}</p>
             <div className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon;
@@ -130,7 +128,7 @@ export default function Sidebar({ activeSection, setActiveSection, mobileOpen = 
                     onClick={() => handleNav(item.id)}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-semibold transition-all group relative ${
                       isActive
-                        ? "bg-cyan-50 text-cyan-700 shadow-sm"
+                        ? "bg-cyan-50 text-cyan-700"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-50 cursor-pointer"
                     }`}
                   >

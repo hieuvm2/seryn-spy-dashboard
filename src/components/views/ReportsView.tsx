@@ -140,9 +140,9 @@ function Kpi({ label, value, tone }: { label: string; value: React.ReactNode; to
   const Arrow = tone === "new" ? TrendingUp : tone === "stopped" ? TrendingDown : null;
   const border = tone === "new" ? "border-emerald-200 bg-emerald-50/40" : tone === "stopped" ? "border-rose-200 bg-rose-50/40" : "border-slate-100 bg-slate-50";
   return (
-    <div className={`rounded-xl border px-3 py-2.5 ${border}`}>
-      <p className="text-[11px] uppercase font-mono tracking-wide text-slate-500 font-bold">{label}</p>
-      <p className={`text-2xl font-extrabold mt-0.5 leading-tight flex items-center gap-1 ${color}`}>
+    <div className={`rounded-xl border px-3.5 py-3 ${border}`}>
+      <p className="hm-eyebrow truncate">{label}</p>
+      <p className={`text-2xl font-extrabold mt-1 leading-none tabular-nums flex items-center gap-1 ${color}`}>
         {Arrow && <Arrow className="w-5 h-5 shrink-0" strokeWidth={2.75} />}{value}
       </p>
     </div>
@@ -409,7 +409,7 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
       <div>
         <div className="flex items-center gap-2">
           <FileText className="w-5 h-5 text-cyan-600" />
-          <h1 className="text-xl font-bold text-slate-900">Báo cáo Spy Ads</h1>
+          <h1 className="hm-page-title text-2xl">Báo cáo Spy Ads</h1>
         </div>
         <p className="text-sm text-slate-500 mt-1">
           Xem lại báo cáo tuần và tổng kết tháng của dữ liệu spy ads đối thủ.
@@ -457,7 +457,7 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
 
       {/* Xu hướng qua các kỳ — theo dõi nhanh không cần mở từng báo cáo */}
       {reports.length >= 2 && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5">
+        <div className="hm-panel p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="w-4 h-4 text-cyan-500" />
             <h3 className="text-base font-bold text-slate-800">Xu hướng qua các kỳ {mode === "weekly" ? "tuần" : "tháng"}</h3>
@@ -481,7 +481,7 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
   return (
     <div className="space-y-4 min-w-0">
       {/* Title + copy actions */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5">
+      <div className="hm-panel p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 className="text-base font-bold text-slate-900">{r.title}</h2>
@@ -525,7 +525,7 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
       </div>
 
       {/* Biến động top 5 đối thủ trong kỳ — biểu đồ; fallback dạng chữ nếu không parse được */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5">
+      <div className="hm-panel p-4 sm:p-5">
         <div className="flex items-center gap-2 mb-1">
           <TrendingUp className="w-4 h-4 text-cyan-500" />
           <h3 className="text-base font-bold text-slate-800">Biến động top 5 đối thủ trong kỳ</h3>
@@ -551,7 +551,7 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
       </div>
 
       {/* Tín hiệu nổi bật — biểu đồ thanh mini theo từng chiều */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-4">
+      <div className="hm-panel p-4 sm:p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Target className="w-4 h-4 text-cyan-500" />
           <h3 className="text-base font-bold text-slate-800">Tín hiệu nổi bật</h3>
@@ -567,7 +567,7 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
 
       {/* Mẫu nội dung & hình ảnh — bảng brand | quan sát */}
       {(!!String(r.notable_content_patterns ?? "").trim() || !!String(r.notable_visual_patterns ?? "").trim()) && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
+        <div className="hm-panel p-4 sm:p-5 space-y-3">
           <div className="flex items-center gap-2">
             <ListChecks className="w-4 h-4 text-violet-500" />
             <h3 className="text-base font-bold text-slate-800">Mẫu nội dung &amp; hình ảnh đáng chú ý</h3>
@@ -579,7 +579,7 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
 
       {/* Khuyến nghị cho SERYN — bảng có badge chiến lược / mức ưu tiên */}
       {(!!String(r.seryn_implications ?? "").trim() || !!String(r.recommended_actions ?? "").trim()) && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
+        <div className="hm-panel p-4 sm:p-5 space-y-3">
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4 text-emerald-500" />
             <h3 className="text-base font-bold text-slate-800">Khuyến nghị cho SERYN</h3>
@@ -591,7 +591,7 @@ function ReportDetail({ report: r }: { report: SpyReport }) {
 
       {/* SERYN so với đối thủ — bảng chỉ số | giá trị */}
       {!!String(r.seryn_benchmark ?? "").trim() && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
+        <div className="hm-panel p-4 sm:p-5 space-y-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-cyan-500" />
             <h3 className="text-sm font-bold text-slate-800">SERYN so với đối thủ</h3>

@@ -1,32 +1,116 @@
 @import "tailwindcss";
 
 /* ============================================================
-   SERYN BRAND THEME
-   - Body: Montserrat (secondary typeface). Brand/heading: Playfair Display.
-   - Accent: ghi đè thang màu `cyan` -> PEACH FUZZ (#F47D6B, màu chủ đạo)
-     để mọi chỗ dùng cyan-* tự đổi sang tông SERYN. slate-900 -> NAVY (#15224B).
+   SERYN BRAND THEME — đồng bộ trực tiếp với website seryn.vn
+   - Font: "Be Vietnam Pro" (giống hệt website) cho TOÀN BỘ UI.
+     Wordmark "SERYN" giữ Playfair Display (serif quiet-luxury).
+   - Accent: ghi đè thang `cyan` -> PEACH/CORAL #F47E6A (màu chủ đạo site).
+   - Neutral: ghi đè thang `slate` (xám LẠNH) -> TAUPE/NÂU ẤM như site;
+     chữ body nâu #57483A (site #5A4A3A), tiêu đề NAVY #1B234C.
+     Nhờ vậy mọi lớp slate / cyan tự chuyển sang tông SERYN.
    ============================================================ */
 @theme {
-  --font-sans: "Montserrat", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: "Be Vietnam Pro", ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  /* Peach Fuzz scale (thay cyan) */
+  /* Peach / coral scale (thay cyan) — lấy từ seryn.vn (#F47E6A) */
   --color-cyan-50:  #fef3ef;
   --color-cyan-100: #fde4dc;
   --color-cyan-200: #fbc9bc;
   --color-cyan-300: #f8a795;
   --color-cyan-400: #f68e78;
-  --color-cyan-500: #f47d6b; /* Peach Fuzz */
-  --color-cyan-600: #e85f4b;
+  --color-cyan-500: #f47e6a; /* Peach Fuzz (site) */
+  --color-cyan-600: #e85f4b; /* coral đậm cho nút — đủ tương phản chữ trắng */
   --color-cyan-700: #c2492f;
   --color-cyan-800: #9e3b27;
   --color-cyan-900: #7d3022;
 
-  /* Navy cho tiêu đề/nền tối */
-  --color-slate-900: #15224b;
+  /* Neutral ẤM (taupe/nâu) — thay thang slate xám lạnh cho khớp website.
+     Giữ đúng bậc sáng/tối của slate gốc nên tương phản không đổi. */
+  --color-slate-50:  #faf6ef;
+  --color-slate-100: #f2ebe0;
+  --color-slate-200: #e7ddd0;
+  --color-slate-300: #d3c7b6;
+  --color-slate-400: #a99a87;
+  --color-slate-500: #83725e;
+  --color-slate-600: #6b5b49;
+  --color-slate-700: #57483a; /* chữ body nâu ấm (site #5A4A3A) */
+  --color-slate-800: #3a2e23;
+  --color-slate-900: #1b234c; /* NAVY tiêu đề (site #1B234C) */
 }
 
 /* Wordmark / brand dùng Playfair Display. */
 .font-brand { font-family: "Playfair Display", Georgia, serif; }
+
+/* ============================================================
+   HALLMARK LAYER — redesign modern-minimal (design.md · designed-as-app)
+   Hallmark · genre: modern-minimal · design-system: design.md · designed-as-app
+   Voice: "panel" viền mảnh thay card bóng đậm; "stat" số lớn tabular;
+   accent peach tiết chế; focus ring tức thì; motion tiết chế.
+   Tái dùng token brand: slate-900=navy(ink), slate-200=rule, slate-50=paper-2,
+   slate-500=muted, slate-700=ink-2, cyan-500=accent peach.
+   ============================================================ */
+:root {
+  --hm-ink: var(--color-slate-900);
+  --hm-ink-2: var(--color-slate-700);
+  --hm-muted: var(--color-slate-500);
+  --hm-rule: var(--color-slate-200);
+  --hm-paper-2: var(--color-slate-50);
+  --hm-accent: var(--color-cyan-500);
+  --hm-accent-strong: var(--color-cyan-600);
+  --hm-focus: var(--color-cyan-500);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur: 220ms;
+  --radius-panel: 14px;
+  --radius-pill: 9999px;
+  --shadow-panel: 0 1px 2px rgba(27, 35, 76, 0.05), 0 1px 1px rgba(27, 35, 76, 0.03);
+}
+
+/* Con số luôn canh cột (KPI, bảng, phần trăm). */
+.tabular-nums, .hm-num { font-variant-numeric: tabular-nums; }
+
+/* PANEL — thay "card": viền mảnh + bóng rất nhẹ, bo 14px. */
+.hm-panel {
+  background: #fff;
+  border: 1px solid var(--hm-rule);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+
+/* Nhịp page-header: eyebrow nhỏ + tiêu đề navy siết chữ. */
+.hm-eyebrow {
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--hm-muted); font-size: 0.7rem;
+}
+.hm-page-title { font-weight: 800; letter-spacing: -0.01em; color: var(--hm-ink); line-height: 1.1; }
+.hm-panel-title { font-weight: 700; letter-spacing: -0.005em; color: var(--hm-ink); }
+
+/* Đường kẻ mảnh (thay divider dày). */
+.hm-divider { border: 0; border-top: 1px solid var(--hm-rule); }
+
+/* Vạch accent trái (section marker) — peach tiết chế. */
+.hm-accent-bar { border-left: 3px solid var(--hm-accent); }
+
+/* Focus ring hiện TỨC THÌ, không animate (a11y). */
+:where(a, button, [role="button"], input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--hm-focus);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Bôi chọn + thanh cuộn theo tông brand. */
+::selection { background: color-mix(in srgb, var(--hm-accent) 26%, transparent); color: var(--hm-ink); }
+* { scrollbar-width: thin; scrollbar-color: var(--color-slate-300) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: var(--color-slate-300); border-radius: 9999px; border: 2px solid transparent; background-clip: padding-box; }
+
+/* Kết xuất chữ mượt hơn + chặn cuộn ngang (hallmark gate mobile). */
+body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+html, body { overflow-x: clip; }
+
+/* Motion tiết chế: chỉ transform/opacity; reduced-motion rút gọn. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}
 
 /* ============================================================
    Tăng cỡ chữ toàn dashboard cho dễ đọc.
@@ -55,12 +139,12 @@ html {
    ============================================================ */
 .rpt-overlay {
   position: fixed; inset: 0; z-index: 60;
-  background: rgba(15, 34, 75, 0.55);
+  background: rgba(27, 35, 76, 0.55);
   display: flex; flex-direction: column;
 }
 .rpt-toolbar {
   flex: 0 0 auto; height: 56px;
-  background: #15224b; color: #fff;
+  background: #1b234c; color: #fff;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 16px;
 }
@@ -71,7 +155,7 @@ html {
   font-weight: 700; font-size: 13px; padding: 8px 14px;
   border-radius: 10px; cursor: pointer; border: 1px solid transparent;
 }
-.rpt-btn-primary { background: #f47d6b; color: #fff; }
+.rpt-btn-primary { background: #f47e6a; color: #fff; }
 .rpt-btn-primary:hover { background: #e85f4b; }
 .rpt-btn-ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,0.35); }
 .rpt-btn-ghost:hover { background: rgba(255,255,255,0.12); }
@@ -81,34 +165,34 @@ html {
   max-width: 880px; margin: 0 auto; background: #fff;
   border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.25);
   padding: 40px 44px; color: #1f2937;
-  font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
   font-size: 13px; line-height: 1.5;
 }
 
 /* Header */
-.rpt-header { border-bottom: 3px solid #f47d6b; padding-bottom: 16px; margin-bottom: 20px; }
+.rpt-header { border-bottom: 3px solid #f47e6a; padding-bottom: 16px; margin-bottom: 20px; }
 .rpt-header-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .rpt-logo { width: 44px; height: 44px; object-fit: contain; }
-.rpt-brand-name { font-family: "Playfair Display", Georgia, serif; font-size: 26px; font-weight: 800; color: #15224b; letter-spacing: 0.12em; line-height: 1; }
+.rpt-brand-name { font-family: "Playfair Display", Georgia, serif; font-size: 26px; font-weight: 800; color: #1b234c; letter-spacing: 0.12em; line-height: 1; }
 .rpt-brand-slogan { font-size: 10px; font-weight: 700; letter-spacing: 0.18em; color: #e85f4b; margin-top: 3px; }
 /* Tiêu đề tiếng Việt dùng Montserrat — Playfair thiếu hỗ trợ dấu chồng (ố, ầ…). */
-.rpt-title { font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif; font-size: 21px; font-weight: 800; color: #15224b; margin: 8px 0 6px; letter-spacing: -0.01em; }
+.rpt-title { font-family: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif; font-size: 21px; font-weight: 800; color: #1b234c; margin: 8px 0 6px; letter-spacing: -0.01em; }
 .rpt-meta { font-size: 11px; color: #6b7280; font-weight: 600; }
 
 /* KPI */
 .rpt-kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
 .rpt-kpi { background: #fef3ef; border: 1px solid #fde4dc; border-radius: 10px; padding: 12px 8px; text-align: center; }
-.rpt-kpi-value { font-size: 21px; font-weight: 800; color: #15224b; line-height: 1.1; }
+.rpt-kpi-value { font-size: 21px; font-weight: 800; color: #1b234c; line-height: 1.1; }
 .rpt-kpi-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #6b7280; margin-top: 4px; }
 
 /* Section */
 .rpt-section { margin-top: 22px; }
-.rpt-h2 { font-size: 14px; font-weight: 800; color: #15224b; text-transform: uppercase; letter-spacing: 0.04em; border-left: 4px solid #f47d6b; padding-left: 10px; margin: 0 0 12px; }
+.rpt-h2 { font-size: 14px; font-weight: 800; color: #1b234c; text-transform: uppercase; letter-spacing: 0.04em; border-left: 4px solid #f47e6a; padding-left: 10px; margin: 0 0 12px; }
 
 /* Biểu đồ top 5 đối thủ (SVG in được) */
 .rpt-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .rpt-chart { border: 1px solid #eef2f7; border-radius: 10px; padding: 10px 12px; background: #fff; }
-.rpt-chart-title { font-size: 11px; font-weight: 800; color: #15224b; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 6px; }
+.rpt-chart-title { font-size: 11px; font-weight: 800; color: #1b234c; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 6px; }
 .rpt-legend { display: flex; gap: 12px; margin-bottom: 4px; }
 .rpt-legend-item { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; color: #52514e; }
 .rpt-legend-swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
@@ -118,25 +202,25 @@ html {
 
 /* Table */
 .rpt-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
-.rpt-table th { background: #15224b; color: #fff; font-weight: 700; text-align: left; padding: 7px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
+.rpt-table th { background: #1b234c; color: #fff; font-weight: 700; text-align: left; padding: 7px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
 .rpt-table th.num, .rpt-table td.num { text-align: right; }
 .rpt-table td { padding: 6px 8px; border-bottom: 1px solid #eef2f7; vertical-align: top; }
 .rpt-table tbody tr:nth-child(even) { background: #fafbfc; }
-.rpt-strong { font-weight: 700; color: #15224b; }
+.rpt-strong { font-weight: 700; color: #1b234c; }
 .rpt-table .num.pos { color: #047857; font-weight: 700; }
 .rpt-table .num.neg { color: #b45309; font-weight: 700; }
 .rpt-action-cell { font-weight: 700; text-transform: capitalize; }
 
 /* Patterns */
 .rpt-pattern-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-.rpt-pattern-title { font-size: 11px; font-weight: 800; color: #15224b; text-transform: uppercase; margin-bottom: 6px; }
+.rpt-pattern-title { font-size: 11px; font-weight: 800; color: #1b234c; text-transform: uppercase; margin-bottom: 6px; }
 .rpt-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .rpt-chip { background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 7px; padding: 3px 8px; font-size: 11px; font-weight: 600; }
 .rpt-chip b { color: #e85f4b; }
 
 /* Recommendations */
 .rpt-rec { border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; border: 1px solid #e5e7eb; border-left-width: 5px; }
-.rpt-rec-head { font-weight: 800; font-size: 12px; margin-bottom: 6px; color: #15224b; }
+.rpt-rec-head { font-weight: 800; font-size: 12px; margin-bottom: 6px; color: #1b234c; }
 .rpt-rec-list { margin: 0; padding-left: 18px; font-size: 12px; }
 .rpt-rec-list li { margin-bottom: 5px; }
 .rpt-rec-reframe { color: #c2492f; font-weight: 600; font-size: 11px; margin-top: 2px; }
@@ -161,8 +245,8 @@ html {
 .rpt-action-sub { color: #4b5563; font-size: 11px; margin-top: 2px; }
 
 /* Footer */
-.rpt-footer { margin-top: 26px; border-top: 2px solid #15224b; padding-top: 12px; }
-.rpt-footer-brand { font-family: "Playfair Display", Georgia, serif; font-weight: 800; color: #15224b; font-size: 13px; }
+.rpt-footer { margin-top: 26px; border-top: 2px solid #1b234c; padding-top: 12px; }
+.rpt-footer-brand { font-family: "Playfair Display", Georgia, serif; font-weight: 800; color: #1b234c; font-size: 13px; }
 .rpt-footer-note { font-size: 10px; color: #9ca3af; margin-top: 5px; line-height: 1.5; }
 
 @media (max-width: 640px) {

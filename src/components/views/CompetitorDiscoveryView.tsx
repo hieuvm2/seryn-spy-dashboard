@@ -143,7 +143,7 @@ export default function CompetitorDiscoveryView({ data }: { data: SpyDashboardDa
       </div>
 
       {/* B. Candidate Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="hm-panel shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-slate-50 text-slate-400 font-mono uppercase tracking-wider">

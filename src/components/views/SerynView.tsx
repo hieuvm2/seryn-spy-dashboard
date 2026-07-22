@@ -115,7 +115,7 @@ function AlertCard({ a, data }: { a: SerynContentAlert; data: SpyDashboardData }
   // Cụm từ đang được chọn -> hiện các QC chứa cụm đó ngay dưới.
   const [phrase, setPhrase] = useState<string | null>(null);
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-2.5">
+    <div className="hm-panel p-4 space-y-2.5">
       <div className="flex items-center gap-2 flex-wrap">
         <span className={`inline-flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wide px-2 py-1 rounded border ${SEV_TONE[a.severity]}`}>
           <AlertTriangle className="w-3.5 h-3.5" />{SEV_VI[a.severity]}

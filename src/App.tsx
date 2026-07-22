@@ -199,7 +199,7 @@ export default function App({ auth }: AppProps) {
   const weekDate = spyData.brandWeeklySnapshot[0]?.week_date;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex font-sans selection:bg-cyan-100 selection:text-cyan-900">
+    <div className="min-h-screen bg-[#F5F0E8] text-slate-800 flex font-sans selection:bg-cyan-100 selection:text-cyan-900">
       <Sidebar
         activeSection={activeSection}
         setActiveSection={goView}

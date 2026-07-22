@@ -109,7 +109,7 @@ export default function BrandsView({
         ))}
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="hm-panel shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-[15px]">
             <thead>
