@@ -26,6 +26,29 @@ const ACTION_LABEL: Record<ReportRecAction, string> = {
   monitor: "MONITOR · Theo dõi",
 };
 
+/* Chiến lược nêu MỘT LẦN cho mỗi nhóm (tránh lặp "→" giống nhau ở từng dòng). */
+const ACTION_STRATEGY: Record<ReportRecAction, string> = {
+  counter: "Không đua giá — dẫn khách vào phân tích nền tảng sinh học & chỉ định cá nhân hóa trước khi nói dịch vụ.",
+  avoid: "Không hù dọa tuổi tác — giải thích cơ chế điềm tĩnh, dựa trên dữ liệu.",
+  adapt: "Học cấu trúc content của đối thủ nhưng đổi lõi sang khoa học/dữ liệu, kèm “kết quả tùy cơ địa”.",
+  copy: "Có thể áp dụng gần như trực tiếp cho SERYN.",
+  monitor: "Theo dõi thêm, chưa hành động ngay.",
+};
+
+/* Gọn danh sách: tối đa 2 dòng/brand, tối đa 6 dòng/nhóm (tránh lặp brand nhiều lần). */
+function dedupeRecItems<T extends { brand: string }>(items: T[]): T[] {
+  const per = new Map<string, number>();
+  const out: T[] = [];
+  for (const it of items) {
+    const n = per.get(it.brand) ?? 0;
+    if (n >= 2) continue;
+    per.set(it.brand, n + 1);
+    out.push(it);
+    if (out.length >= 6) break;
+  }
+  return out;
+}
+
 const pct = (r: number) => `${Math.round((r || 0) * 100)}%`;
 const vn = (n: number) => n.toLocaleString("vi-VN");
 const trunc = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
@@ -356,14 +379,10 @@ export default function WeeklyReportModal({
             {m.recommendations.length ? m.recommendations.map((r) => (
               <div className={`rpt-rec rpt-rec-${r.action} rpt-avoid`} key={r.action}>
                 <div className="rpt-rec-head">{ACTION_LABEL[r.action]}</div>
+                <div className="rpt-rec-strategy">{ACTION_STRATEGY[r.action]}</div>
                 <ul className="rpt-rec-list">
-                  {r.items.map((it, i) => (
-                    <li key={i}>
-                      <b>{it.brand}</b>
-                      {it.format ? ` · ${viLabel(it.format)}` : ""}
-                      {it.hook ? ` — “${trunc(it.hook, 60)}”` : ""}
-                      {it.reframe ? <div className="rpt-rec-reframe">→ {trunc(it.reframe, 110)}</div> : null}
-                    </li>
+                  {dedupeRecItems(r.items).map((it, i) => (
+                    <li key={i}><b>{it.brand}</b>{it.hook ? ` — “${trunc(it.hook, 56)}”` : ""}</li>
                   ))}
                 </ul>
               </div>
