@@ -28,7 +28,7 @@ function Kpi({ label, value, icon: Icon, tone }: { label: string; value: React.R
   return (
     <div className="hm-panel p-5 flex flex-col gap-2">
       <div className="flex items-center gap-2 min-w-0">
-        <Icon className="w-4 h-4 shrink-0 text-slate-400" strokeWidth={2.25} />
+        <Icon className="w-4 h-4 shrink-0 text-cyan-600" strokeWidth={2.5} />
         <p className="hm-eyebrow truncate">{label}</p>
       </div>
       <p className={`text-[2rem] font-extrabold leading-none tabular-nums flex items-center gap-1 ${toneCls}`}>

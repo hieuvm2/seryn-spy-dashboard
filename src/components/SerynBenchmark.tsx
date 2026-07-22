@@ -167,7 +167,7 @@ export function SerynBenchmarkCompact({ data, onOpen }: { data: SpyDashboardData
   const cmp = buildSerynVsCompetitorComparison(data);
   const test = cmp.recommendedTests[0];
   return (
-    <div className="hm-panel p-6 shadow-sm">
+    <div className="hm-panel-peach p-6">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2"><Sparkles className="w-5 h-5 text-cyan-600" /> SERYN vs Đối thủ</h3>
         {onOpen && <button onClick={onOpen} className="text-xs font-bold text-cyan-700 hover:underline">Chi tiết ở tab SERYN →</button>}

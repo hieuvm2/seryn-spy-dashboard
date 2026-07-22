@@ -63,6 +63,8 @@
   --radius-panel: 14px;
   --radius-pill: 9999px;
   --shadow-panel: 0 1px 2px rgba(27, 35, 76, 0.05), 0 1px 1px rgba(27, 35, 76, 0.03);
+  /* Nền peach nhạt của seryn.vn — giữ MÀU CHỦ ĐẠO SERYN hiện diện rõ. */
+  --peach-bg: #fdf4ee;
 }
 
 /* Con số luôn canh cột (KPI, bảng, phần trăm). */
@@ -76,10 +78,11 @@
   box-shadow: var(--shadow-panel);
 }
 
-/* Nhịp page-header: eyebrow nhỏ + tiêu đề navy siết chữ. */
+/* Nhịp page-header: eyebrow nhỏ + tiêu đề navy siết chữ.
+   Eyebrow dùng CORAL đậm (cyan-700) — giữ MÀU CHỦ ĐẠO SERYN xuyên suốt, vẫn đủ tương phản. */
 .hm-eyebrow {
   font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em;
-  color: var(--hm-muted); font-size: 0.7rem;
+  color: var(--color-cyan-700); font-size: 0.7rem;
 }
 .hm-page-title { font-weight: 800; letter-spacing: -0.01em; color: var(--hm-ink); line-height: 1.1; }
 .hm-panel-title { font-weight: 700; letter-spacing: -0.005em; color: var(--hm-ink); }
@@ -87,8 +90,18 @@
 /* Đường kẻ mảnh (thay divider dày). */
 .hm-divider { border: 0; border-top: 1px solid var(--hm-rule); }
 
-/* Vạch accent trái (section marker) — peach tiết chế. */
-.hm-accent-bar { border-left: 3px solid var(--hm-accent); }
+/* Vạch accent trái (section marker) — PEACH, đậm hơn để màu SERYN nổi. */
+.hm-accent-bar { border-left: 4px solid var(--hm-accent); }
+
+/* Panel nền PEACH nhạt (màu chủ đạo SERYN) — dùng cho panel nhấn/của SERYN. */
+.hm-panel-peach {
+  background: var(--peach-bg);
+  border: 1px solid var(--color-cyan-200);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+/* Panel có dải accent PEACH trên đỉnh — nhấn thương hiệu tiết chế. */
+.hm-panel-topaccent { border-top: 3px solid var(--hm-accent); }
 
 /* Focus ring hiện TỨC THÌ, không animate (a11y). */
 :where(a, button, [role="button"], input, select, textarea, summary, [tabindex]):focus-visible {
