@@ -8,9 +8,9 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Download, Loader2, X } from "lucide-react";
-import type { SpyDashboardData, DataSourceType } from "../types";
+import type { SpyDashboardData, DataSourceType, SpyReport } from "../types";
 import { viLabel } from "../utils/spyData";
-import { buildReportModel, type ReportRecAction, type ReportBrandRow } from "../utils/reportData";
+import { buildReportModel, type ReportBrandRow } from "../utils/reportData";
 
 /* ---- Màu biểu đồ (palette đã validate: CVD ΔE 21.2, aqua dùng nhãn trực tiếp) ---- */
 const CH = {
@@ -18,40 +18,46 @@ const CH = {
   ink: "#0b0b0b", ink2: "#52514e", muted: "#898781", baseline: "#c3c2b7",
 };
 
-const ACTION_LABEL: Record<ReportRecAction, string> = {
-  adapt: "ADAPT · Học & làm tốt hơn",
-  counter: "COUNTER · Phản đòn",
-  avoid: "AVOID · Tránh",
-  copy: "COPY · Áp dụng",
-  monitor: "MONITOR · Theo dõi",
-};
-
-/* Chiến lược nêu MỘT LẦN cho mỗi nhóm (tránh lặp "→" giống nhau ở từng dòng). */
-const ACTION_STRATEGY: Record<ReportRecAction, string> = {
-  counter: "Không đua giá — dẫn khách vào phân tích nền tảng sinh học & chỉ định cá nhân hóa trước khi nói dịch vụ.",
-  avoid: "Không hù dọa tuổi tác — giải thích cơ chế điềm tĩnh, dựa trên dữ liệu.",
-  adapt: "Học cấu trúc content của đối thủ nhưng đổi lõi sang khoa học/dữ liệu, kèm “kết quả tùy cơ địa”.",
-  copy: "Có thể áp dụng gần như trực tiếp cho SERYN.",
-  monitor: "Theo dõi thêm, chưa hành động ngay.",
-};
-
-/* Gọn danh sách: tối đa 2 dòng/brand, tối đa 6 dòng/nhóm (tránh lặp brand nhiều lần). */
-function dedupeRecItems<T extends { brand: string }>(items: T[]): T[] {
-  const per = new Map<string, number>();
-  const out: T[] = [];
-  for (const it of items) {
-    const n = per.get(it.brand) ?? 0;
-    if (n >= 2) continue;
-    per.set(it.brand, n + 1);
-    out.push(it);
-    if (out.length >= 6) break;
-  }
-  return out;
-}
-
 const pct = (r: number) => `${Math.round((r || 0) * 100)}%`;
 const vn = (n: number) => n.toLocaleString("vi-VN");
 const trunc = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+
+/* ---- Đọc phân tích THẬT từ weeklyReports (giống tab Phân tích báo cáo) — KHÔNG template ---- */
+const parseList = (v?: string) => String(v ?? "").split("|").map((s) => s.trim()).filter(Boolean);
+const toBullets = (t?: string) =>
+  String(t ?? "").replace(/\s*;?\s*\((\d+)\)\s*/g, "\n($1) ")
+    .split(/\n|(?<=[.!?])\s+/).map((s) => s.trim()).filter((s) => s.length > 1);
+
+/** Danh sách "Đầu mục: nội dung" -> in đậm đầu mục (nếu có). */
+function ObsList({ items }: { items: string[] }) {
+  if (!items.length) return null;
+  return (
+    <ul className="rpt-narr">
+      {items.map((raw, i) => {
+        const j = raw.indexOf(":");
+        const head = j > 0 && j <= 46 ? raw.slice(0, j).trim() : null;
+        const rest = head ? raw.slice(j + 1).trim() : raw;
+        return <li key={i}>{head && <b className="rpt-narr-head">{head}: </b>}{rest}</li>;
+      })}
+    </ul>
+  );
+}
+
+/** Danh sách hành động "[Ưu tiên cao] …" -> badge mức ưu tiên. */
+function ActionList({ items }: { items: string[] }) {
+  if (!items.length) return null;
+  return (
+    <ul className="rpt-narr">
+      {items.map((raw, i) => {
+        const pm = raw.match(/^\[(.+?)\]\s*(.*)$/);
+        const prio = pm ? pm[1] : null;
+        const rest = pm ? pm[2] : raw;
+        const cls = /cao/i.test(prio || "") ? "high" : /trung|medium/i.test(prio || "") ? "medium" : "low";
+        return <li key={i}>{prio && <span className={`rpt-prio rpt-prio-${cls}`}>{prio}</span>}{rest}</li>;
+      })}
+    </ul>
+  );
+}
 
 /* ============================================================
    Biểu đồ top 5 đối thủ (SVG thuần — in PDF được, màu đã validate).
@@ -218,6 +224,11 @@ export default function WeeklyReportModal({
 
   if (!open) return null;
   const m = buildReportModel(data, dataSource);
+  // Phân tích THẬT — lấy báo cáo tuần mới nhất (đúng nội dung tab "Phân tích báo cáo").
+  const report: SpyReport | null = [...(data.weeklyReports ?? [])].sort((a, b) =>
+    String(b.period_start).localeCompare(String(a.period_start)) ||
+    String(b.generated_at).localeCompare(String(a.generated_at)))[0] ?? null;
+  const execBullets = toBullets(report?.executive_summary);
 
   const kpiCards: Array<{ label: string; value: string }> = [
     { label: "Đối thủ theo dõi", value: vn(m.kpis.totalBrands) },
@@ -294,6 +305,16 @@ export default function WeeklyReportModal({
             </div>
           </header>
 
+          {/* ---- Tóm tắt điều hành (phân tích THẬT từ báo cáo) ---- */}
+          {execBullets.length > 0 && (
+            <section className="rpt-section rpt-avoid">
+              <h2 className="rpt-h2">Tóm tắt điều hành</h2>
+              <ul className="rpt-narr">
+                {execBullets.map((b, i) => <li key={i}>{b}</li>)}
+              </ul>
+            </section>
+          )}
+
           {/* ---- KPI ---- */}
           <section className="rpt-section rpt-avoid">
             <div className="rpt-kpis">
@@ -346,48 +367,62 @@ export default function WeeklyReportModal({
             )}
           </section>
 
-          {/* ---- Pattern thị trường ---- */}
-          <section className="rpt-section rpt-avoid">
-            <h2 className="rpt-h2">Pattern chủ đạo của thị trường</h2>
-            <div className="rpt-pattern-grid">
-              {[
-                { t: "Top hook", items: m.patterns.hooks },
-                { t: "Top ưu đãi", items: m.patterns.offers },
-                { t: "Top định dạng", items: m.patterns.formats },
-                { t: "Top dịch vụ", items: m.patterns.services },
-                { t: "Top góc tiếp cận", items: m.patterns.angles },
-              ].map((g) => (
-                <div className="rpt-pattern-col" key={g.t}>
-                  <div className="rpt-pattern-title">{g.t}</div>
-                  {g.items.length ? (
-                    <div className="rpt-chips">
-                      {g.items.slice(0, 8).map((it, i) => (
-                        <span className="rpt-chip" key={i}>
-                          {viLabel(it.key)} <b>{vn(it.count)}</b>
-                        </span>
-                      ))}
-                    </div>
-                  ) : <span className="rpt-muted">chưa rõ</span>}
-                </div>
-              ))}
-            </div>
-          </section>
+          {/* ---- Biến động đối thủ (phân tích THẬT) ---- */}
+          {parseList(report?.key_competitor_moves).length > 0 && (
+            <section className="rpt-section">
+              <h2 className="rpt-h2">Đối thủ làm gì tuần này</h2>
+              <ObsList items={parseList(report?.key_competitor_moves)} />
+            </section>
+          )}
 
-          {/* ---- Khuyến nghị chiến lược SERYN ---- */}
-          <section className="rpt-section">
-            <h2 className="rpt-h2">Khuyến nghị chiến lược cho SERYN</h2>
-            {m.recommendations.length ? m.recommendations.map((r) => (
-              <div className={`rpt-rec rpt-rec-${r.action} rpt-avoid`} key={r.action}>
-                <div className="rpt-rec-head">{ACTION_LABEL[r.action]}</div>
-                <div className="rpt-rec-strategy">{ACTION_STRATEGY[r.action]}</div>
-                <ul className="rpt-rec-list">
-                  {dedupeRecItems(r.items).map((it, i) => (
-                    <li key={i}><b>{it.brand}</b>{it.hook ? ` — “${trunc(it.hook, 56)}”` : ""}</li>
-                  ))}
-                </ul>
-              </div>
-            )) : <p className="rpt-muted">Chưa có khuyến nghị từ cụm nội dung tuần này.</p>}
-          </section>
+          {/* ---- Mẫu nội dung & hình ảnh (phân tích THẬT) ---- */}
+          {(parseList(report?.notable_content_patterns).length > 0 || parseList(report?.notable_visual_patterns).length > 0) && (
+            <section className="rpt-section rpt-avoid">
+              <h2 className="rpt-h2">Mẫu nội dung &amp; hình ảnh đáng chú ý</h2>
+              <ObsList items={parseList(report?.notable_content_patterns)} />
+              {parseList(report?.notable_visual_patterns).length > 0 && (
+                <>
+                  <div className="rpt-pattern-title" style={{ marginTop: 10 }}>Hình ảnh / creative</div>
+                  <ObsList items={parseList(report?.notable_visual_patterns)} />
+                </>
+              )}
+            </section>
+          )}
+
+          {/* ---- Rủi ro & lưu ý (phân tích THẬT) ---- */}
+          {parseList(report?.risk_warnings).length > 0 && (
+            <section className="rpt-section rpt-avoid">
+              <h2 className="rpt-h2">Rủi ro &amp; lưu ý</h2>
+              <ObsList items={parseList(report?.risk_warnings)} />
+            </section>
+          )}
+
+          {/* ---- Khuyến nghị cho SERYN (phân tích THẬT — hàm ý + hành động) ---- */}
+          {(parseList(report?.seryn_implications).length > 0 || parseList(report?.recommended_actions).length > 0) && (
+            <section className="rpt-section">
+              <h2 className="rpt-h2">Khuyến nghị cho SERYN</h2>
+              {parseList(report?.seryn_implications).length > 0 && (
+                <>
+                  <div className="rpt-pattern-title">Hàm ý chiến lược</div>
+                  <ObsList items={parseList(report?.seryn_implications)} />
+                </>
+              )}
+              {parseList(report?.recommended_actions).length > 0 && (
+                <>
+                  <div className="rpt-pattern-title" style={{ marginTop: 10 }}>Hành động đề xuất</div>
+                  <ActionList items={parseList(report?.recommended_actions)} />
+                </>
+              )}
+            </section>
+          )}
+
+          {/* ---- SERYN vs đối thủ (phân tích THẬT) ---- */}
+          {parseList(report?.seryn_benchmark).length > 0 && (
+            <section className="rpt-section rpt-avoid">
+              <h2 className="rpt-h2">SERYN so với đối thủ</h2>
+              <ObsList items={parseList(report?.seryn_benchmark)} />
+            </section>
+          )}
 
           {/* ---- Cụm content đang nhân rộng ---- */}
           <section className="rpt-section">
@@ -409,23 +444,6 @@ export default function WeeklyReportModal({
               </tbody>
             </table>
           </section>
-
-          {/* ---- Action plan ---- */}
-          {m.actions.length ? (
-            <section className="rpt-section">
-              <h2 className="rpt-h2">Kế hoạch hành động ưu tiên</h2>
-              <ol className="rpt-actions">
-                {m.actions.map((a, i) => (
-                  <li key={i} className="rpt-avoid">
-                    <span className={`rpt-prio rpt-prio-${a.priority}`}>{viLabel(a.priority) || "—"}</span>
-                    <b>{a.insight || viLabel(a.insightType)}</b>
-                    {a.brand ? ` · ${a.brand}` : ""}
-                    {a.suggested ? <div className="rpt-action-sub">→ {a.suggested}</div> : null}
-                  </li>
-                ))}
-              </ol>
-            </section>
-          ) : null}
 
           {/* ---- Footer / caveat ---- */}
           <footer className="rpt-footer">

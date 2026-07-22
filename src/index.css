@@ -238,6 +238,10 @@ html {
 .rpt-rec-list li { margin-bottom: 5px; }
 .rpt-rec-reframe { color: #c2492f; font-weight: 600; font-size: 11px; margin-top: 2px; }
 .rpt-rec-strategy { color: #4b5563; font-size: 11.5px; line-height: 1.45; margin: 2px 0 8px; }
+/* Danh sách phân tích THẬT (narrative từ weeklyReports) trong PDF. */
+.rpt-narr { margin: 4px 0 0; padding-left: 16px; font-size: 12px; }
+.rpt-narr li { margin-bottom: 5px; line-height: 1.5; color: #1f2937; }
+.rpt-narr-head { color: #1b234c; }
 .rpt-rec-adapt { background: #eff6ff; border-left-color: #3b82f6; }
 .rpt-rec-counter { background: #fef3ef; border-left-color: #e85f4b; }
 .rpt-rec-avoid { background: #f8fafc; border-left-color: #94a3b8; }
