@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { motion } from "motion/react";
-import { Search, ChevronRight, Star } from "lucide-react";
+import { Search, ChevronRight, Star, TrendingUp, TrendingDown } from "lucide-react";
 import type { SpyDashboardData } from "../../types";
-import { normalizeNumber, splitChips, orUnknown, viLabel } from "../../utils/spyData";
+import { normalizeNumber, splitChips, viLabel } from "../../utils/spyData";
 import { useDirectCompetitors, isDirectCompetitor } from "../../utils/directCompetitors";
 import { buildAdContentIntelligenceForBrand, ANGLE_VI } from "../../utils/adContentIntelligence";
 import { isOwnBrand } from "../../utils/ownBrand";
@@ -137,7 +137,17 @@ export default function BrandsView({
                         <span className="font-extrabold text-[15px] text-slate-800 group-hover:text-cyan-700">{r.brand_name}</span>
                         {isDirect && <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded">Trực tiếp</span>}
                       </div>
-                      <div className="text-[12px] text-slate-500 font-medium truncate max-w-[240px]">{orUnknown(r.weekly_change_summary)}</div>
+                      {(() => {
+                        const nw = normalizeNumber(r.new_ads_count);
+                        const st = normalizeNumber(r.stopped_ads_count);
+                        if (!nw && !st) return <div className="text-[12px] text-slate-400 font-semibold mt-1">Không đổi tuần này</div>;
+                        return (
+                          <div className="flex items-center gap-3 mt-1 text-[13px] font-extrabold tabular-nums">
+                            <span className="inline-flex items-center gap-0.5 text-emerald-600"><TrendingUp className="w-3.5 h-3.5 shrink-0" strokeWidth={2.75} />+{nw} mới</span>
+                            <span className="inline-flex items-center gap-0.5 text-rose-600"><TrendingDown className="w-3.5 h-3.5 shrink-0" strokeWidth={2.75} />−{st} dừng</span>
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3.5 text-right">
                       <span className={`font-mono font-extrabold px-2.5 py-1 rounded-lg text-sm ${ads > 0 ? "text-cyan-700 bg-cyan-50 border border-cyan-200" : "text-slate-400 bg-slate-50 border border-slate-200"}`}>{ads}</span>
