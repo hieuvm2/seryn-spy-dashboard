@@ -29,8 +29,10 @@ Giữ thang token hex hiện có trong `src/index.css @theme` (Tailwind v4). OKL
 - `--color-pos`      emerald-600 · tăng   · `--color-neg` rose-600 · giảm
 - `--color-focus`    #F47E6A                          · ring focus
 
-Kỷ luật màu: peach CHỈ cho điểm nhấn (accent trái section, số tăng/giảm, trạng thái active, 1 CTA).
-Navy cho tiêu đề + xương sống. Không tô peach tràn lan.
+MÀU CHỦ ĐẠO = PEACH/CORAL SERYN — phải HIỆN RÕ (user chốt: giữ màu chủ đạo). KHÔNG siết xuống ≤5%.
+Peach dùng nổi bật: eyebrow (coral #C2492F cho đọc rõ), vạch section 4px, icon KPI, trạng thái active,
+đếm chip, link, nút. Khối của SERYN dùng nền peach nhạt `--peach-bg #FDF4EE`.
+Navy = tiêu đề + xương sống. Tránh peach làm hỏng tương phản chữ (chữ nhỏ dùng cyan-700 #C2492F, không #F47E6A).
 
 ## Typography
 - Display + Body: **Be Vietnam Pro** (giống seryn.vn). Wordmark "SERYN": Playfair Display.
