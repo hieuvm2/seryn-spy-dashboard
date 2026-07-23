@@ -72,16 +72,13 @@ function AdRow({ ad }: { ad: MatchedAd }) {
 
 /* ---------- Panel: các QC của SERYN chứa cụm từ vi phạm được chọn ---------- */
 function PhraseAdsPanel({ data, phrase }: { data: SpyDashboardData; phrase: string }) {
-  const { ads, matchedFragment, approximate } = findOwnAdsByPhrase(data, phrase);
+  const { ads } = findOwnAdsByPhrase(data, phrase);
   return (
     <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50/40 p-2.5">
       <p className="text-[13px] font-extrabold text-slate-800 mb-1.5">
         Quảng cáo SERYN chứa “{phrase}”
         <span className="ml-1.5 font-mono text-[11px] text-rose-700 bg-white border border-rose-200 px-1.5 py-0.5 rounded">{ads.length} QC</span>
       </p>
-      {approximate && ads.length > 0 && (
-        <p className="text-[10px] text-slate-500 mb-1.5 italic">Không có QC chứa nguyên cụm — hiển thị QC chứa phần khớp gần nhất: “{matchedFragment}”.</p>
-      )}
       {!ads.length ? (
         <div className="space-y-1.5">
           <p className="text-[11px] text-slate-500">

@@ -144,9 +144,9 @@ export interface MatchedAd {
 }
 export interface PhraseMatchResult {
   ads: MatchedAd[];
-  /** Cụm thực sự khớp (có thể ngắn hơn phrase khi phải khớp gần đúng). */
+  /** Nguyên cụm đã tra (giữ dấu) khi có QC khớp; rỗng nếu không QC nào chứa. */
   matchedFragment: string;
-  /** true khi không có QC chứa nguyên cụm, phải khớp theo cụm con dài nhất. */
+  /** Luôn false — chỉ khớp CHÍNH XÁC nguyên cụm, không khớp gần đúng. Giữ field cho tương thích. */
   approximate: boolean;
 }
 
@@ -253,9 +253,9 @@ function searchPhraseAround(fields: string[], frag: string, totalWords = 9): str
 
 /** Các QC của CHÍNH SERYN có nội dung chứa `phrase`.
  *  Tìm trên MỌI field text (hook/headline/primary_text/offer) của adLevelAnalysis +
- *  scaledContentAnalysis (own). Nếu không QC nào chứa nguyên cụm (cụm trong báo cáo
- *  thường là bản AI diễn giải), fallback: khớp theo CỤM CON dài nhất (n-gram) — vd
- *  "vũ khí giữ chồng" -> "giữ chồng". Khử trùng theo ad_id/nội dung. */
+ *  scaledContentAnalysis (own). CHÍNH XÁC 100%: chỉ trả QC chứa NGUYÊN CỤM (không phân
+ *  biệt hoa/thường/dấu). KHÔNG đoán/khớp cụm con — không QC nào chứa nguyên cụm -> rỗng.
+ *  Khử trùng theo ad_id/nội dung. */
 export function findOwnAdsByPhrase(data: SpyDashboardData, phrase: string): PhraseMatchResult {
   const key = norm(phrase);
   if (!key) return { ads: [], matchedFragment: "", approximate: false };
@@ -299,11 +299,9 @@ export function findOwnAdsByPhrase(data: SpyDashboardData, phrase: string): Phra
     });
   }
 
-  // Các cụm con ứng viên: cụm đầy đủ trước, rồi ngắn dần tới tối thiểu 2 từ
-  // (phrase 1 từ thì để 1). Tránh khớp 1 từ chung chung gây nhiễu.
-  const words = key.split(" ").filter(Boolean);                       // đã bỏ dấu (để khớp)
-  const origWords = String(phrase ?? "").replace(/\s+/g, " ").trim().split(" "); // giữ nguyên (để hiển thị)
-  const nMin = words.length >= 2 ? 2 : 1;
+  // CHÍNH XÁC 100% — CHỈ hiển thị QC chứa NGUYÊN CỤM (khớp toàn bộ `phrase`).
+  // KHÔNG đoán, KHÔNG tụt xuống cụm con (n-gram). Không có QC nào chứa nguyên cụm -> trả rỗng.
+  const origPhrase = String(phrase ?? "").replace(/\s+/g, " ").trim(); // giữ dấu, để hiển thị
   const collect = (frag: string): MatchedAd[] => {
     const seen = new Set<string>();
     const out: MatchedAd[] = [];
@@ -322,17 +320,8 @@ export function findOwnAdsByPhrase(data: SpyDashboardData, phrase: string): Phra
     return out.sort((a, b) => b.daysActive - a.daysActive);
   };
 
-  for (let n = words.length; n >= nMin; n--) {
-    for (let i = 0; i + n <= words.length; i++) {
-      const frag = words.slice(i, i + n).join(" ");
-      const ads = collect(frag);
-      if (ads.length) {
-        const display = origWords.slice(i, i + n).join(" ") || frag; // nhãn giữ dấu
-        return { ads, matchedFragment: display, approximate: n < words.length };
-      }
-    }
-  }
-  return { ads: [], matchedFragment: "", approximate: false };
+  const ads = collect(key); // key = norm(phrase) — khớp nguyên cụm (không phân biệt hoa/thường/dấu)
+  return { ads, matchedFragment: ads.length ? origPhrase : "", approximate: false };
 }
 
 /** Cảnh báo content SERYN — ưu tiên báo cáo tuần (đồng nhất tab Báo cáo). */
