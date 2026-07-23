@@ -43,3 +43,8 @@ _*.json
 
 .vercel
 .env*
+
+# Artifact báo cáo tuần (runtime, không commit)
+report-input.json
+report-out.json
+scripts/logs/
