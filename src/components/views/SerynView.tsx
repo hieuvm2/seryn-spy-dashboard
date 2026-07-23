@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion } from "motion/react";
 import { ShieldAlert, ShieldCheck, FlaskConical, ExternalLink, AlertTriangle, Search, Copy, Check } from "lucide-react";
 import type { SpyDashboardData } from "../../types";
@@ -111,6 +111,11 @@ function PhraseAdsPanel({ data, phrase }: { data: SpyDashboardData; phrase: stri
 function AlertCard({ a, data }: { a: SerynContentAlert; data: SpyDashboardData }) {
   // Cụm từ đang được chọn -> hiện các QC chứa cụm đó ngay dưới.
   const [phrase, setPhrase] = useState<string | null>(null);
+  // CHỈ hiện cụm từ CÓ quảng cáo (≥1 QC chứa nguyên cụm); cụm 0 QC bị ẩn.
+  const phrasesWithAds = useMemo(
+    () => a.flaggedPhrases.filter((p) => findOwnAdsByPhrase(data, p).ads.length > 0),
+    [a.flaggedPhrases, data],
+  );
   return (
     <div className="hm-panel p-4 space-y-2.5">
       <div className="flex items-center gap-2 flex-wrap">
@@ -140,11 +145,11 @@ function AlertCard({ a, data }: { a: SerynContentAlert; data: SpyDashboardData }
         </div>
       )}
 
-      {a.flaggedPhrases.length > 0 && (
+      {phrasesWithAds.length > 0 && (
         <div>
           <p className="text-[11px] uppercase font-mono tracking-wide text-slate-500 font-bold mb-1.5">Cụm từ vi phạm phát hiện <span className="normal-case font-sans text-slate-400">(bấm để xem QC chứa cụm)</span></p>
           <div className="flex flex-wrap gap-1.5">
-            {a.flaggedPhrases.map((p, i) => (
+            {phrasesWithAds.map((p, i) => (
               <button
                 key={i}
                 onClick={() => setPhrase((cur) => (cur === p ? null : p))}
