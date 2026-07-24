@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   X, Activity, FileText,
@@ -10,6 +10,7 @@ import { getBrandProfile } from "../utils/brandIntelligence";
 import { isDirectCompetitor } from "../utils/directCompetitors";
 import { isOwnBrand } from "../utils/ownBrand";
 import { buildSerynVsCompetitorComparison, buildSerynSnapshot } from "../utils/serynBenchmark";
+import { buildPageNameMap } from "../utils/pageNames";
 import { Sparkles } from "lucide-react";
 import {
   buildAdContentIntelligenceForBrand, ANGLE_VI,
@@ -98,19 +99,24 @@ function topCounts(values: (string | undefined)[], n: number): { label: string; 
   return [...map.values()].sort((a, b) => b.count - a.count).slice(0, n);
 }
 
-/** Link page: 1 page chính + các page phụ ẩn sau "Xem thêm" cho gọn header. */
-function PageLinks({ pageIds }: { pageIds: string[] }) {
+/** Link page: 1 page chính + các page phụ ẩn sau "Xem thêm" cho gọn header.
+ *  Hiện TÊN page (từ nameMap) khi biết; page_id không có tên thì để nguyên ID
+ *  (không bịa tên). */
+function PageLinks({ pageIds, nameMap }: { pageIds: string[]; nameMap: Map<string, string> }) {
   const [showAll, setShowAll] = useState(false);
   if (!pageIds.length) return null;
   const extra = pageIds.length - 1;
   const shown = showAll ? pageIds : pageIds.slice(0, 1);
   return (
     <>
-      {shown.map((pid, i) => (
-        <a key={`pid-${i}`} href={`https://www.facebook.com/${pid}`} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline">
-          {i === 0 ? "page chính" : "page phụ"}: <span className="font-mono">{pid}</span> ↗
-        </a>
-      ))}
+      {shown.map((pid, i) => {
+        const name = nameMap.get(String(pid).trim());
+        return (
+          <a key={`pid-${i}`} href={`https://www.facebook.com/${pid}`} target="_blank" rel="noreferrer" title={name ? `${name} — ${pid}` : pid} className="text-cyan-700 hover:underline">
+            {i === 0 ? "page chính" : "page phụ"}: <span className={name ? "font-semibold" : "font-mono"}>{name || pid}</span> ↗
+          </a>
+        );
+      })}
       {extra > 0 && (
         <button
           onClick={() => setShowAll((v) => !v)}
@@ -155,6 +161,8 @@ export default function BrandDetailDrawer({
   );
   // Link page đối thủ: mỗi page_id mở thẳng fanpage; fanpage url lấy URL hợp lệ đầu tiên.
   const pageIds = splitChips(snap?.page_ids);
+  // Map page_id -> tên page thật (để hiện tên thay vì ID); id không có tên -> giữ ID.
+  const pageNameMap = useMemo(() => buildPageNameMap(data), [data]);
   const fanpageUrl = (String(disc?.facebook_url || "").trim() || splitChips(snap?.page_urls)[0] || "").trim();
 
   return (
@@ -180,7 +188,7 @@ export default function BrandDetailDrawer({
                 </h3>
                 {snap && <p className="text-xs text-slate-500 font-medium mt-0.5 max-w-2xl line-clamp-2">{humanizeText(orUnknown(snap.content_strategy_summary))}</p>}
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[11px] text-slate-500 items-center">
-                  <React.Fragment key={brandName}><PageLinks pageIds={pageIds} /></React.Fragment>
+                  <React.Fragment key={brandName}><PageLinks pageIds={pageIds} nameMap={pageNameMap} /></React.Fragment>
                   {!!disc?.website_url && <a href={String(disc.website_url)} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline">website ↗</a>}
                   {!!fanpageUrl && <a href={fanpageUrl} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline">fanpage ↗</a>}
                   {!!disc?.phone && <span>☎ {String(disc.phone)}</span>}
