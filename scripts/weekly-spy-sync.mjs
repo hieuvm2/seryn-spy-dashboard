@@ -207,6 +207,12 @@ const DEFAULT_COMPETITORS = [
 
 function isTrue(v) { return ["true", "1", "yes", "x", "có"].includes(String(v || "").trim().toLowerCase()); }
 
+/* Page_id RÁC/gán nhầm đã xác nhận (KHÔNG thuộc brand) — loại khỏi MỌI watchlist,
+   kể cả khi Google Sheet "Competitors" vẫn còn. Bổ sung khi phát hiện thêm. */
+const PAGE_ID_BLOCKLIST = new Set([
+  "829738056900256", // "Công Ty CP Đầu Tư Máy Xây Dựng Hải Âu" — gán nhầm vào brand "Hoàng Tuấn"
+]);
+
 async function loadCompetitors(sheets) {
   const rows = await readTabObjects(sheets, "Competitors");
   let source = rows;
@@ -224,7 +230,7 @@ async function loadCompetitors(sheets) {
     const brand = String(r.brand_name || "").trim();
     if (!brand) continue;
     if (!isTrue(r.active)) continue; // chỉ active=TRUE
-    const pageIds = String(r.page_ids || "").split("|").map((s) => s.trim()).filter(Boolean);
+    const pageIds = String(r.page_ids || "").split("|").map((s) => s.trim()).filter(Boolean).filter((id) => !PAGE_ID_BLOCKLIST.has(id));
     if (!pageIds.length) { warn(`Brand "${brand}" thiếu page_ids — skip (không bịa page_id).`); continue; }
     out.push({ brand_name: brand, page_ids: pageIds, page_urls: String(r.page_urls || "").trim(), notes: String(r.notes || ""), brand_type: "competitor" });
   }
