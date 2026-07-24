@@ -36,6 +36,15 @@ export interface OwnBrandPage {
   updated_at?: string;
 }
 
+/** Directory page_id -> tên page (tích lũy từ ads đã cào, mọi danh mục).
+ *  Cho phép dashboard hiện TÊN page thay vì page_id — kể cả page phụ bị lọc
+ *  khỏi adLevelAnalysis. Chỉ tên quan sát được, không bịa. */
+export interface PageDirectoryEntry {
+  page_id: string;
+  page_name: string;
+  brand_name?: string;
+}
+
 /* ============================================================
    HISTORICAL REPORTS — báo cáo tuần / tháng (lưu theo kỳ, không ghi đè)
    2 tab Google Sheets: `Weekly Reports` + `Monthly Reports` dùng CHUNG schema.
@@ -374,6 +383,8 @@ export type SpyDashboardData = {
   monthlyReports?: SpyReport[];
   /* ---- Own Brand Pages (page SERYN; thiếu tab -> [] không crash) ---- */
   ownBrandPages?: OwnBrandPage[];
+  /* ---- Page Directory (page_id -> tên page; hiện tên thay vì ID) ---- */
+  pageDirectory?: PageDirectoryEntry[];
 };
 
 /** 5 bảng CSV gốc (dùng cho import thủ công / health-check). Các tab v2

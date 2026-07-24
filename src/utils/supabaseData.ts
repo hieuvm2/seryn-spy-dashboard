@@ -17,7 +17,7 @@ import type {
   WeeklyStrategyChange, SerynContentRecommendation, VisualAnalysis, BrandVisualSummary,
   VisualPattern, WeeklyChangeInsight, CrawlRun, MarketIntelligenceItem,
   CompetitorDiscoveryCandidate, HookCluster, WeeklySummary, ActionPlanItem, SwipeSuggestion,
-  SpyReport, OwnBrandPage,
+  SpyReport, OwnBrandPage, PageDirectoryEntry,
 } from "../types";
 
 export { isSupabaseConfigured };
@@ -52,5 +52,6 @@ export async function fetchSupabaseSpyData(): Promise<SpyDashboardData> {
     weeklyReports: asRows<SpyReport>(d.weeklyReports),
     monthlyReports: asRows<SpyReport>(d.monthlyReports),
     ownBrandPages: asRows<OwnBrandPage>(d.ownBrandPages),
+    pageDirectory: asRows<PageDirectoryEntry>(d.pageDirectory),
   };
 }

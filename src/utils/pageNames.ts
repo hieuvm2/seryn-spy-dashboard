@@ -1,9 +1,10 @@
 import type { SpyDashboardData } from "../types";
 
-/** Map page_id -> page_name gom từ dữ liệu runtime (ownBrandPages + adLevelAnalysis).
- *  CHỈ tên THẬT quan sát được trong dữ liệu — page_id không có tên thì KHÔNG thêm
- *  (UI tự fallback về chính page_id, tuyệt đối không bịa tên). ownBrandPages ưu tiên
- *  trước để page SERYN luôn đúng tên. */
+/** Map page_id -> page_name gom từ dữ liệu runtime.
+ *  Nguồn (ưu tiên trước thắng): ownBrandPages (page SERYN luôn đúng tên) ->
+ *  pageDirectory (directory tích lũy do pipeline gom từ mọi ad, phủ cả page phụ)
+ *  -> adLevelAnalysis (tên từ ad trẻ hóa). CHỈ tên THẬT quan sát được — page_id
+ *  không có tên thì KHÔNG thêm (UI fallback về chính page_id, không bịa tên). */
 export function buildPageNameMap(data: SpyDashboardData): Map<string, string> {
   const m = new Map<string, string>();
   const put = (id: unknown, name: unknown) => {
@@ -12,6 +13,7 @@ export function buildPageNameMap(data: SpyDashboardData): Map<string, string> {
     if (i && n && !m.has(i)) m.set(i, n);
   };
   for (const p of data.ownBrandPages ?? []) put(p.page_id, p.page_name);
+  for (const e of data.pageDirectory ?? []) put(e.page_id, e.page_name);
   for (const a of data.adLevelAnalysis ?? []) put(a.page_id, a.page_name);
   return m;
 }

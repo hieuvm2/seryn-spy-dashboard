@@ -28,6 +28,7 @@ import { analyzeHook } from "./lib/hookAnalysis.mjs";
 import { importDiscovered } from "./import-discovered-competitors.mjs";
 import { syncSheetToSupabase } from "./sync-sheet-to-supabase.mjs";
 import { supabaseConfigured } from "./lib/supabase.mjs";
+import { collectNamesFromAds, pushPageDirectory } from "./lib/pageDirectory.mjs";
 import { inferServiceCategory } from "./lib/serviceScope.mjs";
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
@@ -1506,8 +1507,11 @@ async function main() {
   }
 
   const allAds = [], snapshots = [], allScaled = [];
+  const pageDirRows = []; // page_id -> tên page (gom từ MỌI ad raw, trước khi lọc trẻ hóa)
   for (const brand of crawlQueue) {
     const { ads: raw, errored, pagesOk = 0, pagesFail = 0, pageLogs = [] } = await pullAds(brand);
+    // Gom tên page THẬT từ ads chưa lọc — phủ cả page phụ không có ad trẻ hóa.
+    pageDirRows.push(...collectNamesFromAds(raw, brand.brand_name));
     totalPages += pagesOk + pagesFail; successPages += pagesOk; failedPages += pagesFail;
     const crawlOk = !errored;
     crawlOkByBrand[brand.brand_name] = crawlOk;
@@ -1669,6 +1673,11 @@ async function main() {
   if (supabaseConfigured()) {
     try { console.log(`\n→ Đẩy dữ liệu lên Supabase…`); await syncSheetToSupabase(); }
     catch (e) { warn(`Đẩy Supabase lỗi (Sheet vẫn OK): ${e?.message || e}`); }
+    // Directory tên page (tích lũy) — để dashboard hiện TÊN page thay vì page_id.
+    try {
+      const pd = await pushPageDirectory(pageDirRows, weekDate);
+      console.log(`  [Supabase] pageDirectory: ${pd.after} page có tên (thêm ${pd.added} tuần này).`);
+    } catch (e) { warn(`Đẩy pageDirectory lỗi: ${e?.message || e}`); }
   }
   console.log(`→ Dashboard: đọc từ Supabase (hoặc bấm "Refresh Online Data").`);
 }

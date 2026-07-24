@@ -25,6 +25,14 @@ function client() {
   return _client;
 }
 
+/** Đọc rows của 1 dataset_key (mảng rỗng nếu chưa có / lỗi shape). */
+export async function fetchDataset(datasetKey) {
+  const sb = client();
+  const { data, error } = await sb.from("spy_data").select("rows").eq("dataset_key", datasetKey).maybeSingle();
+  if (error) throw new Error(error.message);
+  return Array.isArray(data?.rows) ? data.rows : [];
+}
+
 /**
  * Upsert nhiều dataset lên bảng spy_data.
  * @param {Record<string, any[]>} datasets  map dataset_key -> mảng rows
