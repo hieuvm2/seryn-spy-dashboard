@@ -85,10 +85,10 @@ export default function TopHeader({ dataSource, market = "Vietnam", weekDate, is
           <button
             onClick={onExportClick}
             className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-2.5 sm:px-3.5 py-2 rounded-xl text-sm font-bold border border-slate-900 shadow-sm transition cursor-pointer"
-            title="Xuất báo cáo PDF để gửi team"
+            title="Xem báo cáo chi tiết và tải PDF"
           >
             <FileDown className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Xuất PDF</span>
+            <span className="hidden sm:inline">Báo cáo chi tiết</span>
           </button>
         )}
         {onClear && (

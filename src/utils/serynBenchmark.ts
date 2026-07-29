@@ -221,18 +221,10 @@ const FUNNEL_VI: Record<string, string> = { messenger: "Messenger", lead_form: "
 export function getSerynRecommendedTests(data: SpyDashboardData): SerynRecommendedTest[] {
   const s = buildSerynSnapshot(data), c = buildCompetitorBenchmark(data);
   const tests: SerynRecommendedTest[] = [];
-  const missingAngles = notIn(c.topContentAngles, s.topContentAngles);
   const missingServices = notIn(c.topServices, s.topServices);
   const fmtGaps = getFormatGaps(data);
   const funnelGaps = getFunnelGaps(data);
 
-  missingAngles.slice(0, 2).forEach((a) => tests.push({
-    priority: "High", testType: "Content Angle",
-    recommendation: `Test có kiểm soát góc "${viLabel(a)}" theo tông SERYN (điềm tĩnh, y khoa).`,
-    reason: "Đối thủ đang lặp lại angle này nhưng SERYN chưa thấy dùng trong dữ liệu hiện có.",
-    evidence: `Angle đối thủ hay dùng: ${c.topContentAngles.map(viLabel).join(", ") || "—"}.`,
-    riskNote: /fear|nỗi lo|lão hóa/i.test(a) ? "Tránh fear-based; giữ 'kết quả tùy cơ địa'." : undefined,
-  }));
   fmtGaps.forEach((k) => tests.push({
     priority: "Medium", testType: "Format",
     recommendation: `Bổ sung định dạng ${FMT_VI[k] || k} vào mix creative của SERYN.`,

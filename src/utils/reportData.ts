@@ -76,7 +76,6 @@ function topFrom(rawList: unknown, rows: Array<Record<string, any>>, field: stri
 export function composeExecSummary(data: SpyDashboardData): string {
   const snap = (data.brandWeeklySnapshot ?? []).filter((b) => !isOwnBrand(b.brand_name, data.ownBrandPages ?? []));
   const scaled = data.scaledContentAnalysis ?? [];
-  const dq = dataQualityReport(latestWeek(data.weeklySummary ?? []));
   const weekDate = snap[0]?.week_date || "—";
   const totalBrands = snap.length;
   const activeBrands = snap.filter((b) => normalizeNumber(b.total_active_ads) > 0).length;
@@ -100,7 +99,6 @@ export function composeExecSummary(data: SpyDashboardData): string {
   if (topHook) parts.push(`Hook phổ biến: ${viLabel(topHook.label)}.`);
   if (topOffer) parts.push(`Offer nổi bật: ${topOffer.label}.`);
   parts.push(`${scaled.length} cụm nội dung đang nhân rộng.`);
-  parts.push(`Chất lượng dữ liệu: ${dq.score}/100.`);
   return parts.join(" ");
 }
 

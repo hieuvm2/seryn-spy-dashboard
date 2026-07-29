@@ -46,7 +46,7 @@ function AuthShell({ children }: { children: React.ReactNode }) {
         <img src="/seryn-mark.png" alt="SERYN" className="w-12 h-12 object-contain" />
         <div>
           <h1 className="font-brand text-2xl font-bold tracking-[0.18em] text-slate-900">SERYN</h1>
-          <p className="text-[11px] font-mono tracking-wider uppercase text-slate-400 font-bold mt-1">Competitor Intelligence</p>
+          <p className="text-[11px] font-mono tracking-wider uppercase text-slate-400 font-bold mt-1">Competitor Tracker</p>
         </div>
         {children}
       </div>
