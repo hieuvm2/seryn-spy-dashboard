@@ -193,7 +193,7 @@ const EN_WHITELIST = new Set([
   "fomo", "claim", "claims", "selfie", "own", "brief", "sejung", "aqua", "mega",
   "strategy", "psych", "creative", // tham chiếu file phân tích (strategy.md, psych.md, creative.md)
   "gangwhoo", "kangnam", "kangdong", "rohto", "aohal", "pensilia", "shynh", "lavender", "visia",
-  "drama", "evergreen", "megalive", "pro", "vip", "file", // từ mượn / tên riêng
+  "drama", "evergreen", "megalive", "pro", "vip", "file", "blouse", // từ mượn / tên riêng
 ]);
 
 /**
