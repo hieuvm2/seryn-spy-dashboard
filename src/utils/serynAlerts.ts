@@ -7,14 +7,23 @@
    Chỉ dựa dữ liệu đã có — không bịa thêm.
    ============================================================ */
 import type { SpyDashboardData, SpyReport } from "../types";
-import {
-  buildAdContentIntelligenceForBrand, detectRiskReasons, detectBannedPhrases, ANGLE_VI,
-} from "./adContentIntelligence";
-import { getOwnSnapshotBrandNames, isOwnRow } from "./ownBrand";
+import { isOwnRow } from "./ownBrand";
+
+/** Nhóm cảnh báo: pháp lý VN / chính sách Meta / chuẩn thương hiệu / ghi nhận từ báo cáo tuần. */
+export type AlertCategory = "law" | "meta" | "brand" | "report";
+
+export const CATEGORY_VI: Record<AlertCategory, string> = {
+  law: "Luật quảng cáo Việt Nam",
+  meta: "Chính sách quảng cáo Meta",
+  brand: "Chuẩn thương hiệu SERYN",
+  report: "Ghi nhận từ báo cáo tuần",
+};
 
 export interface SerynContentAlert {
   severity: "High" | "Medium";
-  /** Nhãn nguồn: đầu mục báo cáo ("Nội bộ SERYN…") hoặc angle của content. */
+  /** Nhóm cảnh báo (để hiện badge + gom nhóm). */
+  category: AlertCategory;
+  /** Nhãn nguồn: tên luật quét, đầu mục báo cáo hoặc angle của content. */
   label: string;
   /** Nội dung cảnh báo (nguyên văn từ báo cáo, hoặc trích content). */
   message: string;
@@ -25,6 +34,10 @@ export interface SerynContentAlert {
   /** (nguồn content) đề xuất sửa an toàn + cảnh báo tuân thủ. */
   safeRewrite?: string;
   complianceWarning?: string;
+  /** Căn cứ pháp lý / chính sách / chuẩn thương hiệu của cảnh báo. */
+  basis?: string;
+  /** Hướng xử lý cụ thể. */
+  guidance?: string;
   /** (nguồn content) link QC ví dụ + số QC. */
   adUrl?: string;
   adsCount?: number;
@@ -35,6 +48,8 @@ export interface SerynAlertsResult {
   source: "report" | "content" | "none";
   /** Có nguồn để đánh giá cảnh báo không (báo cáo hoặc content). */
   hasData: boolean;
+  /** Số QC đang chạy của SERYN đã được máy quét tuân thủ rà qua. */
+  scannedAds: number;
   alerts: SerynContentAlert[];
 }
 
@@ -82,6 +97,7 @@ function alertsFromReport(report: SpyReport): SerynContentAlert[] {
       /ưu tiên cao|cao nhất|nghiêm trọng|khẩn|nặng/i.test(raw) ? "High" : "Medium";
     out.push({
       severity,
+      category: "report",
       label: head || "Nội bộ SERYN",
       message: rest || raw,
       flaggedPhrases: extractQuotedPhrases(raw),
@@ -91,39 +107,137 @@ function alertsFromReport(report: SpyReport): SerynContentAlert[] {
   return out;
 }
 
-/* ---------- nguồn 2 (fallback): tự dò content ad-level ---------- */
-function alertsFromContent(data: SpyDashboardData): { hasContent: boolean; alerts: SerynContentAlert[] } {
-  const ownNames = getOwnSnapshotBrandNames(data);
-  const seen = new Set<string>();
+/* ---------- nguồn 2: máy quét tuân thủ — rà TOÀN BỘ QC đang chạy của SERYN ----------
+   3 nhóm luật: (law) luật quảng cáo Việt Nam · (meta) chính sách quảng cáo Meta ·
+   (brand) chuẩn thương hiệu SERYN. Chỉ báo khi có QC thật khớp — không suy diễn. */
+interface ComplianceRule {
+  category: Exclude<AlertCategory, "report">;
+  severity: "High" | "Medium";
+  name: string;
+  basis: string;
+  guidance: string;
+  /** RegExp source — quét không phân biệt hoa thường trên toàn văn QC. */
+  pattern: string;
+  describe: (n: number) => string;
+}
+
+const COMPLIANCE_RULES: ComplianceRule[] = [
+  {
+    category: "law", severity: "High",
+    name: "Từ ngữ tuyệt đối: 'nhất', 'duy nhất', 'số 1'",
+    pattern: "(tốt|đẹp|rẻ|hiệu quả|an toàn|uy tín|lớn)\\s*nhất|duy nhất|số\\s*(1|một)\\b|hàng đầu|độc quyền",
+    describe: (n) => `${n} quảng cáo đang dùng từ ngữ tuyệt đối — nhóm từ bị cấm trong quảng cáo khi không có tài liệu chứng minh hợp pháp.`,
+    basis: "Luật Quảng cáo 2012, Điều 8 (khoản 11): cấm dùng 'nhất', 'duy nhất', 'tốt nhất', 'số một' hoặc từ ngữ tương tự mà không có tài liệu hợp pháp chứng minh.",
+    guidance: "Bỏ từ tuyệt đối hoặc chuẩn bị tài liệu chứng minh; thay bằng mô tả cụ thể, có số đo.",
+  },
+  {
+    category: "law", severity: "High",
+    name: "Cam kết kết quả tuyệt đối: 'xóa sạch', 'dứt điểm', 'vĩnh viễn'",
+    pattern: "cam kết (kết quả|hiệu quả|hết|khỏi|sạch|trắng)|(bảo đảm|đảm bảo) (hiệu quả|kết quả)|100%\\s*(hiệu quả|hết|sạch|khỏi)|hiệu quả (100%|tuyệt đối)|vĩnh viễn|mãi mãi|dứt điểm|tận gốc|khỏi hẳn|chữa khỏi|xóa sạch|sạch (nám|nhăn|mụn)",
+    describe: (n) => `${n} quảng cáo hứa kết quả tuyệt đối — dạng câu chữ dễ bị coi là quảng cáo sai sự thật hoặc gây nhầm lẫn về công dụng dịch vụ y khoa.`,
+    basis: "Luật Quảng cáo 2012, Điều 8 (khoản 9): cấm quảng cáo không đúng hoặc gây nhầm lẫn về chất lượng, công dụng; mức xử phạt theo Nghị định 38/2021/NĐ-CP.",
+    guidance: "Hạ mức hứa xuống 'hỗ trợ cải thiện', 'làm mờ rõ hơn' và luôn kèm 'kết quả tùy cơ địa'.",
+  },
+  {
+    category: "law", severity: "High",
+    name: "Hứa kết quả tức thì / theo phút",
+    pattern: "(trẻ lại|trẻ hóa|đẹp|căng|hết|giảm|hiệu quả|kết quả)[^.!?\\n]{0,15}(tức thì|ngay lập tức)|(sau|trong|chỉ)\\s*\\d+\\s*(phút|giờ)\\b|trẻ (hơn|ra)\\s*\\d+\\s*tuổi",
+    describe: (n) => `${n} quảng cáo hứa hiệu quả tức thì hoặc theo mốc phút - giờ — với dịch vụ y khoa đây là lời hứa vượt quá căn cứ chuyên môn.`,
+    basis: "Luật Quảng cáo 2012, Điều 8 (gây nhầm lẫn về công dụng); dịch vụ khám chữa bệnh chỉ được quảng cáo đúng nội dung đã được Sở Y tế xác nhận (Nghị định 181/2013/NĐ-CP, Thông tư 09/2015/TT-BYT).",
+    guidance: "Bỏ mốc thời gian phi thực tế; nếu muốn nói tiến độ, dùng mốc có số đo thật như 'số đo tại ngày 45'.",
+  },
+  {
+    category: "meta", severity: "High",
+    name: "Ám chỉ tình trạng cá nhân của người xem",
+    pattern: "(bạn|chị|cô|em)[^.!?\\n]{0,25}(đang bị|bị (nám|sạm|nhăn|chảy xệ|hóp))|da (của )?(bạn|chị) đang",
+    describe: (n) => `${n} quảng cáo nói thẳng 'bạn/chị đang bị…' — Meta xếp đây vào nhóm ám chỉ đặc điểm cá nhân và có thể từ chối phân phối.`,
+    basis: "Meta Advertising Standards — Personal Attributes: cấm câu chữ khẳng định hoặc ám chỉ người xem có tình trạng cơ thể, sức khỏe cụ thể.",
+    guidance: "Chuyển sang cách nói chung: 'làn da sau tuổi 40 thường…' thay vì 'da của bạn đang…'.",
+  },
+  {
+    category: "meta", severity: "High",
+    name: "Kết quả phi thực tế: 'lột xác', 'thần kỳ', trước/sau",
+    pattern: "lột xác|thần kỳ|kỳ diệu|vi diệu|trước[^0-9a-zà-ỹ\\n]{0,6}sau",
+    describe: (n) => `${n} quảng cáo dùng từ ngữ đổi đời tức khắc hoặc so sánh trước/sau — nhóm nội dung Meta hạn chế với ngành sức khỏe - làm đẹp.`,
+    basis: "Meta Advertising Standards — Unrealistic Outcomes; nội dung trước/sau trong mảng sức khỏe - làm đẹp bị hạn chế hiển thị hoặc từ chối.",
+    guidance: "Thay bằng số đo và mô tả quá trình; không dùng cặp ảnh trước/sau cường điệu.",
+  },
+  {
+    category: "meta", severity: "Medium",
+    name: "Khan hiếm, đếm ngược dàn dựng",
+    pattern: "chỉ còn \\d+\\s*(suất|ngày|slot)|\\d+\\s*suất cuối|ngày cuối cùng|nhanh tay kẻo lỡ|số lượng có hạn",
+    describe: (n) => `${n} quảng cáo dùng hạn chót hoặc số suất giới hạn — nếu hạn chót không có thật, đây là thông tin gây hiểu lầm.`,
+    basis: "Meta Advertising Standards — Misleading Claims; đồng thời chạm Điều 8 Luật Quảng cáo 2012 (quảng cáo gây nhầm lẫn).",
+    guidance: "Chỉ dùng hạn chót có thật, có ngày kết thúc rõ ràng; không chạy 'chỉ còn 1 ngày' nhiều tuần liền.",
+  },
+  {
+    category: "brand", severity: "High",
+    name: "Kịch bản drama gia đình: 'giận chồng', 'vợ già'",
+    pattern: "giận chồng|vợ già|chồng chê|bị chồng|anh nhà|chồng bỏ",
+    describe: (n) => `${n} quảng cáo dùng kịch bản hôn nhân - chê bai ngoại hình, thuộc danh sách nội dung thương hiệu cấm dùng.`,
+    basis: "Chuẩn thương hiệu SERYN: không drama hôn nhân, không hạ thấp người xem — định vị sang trọng kín đáo, y khoa điềm tĩnh.",
+    guidance: "Thay bằng khung tự thân ('người nhận ra thay đổi đầu tiên là chính chị'); bản thay chạy ổn 14 ngày rồi mới tắt bản cũ, không nhân sang page mới.",
+  },
+  {
+    category: "brand", severity: "High",
+    name: "Hù dọa nỗi sợ lão hóa",
+    pattern: "đừng để[^.!?\\n]{0,25}(già|lão hóa|xấu)|sợ (già|xấu|lão hóa)|già trước tuổi|già đi trông thấy",
+    describe: (n) => `${n} quảng cáo mở bài bằng nỗi sợ già, xấu — trái nguyên tắc không đánh vào nỗi sợ của thương hiệu.`,
+    basis: "Chuẩn thương hiệu SERYN: không FOMO rẻ tiền, không khai thác nỗi sợ lão hóa.",
+    guidance: "Nói bằng dữ liệu ('điều gì đang thay đổi trong cấu trúc da') thay cho hình ảnh và câu chữ gây sợ.",
+  },
+  {
+    category: "brand", severity: "Medium",
+    name: "Dẫn dắt bằng 'miễn phí / 0đ' hàng loạt",
+    pattern: "miễn phí|\\b0\\s*đ|giá sốc|đồng giá|chỉ từ\\s*\\d",
+    describe: (n) => `${n} quảng cáo mở đầu bằng 'miễn phí, 0đ' — tự xếp SERYN vào rổ khuyến mãi đại trà, trái định hướng không đua giá.`,
+    basis: "Chuẩn thương hiệu SERYN: không đua giá; mục tiêu kỳ 03/08 còn tối đa 45% quảng cáo dẫn bằng ưu đãi.",
+    guidance: "Mỗi tuần thay 5-7 bản 'miễn phí/tặng' bằng khung giá trị Bản đồ Gương mặt (cơ chế 4 tầng).",
+  },
+  {
+    category: "brand", severity: "Medium",
+    name: "Nội dung lệch mùa đang chạy lại",
+    pattern: "đón tết|quà tặng cuối năm|tết 20\\d\\d|giáng sinh|noel|megalive",
+    describe: (n) => `${n} quảng cáo nói về Tết, quà cuối năm hoặc sự kiện đã qua nhưng vẫn đang chạy giữa kỳ hiện tại.`,
+    basis: "Chuẩn thương hiệu SERYN: nội dung sai thời điểm làm giảm độ tin cậy của page.",
+    guidance: "Tắt theo nguyên tắc có bản thay chạy ổn rồi mới tắt; rà lại lịch tự bật lại của các chiến dịch cũ.",
+  },
+];
+
+function alertsFromComplianceScan(data: SpyDashboardData): { scanned: number; alerts: SerynContentAlert[] } {
+  const own = (data.adLevelAnalysis ?? []).filter((a) => isOwnRow(a, data));
   const alerts: SerynContentAlert[] = [];
-  let total = 0;
-  for (const name of ownNames) {
-    for (const c of buildAdContentIntelligenceForBrand(name, data, 20)) {
-      const key = `${c.brandName}|${c.id}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      total++;
-      const flaggedPhrases = detectBannedPhrases(`${c.contentText} ${c.offerDetected}`);
-      const reasons = detectRiskReasons(c.contentText, c.offerDetected, false).map((r) => r.reason);
-      const risky = c.riskLevel === "High" || c.riskLevel === "Medium" || flaggedPhrases.length > 0;
-      if (!risky) continue;
-      alerts.push({
-        severity: c.riskLevel === "High" || flaggedPhrases.length > 0 ? "High" : "Medium",
-        label: ANGLE_VI[c.contentAngle] || "Nội dung quảng cáo",
-        message: c.contentText || c.contentSummary,
-        flaggedPhrases,
-        reasons: reasons.length ? reasons : ["Câu chữ cần review theo chuẩn claim an toàn"],
-        safeRewrite: c.serynResponse.safeRewrite,
-        complianceWarning: c.serynResponse.complianceWarning,
-        adUrl: c.exampleAdUrls[0],
-        adsCount: c.adsCount,
-      });
+  for (const rule of COMPLIANCE_RULES) {
+    const phrases = new Map<string, string>();
+    let count = 0;
+    let exampleUrl = "";
+    for (const a of own) {
+      const text = [a.headline, a.primary_text, a.hook_raw_text, a.hook_text, a.offer_detected]
+        .map((x) => String(x ?? "")).join(" \n ");
+      const m = text.match(new RegExp(rule.pattern, "gi"));
+      if (!m || !m.length) continue;
+      count++;
+      for (const x of m) {
+        const p = x.replace(/\s+/g, " ").trim();
+        const k = p.toLowerCase();
+        if (p.length >= 2 && !phrases.has(k)) phrases.set(k, p);
+      }
+      if (!exampleUrl) exampleUrl = adLibraryAdUrl(String(a.page_id ?? ""), String(a.ad_id ?? ""));
     }
+    if (!count) continue;
+    alerts.push({
+      severity: rule.severity,
+      category: rule.category,
+      label: rule.name,
+      message: rule.describe(count),
+      flaggedPhrases: [...phrases.values()].slice(0, 8),
+      basis: rule.basis,
+      guidance: rule.guidance,
+      adUrl: exampleUrl,
+      adsCount: count,
+    });
   }
-  alerts.sort((a, b) =>
-    a.severity === b.severity ? (b.adsCount ?? 0) - (a.adsCount ?? 0) : a.severity === "High" ? -1 : 1,
-  );
-  return { hasContent: total > 0, alerts };
+  return { scanned: own.length, alerts };
 }
 
 /* ---------- tìm QC của SERYN chứa 1 cụm từ (khi bấm chip cụm vi phạm) ---------- */
@@ -324,13 +438,24 @@ export function findOwnAdsByPhrase(data: SpyDashboardData, phrase: string): Phra
   return { ads, matchedFragment: ads.length ? origPhrase : "", approximate: false };
 }
 
-/** Cảnh báo content SERYN — ưu tiên báo cáo tuần (đồng nhất tab Báo cáo). */
+/** Cảnh báo content SERYN — máy quét tuân thủ (luật VN / Meta / thương hiệu)
+ *  chạy trên MỌI QC đang chạy của SERYN, cộng thêm ghi nhận từ báo cáo tuần. */
 export function buildSerynAlerts(data: SpyDashboardData): SerynAlertsResult {
   const report = latestWeeklyReport(data);
-  // Có báo cáo -> báo cáo là nguồn chuẩn (kể cả khi 0 rủi ro) để KHỚP tab Báo cáo.
-  if (report) {
-    return { source: "report", hasData: true, alerts: alertsFromReport(report) };
-  }
-  const c = alertsFromContent(data);
-  return { source: c.hasContent ? "content" : "none", hasData: c.hasContent, alerts: c.alerts };
+  const scan = alertsFromComplianceScan(data);
+  const reportAlerts = report ? alertsFromReport(report) : [];
+  const sevRank: Record<string, number> = { High: 0, Medium: 1 };
+  const catRank: Record<AlertCategory, number> = { law: 0, meta: 1, brand: 2, report: 3 };
+  const alerts = [...scan.alerts, ...reportAlerts].sort((a, b) =>
+    catRank[a.category] - catRank[b.category] ||
+    sevRank[a.severity] - sevRank[b.severity] ||
+    (b.adsCount ?? 0) - (a.adsCount ?? 0),
+  );
+  const hasData = !!report || scan.scanned > 0;
+  return {
+    source: report ? "report" : scan.scanned > 0 ? "content" : "none",
+    hasData,
+    scannedAds: scan.scanned,
+    alerts,
+  };
 }
