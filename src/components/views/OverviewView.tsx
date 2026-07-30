@@ -100,14 +100,14 @@ export default function OverviewView({ data, onSelectBrand }: { data: SpyDashboa
         <Kpi label="QC đã dừng" value={`−${stoppedAds.toLocaleString("vi-VN")}`} icon={TrendingDown} accent="bg-rose-50 text-rose-600" tone="down" />
       </div>
 
-      {/* SERYN vs Đối thủ (ngắn) — chi tiết ở tab SERYN */}
-      <SerynBenchmarkCompact data={data} onOpen={() => { window.location.hash = "seryn"; }} />
-
       {/* Báo cáo tuần (gộp từ Weekly Intelligence) */}
       <div className="hm-panel p-6">
         <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wider mb-2">Báo cáo tuần</h3>
         <p className="text-[15px] text-slate-800 leading-relaxed bg-slate-50 border border-slate-100 rounded-xl p-4">{execSummary}</p>
       </div>
+
+      {/* SERYN vs Đối thủ (ngắn) — chi tiết ở tab SERYN */}
+      <SerynBenchmarkCompact data={data} onOpen={() => { window.location.hash = "seryn"; }} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="hm-panel p-6 space-y-5">
