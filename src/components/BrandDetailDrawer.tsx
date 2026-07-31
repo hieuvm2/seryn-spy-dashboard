@@ -86,6 +86,22 @@ function RateGroup({ items }: { items: { label: string; v: unknown }[] }) {
 }
 const ar = (v: unknown) => Array.isArray(v) ? v : [];
 
+/** Trích ngắn câu mở đầu của cụm nội dung — dấu hiệu nhận dạng giữa các cụm
+ *  trùng cặp "định dạng · góc tiếp cận". Bỏ emoji/ký tự trang trí, gộp khoảng
+ *  trắng, cắt theo TỪ (không cắt giữa chữ) rồi thêm "…". */
+function hookSnippet(raw: unknown, maxLen = 42): string {
+  const s = String(raw ?? "")
+    .replace(/[\p{Extended_Pictographic}\p{So}]/gu, " ")   // emoji, ký hiệu
+    .replace(/[►▶✔✅➡→»>|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!s || !isMeaningful(s)) return "";
+  if (s.length <= maxLen) return s;
+  const cut = s.slice(0, maxLen);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace > maxLen * 0.6 ? cut.slice(0, lastSpace) : cut).trim() + "…";
+}
+
 /** Đếm tần suất giá trị (bỏ rỗng/unknown), trả top-n [{label, count}] giảm dần. */
 function topCounts(values: (string | undefined)[], n: number): { label: string; count: number }[] {
   const map = new Map<string, { label: string; count: number }>();
@@ -142,9 +158,12 @@ export default function BrandDetailDrawer({
 
   // Báo cáo tổng quan riêng của brand: content đang scale, CTA chính, CTKM đang áp dụng.
   // Content đang scale: cluster nhân rộng (nhiều QC nhất) -> "định dạng · góc tiếp cận".
+  // Kèm trích câu mở đầu để phân biệt các cụm KHÁC NHAU nhưng trùng cặp
+  // định dạng + góc (gom cụm dựa trên nội dung, không dựa trên cặp nhãn này).
   const scalingContent = (p?.scaled ?? [])
     .map((s) => ({
       label: [viLabel(String(s.content_format || "")), viLabel(String(s.content_angle || ""))].filter((x) => x && isMeaningful(x)).join(" · "),
+      hook: hookSnippet(s.representative_hook),
       count: num(s.number_of_similar_ads),
       days: num(s.longest_days_active),
     }))
@@ -221,8 +240,9 @@ export default function BrandDetailDrawer({
                         {scalingContent.length ? (
                           <div className="flex flex-wrap gap-1.5">
                             {scalingContent.map((s, i) => (
-                              <span key={i} className="border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[11px] font-semibold">
-                                {s.label}{s.count > 1 ? ` · ${s.count} QC` : ""}{s.days > 0 ? ` · ${s.days} ngày` : ""}
+                              <span key={i} title={s.hook || undefined} className="border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-[11px] font-semibold inline-flex flex-wrap items-baseline gap-x-1">
+                                <span>{s.label}{s.count > 1 ? ` · ${s.count} QC` : ""}{s.days > 0 ? ` · ${s.days} ngày` : ""}</span>
+                                {s.hook && <span className="font-normal italic text-emerald-600/90">“{s.hook}”</span>}
                               </span>
                             ))}
                           </div>
