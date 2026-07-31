@@ -43,5 +43,5 @@ drop policy if exists "spy_data admin all" on public.spy_data;
 create policy "spy_data admin all"
   on public.spy_data for all
   to authenticated
-  using ( lower(coalesce(auth.jwt()->>'email', '')) in ('hieuvm2@seryn.vn', 'atlv@seryn.vn') )
-  with check ( lower(coalesce(auth.jwt()->>'email', '')) in ('hieuvm2@seryn.vn', 'atlv@seryn.vn') );
+  using ( lower(coalesce(auth.jwt()->>'email', '')) in ('hieuvm2@seryn.vn') )
+  with check ( lower(coalesce(auth.jwt()->>'email', '')) in ('hieuvm2@seryn.vn') );

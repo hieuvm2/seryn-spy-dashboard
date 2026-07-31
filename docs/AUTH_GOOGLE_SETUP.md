@@ -4,7 +4,7 @@ Dashboard yêu cầu **đăng nhập Google** trước khi xem. Phân quyền:
 
 | Role | Ai | Quyền |
 |------|----|-------|
-| `admin` | `hieuvm2@seryn.vn`, `atlv@seryn.vn` | Toàn quyền: xem tất cả, nhập dữ liệu, xóa dữ liệu, ghi vào Supabase (RLS cho phép SELECT/INSERT/UPDATE/DELETE) |
+| `admin` | `hieuvm2@seryn.vn` | Toàn quyền: xem tất cả, nhập dữ liệu, xóa dữ liệu, ghi vào Supabase (RLS cho phép SELECT/INSERT/UPDATE/DELETE) |
 | `viewer` | Mọi email `@seryn.vn` khác | Chỉ xem: toàn bộ dashboard trừ trang "Dữ liệu"; không có nút Nhập/Xóa dữ liệu; Supabase chỉ cho SELECT |
 | — | Email ngoài `@seryn.vn` | Bị chặn hoàn toàn (màn hình "Không có quyền truy cập" + RLS chặn đọc) |
 
@@ -55,7 +55,7 @@ Không cần env mới — vẫn dùng `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON
 ## Kiểm tra sau khi cài
 
 - [ ] Mở dashboard (chưa đăng nhập) → thấy màn hình "Đăng nhập bằng Google".
-- [ ] Đăng nhập bằng `hieuvm2@seryn.vn` hoặc `atlv@seryn.vn` → vào được, header hiện badge **Quản trị**, có nút "Nhập dữ liệu" + "Xóa dữ liệu".
+- [ ] Đăng nhập bằng `hieuvm2@seryn.vn` → vào được, header hiện badge **Quản trị**, có nút "Nhập dữ liệu" + "Xóa dữ liệu".
 - [ ] Đăng nhập bằng email `@seryn.vn` khác → vào được, badge **Chỉ xem**, KHÔNG có nút nhập/xóa, sidebar không có trang "Dữ liệu".
 - [ ] Đăng nhập bằng Gmail cá nhân (ngoài seryn.vn) → màn hình "Không có quyền truy cập".
 
