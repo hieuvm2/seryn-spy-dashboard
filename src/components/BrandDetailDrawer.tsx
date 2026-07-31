@@ -380,7 +380,7 @@ function ContentCard({ c }: { c: AdContentIntelligence }) {
       {/* Thumbnail QC + overlay: số lượng QC, scale, content signal */}
       <div className="relative">
         <AdThumb url={c.thumbnailUrl} format={c.adFormat} />
-        {c.adsCount > 1 && <span className="absolute top-1.5 left-1.5 text-[9px] font-extrabold uppercase tracking-wide text-rose-700 bg-rose-50/95 border border-rose-200 px-1.5 py-0.5 rounded">{c.adsCount} QC</span>}
+        {c.adsCount > 1 && <span className="absolute top-2 left-2 text-[15px] font-extrabold uppercase tracking-wide text-rose-700 bg-white/95 border-2 border-rose-300 px-2.5 py-1 rounded-lg shadow-md">{c.adsCount} QC</span>}
         {c.exampleAdUrls[0] && <a href={c.exampleAdUrls[0]} target="_blank" rel="noreferrer" className="absolute bottom-2 right-2 text-[12px] font-extrabold text-white bg-cyan-600 hover:bg-cyan-700 px-3 py-1.5 rounded-lg shadow-lg ring-2 ring-white/80 inline-flex items-center gap-1 transition-colors">Mở QC <ExternalLink className="w-3.5 h-3.5" strokeWidth={2.75} /></a>}
       </div>
 
