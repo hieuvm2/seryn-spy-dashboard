@@ -224,7 +224,8 @@ export default function SerynView({
 
         {/* Ghi chú pháp lý thường trực cho quảng cáo dịch vụ khám chữa bệnh */}
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[13px] leading-relaxed text-slate-600">
-          <b className="text-slate-800">Lưu ý chung:</b> dịch vụ khám chữa bệnh thuộc nhóm quảng cáo đặc biệt — nội dung phải được Sở Y tế xác nhận trước khi chạy và chỉ được quảng cáo đúng phạm vi chuyên môn trong giấy phép (Nghị định 181/2013/NĐ-CP, Thông tư 09/2015/TT-BYT). Mọi nội dung nói về kết quả cần kèm câu 'kết quả tùy cơ địa'.
+          <b className="text-slate-800">Lưu ý chung:</b> khám chữa bệnh thuộc nhóm dịch vụ đặc biệt — nội dung phải được cơ quan y tế xác nhận trước khi chạy và chỉ được quảng cáo đúng phạm vi chuyên môn ghi trong giấy phép. Mọi nội dung nói về kết quả cần kèm câu 'kết quả tùy cơ địa'.
+          <span className="block mt-1.5 text-slate-500">Căn cứ đang áp dụng (đã cập nhật): <b>Luật số 75/2025/QH15</b> sửa đổi Luật Quảng cáo, hiệu lực 01/01/2026 · <b>Nghị định 342/2025/NĐ-CP</b> hiệu lực 15/02/2026 (thay Nghị định 181/2013) · <b>Nghị định 87/2026/NĐ-CP</b> về xử phạt, hiệu lực 15/5/2026 (thay Nghị định 38/2021).</span>
         </div>
 
         {!alertsResult.hasData ? (

@@ -127,7 +127,7 @@ const COMPLIANCE_RULES: ComplianceRule[] = [
     name: "Từ ngữ tuyệt đối: 'nhất', 'duy nhất', 'số 1'",
     pattern: "(tốt|đẹp|rẻ|hiệu quả|an toàn|uy tín|lớn)\\s*nhất|duy nhất|số\\s*(1|một)\\b|hàng đầu|độc quyền",
     describe: (n) => `${n} quảng cáo đang dùng từ ngữ tuyệt đối — nhóm từ bị cấm trong quảng cáo khi không có tài liệu chứng minh hợp pháp.`,
-    basis: "Luật Quảng cáo 2012, Điều 8 (khoản 11): cấm dùng 'nhất', 'duy nhất', 'tốt nhất', 'số một' hoặc từ ngữ tương tự mà không có tài liệu hợp pháp chứng minh.",
+    basis: "Luật Quảng cáo (bản đang áp dụng, sửa đổi bởi Luật số 75/2025/QH15 — hiệu lực 01/01/2026): cấm dùng 'nhất', 'duy nhất', 'tốt nhất', 'số một' hoặc từ ngữ tương tự khi không có tài liệu hợp pháp chứng minh. Xử phạt theo Nghị định 87/2026/NĐ-CP (hiệu lực 15/5/2026, thay Nghị định 38/2021/NĐ-CP).",
     guidance: "Bỏ từ tuyệt đối hoặc chuẩn bị tài liệu chứng minh; thay bằng mô tả cụ thể, có số đo.",
   },
   {
@@ -135,7 +135,7 @@ const COMPLIANCE_RULES: ComplianceRule[] = [
     name: "Cam kết kết quả tuyệt đối: 'xóa sạch', 'dứt điểm', 'vĩnh viễn'",
     pattern: "cam kết (kết quả|hiệu quả|hết|khỏi|sạch|trắng)|(bảo đảm|đảm bảo) (hiệu quả|kết quả)|100%\\s*(hiệu quả|hết|sạch|khỏi)|hiệu quả (100%|tuyệt đối)|vĩnh viễn|mãi mãi|dứt điểm|tận gốc|khỏi hẳn|chữa khỏi|xóa sạch|sạch (nám|nhăn|mụn)",
     describe: (n) => `${n} quảng cáo hứa kết quả tuyệt đối — dạng câu chữ dễ bị coi là quảng cáo sai sự thật hoặc gây nhầm lẫn về công dụng dịch vụ y khoa.`,
-    basis: "Luật Quảng cáo 2012, Điều 8 (khoản 9): cấm quảng cáo không đúng hoặc gây nhầm lẫn về chất lượng, công dụng; mức xử phạt theo Nghị định 38/2021/NĐ-CP.",
+    basis: "Luật Quảng cáo (sửa đổi bởi Luật số 75/2025/QH15): cấm quảng cáo không đúng hoặc gây nhầm lẫn về chất lượng, công dụng dịch vụ; nội dung quảng cáo phải trung thực, chính xác, rõ ràng. Xử phạt theo Nghị định 87/2026/NĐ-CP.",
     guidance: "Hạ mức hứa xuống 'hỗ trợ cải thiện', 'làm mờ rõ hơn' và luôn kèm 'kết quả tùy cơ địa'.",
   },
   {
@@ -143,8 +143,16 @@ const COMPLIANCE_RULES: ComplianceRule[] = [
     name: "Hứa kết quả tức thì / theo phút",
     pattern: "(trẻ lại|trẻ hóa|đẹp|căng|hết|giảm|hiệu quả|kết quả)[^.!?\\n]{0,15}(tức thì|ngay lập tức)|(sau|trong|chỉ)\\s*\\d+\\s*(phút|giờ)\\b|trẻ (hơn|ra)\\s*\\d+\\s*tuổi",
     describe: (n) => `${n} quảng cáo hứa hiệu quả tức thì hoặc theo mốc phút - giờ — với dịch vụ y khoa đây là lời hứa vượt quá căn cứ chuyên môn.`,
-    basis: "Luật Quảng cáo 2012, Điều 8 (gây nhầm lẫn về công dụng); dịch vụ khám chữa bệnh chỉ được quảng cáo đúng nội dung đã được Sở Y tế xác nhận (Nghị định 181/2013/NĐ-CP, Thông tư 09/2015/TT-BYT).",
+    basis: "Luật Quảng cáo (sửa đổi bởi Luật số 75/2025/QH15) — cấm gây nhầm lẫn về công dụng. Khám chữa bệnh thuộc nhóm dịch vụ đặc biệt, phải được xác nhận nội dung quảng cáo trước khi chạy theo Nghị định 342/2025/NĐ-CP (hiệu lực 15/02/2026, thay Nghị định 181/2013/NĐ-CP).",
     guidance: "Bỏ mốc thời gian phi thực tế; nếu muốn nói tiến độ, dùng mốc có số đo thật như 'số đo tại ngày 45'.",
+  },
+  {
+    category: "law", severity: "Medium",
+    name: "Người nổi tiếng nói về dịch vụ — luật mới 2026 siết",
+    pattern: "\\bKOL\\b|\\bKOC\\b|beauty blogger|tiktoker|youtuber|hoa hậu|á hậu|diễn viên|ca sĩ|người mẫu|MC |nghệ sĩ|influencer|review thật|trải nghiệm thực tế",
+    describe: (n) => `${n} quảng cáo có người nổi tiếng hoặc người có ảnh hưởng nói về dịch vụ — từ 2026 nhóm này có nghĩa vụ pháp lý riêng, làm sai thì cả người nói lẫn phòng khám cùng chịu trách nhiệm.`,
+    basis: "Luật số 75/2025/QH15 (hiệu lực 01/01/2026) bổ sung nghĩa vụ cho 'người chuyển tải sản phẩm quảng cáo': phải kiểm chứng thông tin về dịch vụ, KHÔNG được giới thiệu nếu chưa dùng hoặc chưa hiểu rõ, và phải thông báo rõ đây là nội dung quảng cáo ngay trước và trong khi quảng cáo. Xử phạt theo Nghị định 87/2026/NĐ-CP.",
+    guidance: "Hợp đồng với người nổi tiếng phải ghi rõ 3 điều: họ đã thực sự trải nghiệm dịch vụ, nội dung phải gắn nhãn quảng cáo (ví dụ '#quangcao' ngay đầu bài, không giấu trong thẻ), và không tự thêm cam kết kết quả ngoài kịch bản đã duyệt; lưu hồ sơ chứng minh họ đã dùng dịch vụ. LƯU Ý: nghĩa vụ này áp cho cả KHÁCH HÀNG THẬT xuất hiện trong quảng cáo — hai mẫu chuyện khách hàng đang chuẩn bị quay (cô giáo 52 tuổi, kế toán trưởng 45 tuổi) cũng phải gắn nhãn quảng cáo và có đồng ý bằng văn bản.",
   },
   {
     category: "meta", severity: "High",
@@ -167,7 +175,7 @@ const COMPLIANCE_RULES: ComplianceRule[] = [
     name: "Khan hiếm, đếm ngược dàn dựng",
     pattern: "chỉ còn \\d+\\s*(suất|ngày|slot)|\\d+\\s*suất cuối|ngày cuối cùng|nhanh tay kẻo lỡ|số lượng có hạn",
     describe: (n) => `${n} quảng cáo dùng hạn chót hoặc số suất giới hạn — nếu hạn chót không có thật, đây là thông tin gây hiểu lầm.`,
-    basis: "Meta Advertising Standards — Misleading Claims; đồng thời chạm Điều 8 Luật Quảng cáo 2012 (quảng cáo gây nhầm lẫn).",
+    basis: "Meta Advertising Standards — Misleading Claims; đồng thời chạm điều cấm quảng cáo gây nhầm lẫn trong Luật Quảng cáo (sửa đổi bởi Luật số 75/2025/QH15).",
     guidance: "Chỉ dùng hạn chót có thật, có ngày kết thúc rõ ràng; không chạy 'chỉ còn 1 ngày' nhiều tuần liền.",
   },
   {
