@@ -13,8 +13,10 @@ import { createClient, type SupabaseClient, type User } from "@supabase/supabase
 const URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() || "";
 const ANON = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() || "";
 
-/** Email quản trị viên — toàn quyền trên dashboard. */
-export const ADMIN_EMAILS = ["hieuvm2@seryn.vn"];
+/** Email quản trị viên — toàn quyền trên dashboard.
+ *  Thêm/bớt phải đồng bộ policy "spy_data admin all" trong supabase/schema.sql
+ *  và chạy lại khối đó trong Supabase SQL Editor. */
+export const ADMIN_EMAILS = ["hieuvm2@seryn.vn", "atlv@seryn.vn"];
 
 /** Domain email được cấp quyền XEM dashboard. */
 export const ALLOWED_EMAIL_DOMAIN = "seryn.vn";

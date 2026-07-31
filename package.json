@@ -28,7 +28,9 @@
     "supabase:sync": "node scripts/sync-sheet-to-supabase.mjs",
     "vi:check": "node scripts/check-vi-dashboard.mjs",
     "seryn:pages": "node scripts/sync-seryn-pages.mjs",
-    "seryn:pages:write": "node scripts/sync-seryn-pages.mjs --write"
+    "seryn:pages:write": "node scripts/sync-seryn-pages.mjs --write",
+    "build:report-ssr": "vite build --ssr src/report-ssr.tsx --outDir dist-ssr --emptyOutDir",
+    "report:email": "npm run build:report-ssr --silent && node scripts/email-weekly-report.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
@@ -39,6 +41,8 @@
     "html2pdf.js": "^0.14.0",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
+    "nodemailer": "^9.0.3",
+    "puppeteer": "^25.4.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "vite": "^6.2.3"

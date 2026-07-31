@@ -1,0 +1,78 @@
+name: Email báo cáo chi tiết
+
+# Gửi PDF "Báo cáo chi tiết" cho quản trị viên MỖI KHI dashboard có bảng
+# phân tích mới. Script tự so vân tay nội dung với nhật ký đã gửi
+# (dataset reportEmailLog trên Supabase) nên chạy lặp cũng không gửi trùng.
+#
+# Lịch: 03:30 UTC hằng ngày (~10:30 sáng giờ VN) — lệch hẳn 2 cron còn lại
+# (weekly-spy 02:07 UTC thứ Năm, weekly-report 00:00 UTC thứ Hai) để tránh
+# ghi Supabase chồng nhau. Chạy tay được qua tab Actions.
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Gửi lại kể cả khi bản này đã gửi rồi"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: report-email
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Cùng fix "Premature close" ở oauth2/Supabase như weekly-spy.yml.
+      NODE_OPTIONS: "--dns-result-order=ipv4first --no-network-family-autoselection"
+      TZ: Asia/Ho_Chi_Minh
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Chromium của Puppeteer nằm ngoài cache npm -> cache riêng, đỡ tải lại ~150MB.
+      - name: Cache Chromium (Puppeteer)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/puppeteer
+          key: puppeteer-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      # npm ci bỏ qua postinstall khi cache trúng -> đảm bảo có Chromium.
+      - name: Ensure Chromium
+        run: npx puppeteer browsers install chrome
+
+      - name: Build report renderer
+        run: npm run build:report-ssr
+
+      - name: Send report email
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Cấu hình gửi mail (xem .env.example, nhóm REPORT_MAIL_*)
+          REPORT_MAIL_PROVIDER: ${{ vars.REPORT_MAIL_PROVIDER }}
+          REPORT_MAIL_FROM: ${{ vars.REPORT_MAIL_FROM }}
+          REPORT_MAIL_TO: ${{ secrets.REPORT_MAIL_TO }}
+          REPORT_MAIL_CC: ${{ vars.REPORT_MAIL_CC }}
+          REPORT_MAIL_ENABLED: ${{ vars.REPORT_MAIL_ENABLED }}
+          REPORT_MAIL_SUBJECT_PREFIX: ${{ vars.REPORT_MAIL_SUBJECT_PREFIX }}
+          REPORT_MAIL_SMTP_HOST: ${{ secrets.REPORT_MAIL_SMTP_HOST }}
+          REPORT_MAIL_SMTP_PORT: ${{ vars.REPORT_MAIL_SMTP_PORT }}
+          REPORT_MAIL_SMTP_USER: ${{ secrets.REPORT_MAIL_SMTP_USER }}
+          REPORT_MAIL_SMTP_PASS: ${{ secrets.REPORT_MAIL_SMTP_PASS }}
+          REPORT_MAIL_API_KEY: ${{ secrets.REPORT_MAIL_API_KEY }}
+        run: node scripts/email-weekly-report.mjs --send ${{ inputs.force && '--force' || '' }}
