@@ -23,10 +23,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const num = (v) => { const n = Number(String(v).replace(/[^\d.-]/g, "")); return Number.isFinite(n) ? n : 0; };
 const PROVIDER = (process.env.ADS_SOURCE_PROVIDER || "mock").trim().toLowerCase();
 
-/** Ghi đè rows của tuần hiện tại, giữ tuần khác (idempotent khi chạy lại). */
+/** Ghi đè rows của tuần hiện tại, giữ tuần khác (idempotent khi chạy lại).
+ *  QUAN TRỌNG: giữ nguyên các dòng phân tích VIẾT TAY của chính tuần đó
+ *  (action_id chứa "-skill-" hoặc insight_type bắt đầu "skill_") — generator
+ *  chỉ được thay phần nó tự sinh, không được xoá phân tích đa-skill.
+ *  (Sự cố 03/08/2026: replaceWeek cũ xoá 19 dòng viết tay tuần 27/07.) */
 async function replaceWeek(sheets, titles, tab, headers, rows, weekField, weekVal) {
   const existing = await readTab(sheets, tab);
-  const kept = existing.filter((r) => String(r[weekField]) !== String(weekVal));
+  const isHandWritten = (r) =>
+    String(r.action_id || "").includes("-skill-") || String(r.insight_type || "").startsWith("skill_");
+  const kept = existing.filter((r) => String(r[weekField]) !== String(weekVal) || isHandWritten(r));
   await writeTab(sheets, titles, tab, headers, [...kept, ...rows]);
 }
 

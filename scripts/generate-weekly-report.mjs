@@ -85,6 +85,27 @@ async function main() {
   notes.forEach((n) => console.log("  [note] " + n));
   console.log(`  KPI: brands=${row.total_brands_tracked} active=${row.total_active_ads} new=${row.total_new_ads} stopped=${row.total_stopped_ads}`);
 
+  // BẢO VỆ VĂN VIẾT TAY: nếu báo cáo kỳ này đã tồn tại, giữ nguyên toàn bộ
+  // field văn phân tích của bản cũ — generator chỉ được làm mới field máy
+  // (KPI, top_*). Văn của kỳ đã có là bản do người/đa-skill viết, KHÔNG được
+  // thay bằng văn template. (Sự cố 03/08/2026: cron thứ Hai ghi đè văn viết
+  // tay của báo cáo 27/07.)
+  if (!opts.forceNew) {
+    const NARRATIVE_FIELDS = [
+      "executive_summary", "key_competitor_moves", "notable_content_patterns",
+      "notable_visual_patterns", "risk_warnings", "seryn_implications",
+      "recommended_actions", "seryn_benchmark", "title",
+    ];
+    const existing = (await readTab(sheets, TAB.weeklyReports)).find((r) => String(r.report_id) === reportId);
+    if (existing) {
+      let keptCount = 0;
+      for (const f of NARRATIVE_FIELDS) {
+        if (String(existing[f] ?? "").trim()) { row[f] = existing[f]; keptCount++; }
+      }
+      console.log(`  [giữ văn] Báo cáo ${reportId} đã có — giữ nguyên ${keptCount} field văn phân tích, chỉ làm mới số liệu.`);
+    }
+  }
+
   console.log("\nGhi Google Sheets...");
   const res = await upsertReport(sheets, titles, TAB.weeklyReports, row, { forceNew: opts.forceNew });
   const md = writeReportMarkdown({ ...row, report_id: res.reportId }, "weekly_reports");
