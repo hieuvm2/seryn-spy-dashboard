@@ -184,7 +184,7 @@ const COMPLIANCE_RULES: ComplianceRule[] = [
     pattern: "giận chồng|vợ già|chồng chê|bị chồng|anh nhà|chồng bỏ",
     describe: (n) => `${n} quảng cáo dùng kịch bản hôn nhân - chê bai ngoại hình, thuộc danh sách nội dung thương hiệu cấm dùng.`,
     basis: "Chuẩn thương hiệu SERYN: không drama hôn nhân, không hạ thấp người xem — định vị sang trọng kín đáo, y khoa điềm tĩnh.",
-    guidance: "Thay bằng khung tự thân ('người nhận ra thay đổi đầu tiên là chính chị'); bản thay chạy ổn 14 ngày rồi mới tắt bản cũ, không nhân sang page mới.",
+    guidance: "Thay bằng khung tự thân ('người nhận ra thay đổi đầu tiên là chính chị'); ads thay thế chạy ổn 14 ngày rồi mới tắt ads cũ, không nhân sang page mới.",
   },
   {
     category: "brand", severity: "High",
@@ -208,7 +208,7 @@ const COMPLIANCE_RULES: ComplianceRule[] = [
     pattern: "đón tết|quà tặng cuối năm|tết 20\\d\\d|giáng sinh|noel|megalive",
     describe: (n) => `${n} quảng cáo nói về Tết, quà cuối năm hoặc sự kiện đã qua nhưng vẫn đang chạy giữa kỳ hiện tại.`,
     basis: "Chuẩn thương hiệu SERYN: nội dung sai thời điểm làm giảm độ tin cậy của page.",
-    guidance: "Tắt theo nguyên tắc có bản thay chạy ổn rồi mới tắt; rà lại lịch tự bật lại của các chiến dịch cũ.",
+    guidance: "Tắt theo nguyên tắc có ads thay thế chạy ổn rồi mới tắt; rà lại lịch tự bật lại của các chiến dịch cũ.",
   },
 ];
 
