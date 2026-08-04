@@ -90,7 +90,65 @@ const CORE = new RegExp([
  * @param {{headline?:string, primary_text?:string, hook_text?:string}} ad
  * @returns {{category:string, reason:string, evidence:string}}
  */
-export function explainServiceScope(ad) {
+/* ── NGOẠI LỆ NỚI PHẠM VI THEO BRAND ──────────────────────────────────────
+   Mặc định bộ lọc rất chặt (chỉ trẻ hóa / căng da mặt THUẦN). Một số brand
+   gần như không còn chạy trẻ hóa thuần nên bảng theo dõi trống — với các
+   brand trong danh sách này, CHẤP NHẬN THÊM dịch vụ CHĂM SÓC DA MẶT khác
+   (nám, mụn, sắc tố, sẹo, lỗ chân lông, meso...). VẪN LOẠI: dịch vụ vùng cơ
+   thể khác và dịch vụ khác hẳn (nâng ngực, răng, triệt lông...).
+   Yêu cầu user 04/08/2026: chỉ áp cho Sejung.
+   Thêm brand vào đây = nới cho đúng brand đó, KHÔNG ảnh hưởng brand khác. */
+export const RELAXED_SCOPE_BRANDS = ["sejung"];
+
+/* ── BRAND NHÀ: LẤY TOÀN BỘ QUẢNG CÁO ─────────────────────────────────────
+   Với thương hiệu của chính mình, cần thấy ĐỦ mọi quảng cáo đang chạy để
+   quản trị nội dung (kể cả nám, mụn, body...), không lọc theo phạm vi trẻ
+   hóa. Nhận diện qua brand_type="own" HOẶC tên trong danh sách dưới.
+   Yêu cầu user 04/08/2026: SERYN mặc định lấy toàn bộ quảng cáo. */
+export const FULL_SCOPE_BRANDS = ["seryn"];
+
+/** Brand này lấy toàn bộ quảng cáo, bỏ qua bộ lọc phạm vi? */
+export function isFullScopeBrand(ad) {
+  if (String(ad?.brand_type ?? "").toLowerCase().trim() === "own") return true;
+  const b = String(ad?.brand_name ?? "").toLowerCase().trim();
+  return !!b && FULL_SCOPE_BRANDS.some((x) => b.includes(x));
+}
+
+/** Brand này có được nới phạm vi không (so khớp không phân biệt hoa thường). */
+export function isRelaxedScopeBrand(brandName) {
+  const b = String(brandName ?? "").toLowerCase().trim();
+  if (!b) return false;
+  return RELAXED_SCOPE_BRANDS.some((x) => b.includes(x));
+}
+
+/** Tín hiệu đây là dịch vụ CHO DA MẶT (dùng cho chế độ nới). */
+const FACIAL_CARE_VI = /\bda mặt\b|làn da|nền da|da xỉn|xỉn màu|đều màu|lỗ chân lông|\bnám\b|tàn nhang|sắc tố|đốm nâu|sạm|\bmụn\b|sẹo rỗ|sẹo lõm|\bmeso\b|thâm|trắng da|dưỡng da|phục hồi da|soi da|chăm sóc da/i;
+
+export function explainServiceScope(ad, opts = {}) {
+  // Brand nhà (SERYN): giữ TOÀN BỘ quảng cáo, không lọc phạm vi.
+  if (opts.fullScope === true || isFullScopeBrand(ad)) {
+    return { category: SERVICE_CATEGORY, reason: "own_brand_full_scope", evidence: "" };
+  }
+  // Chế độ nới: bật khi truyền {relaxed:true} hoặc ad có brand_name thuộc danh sách.
+  const relaxed = opts.relaxed === true || isRelaxedScopeBrand(ad.brand_name);
+  if (relaxed) {
+    const fullRaw0 = [ad.headline, ad.primary_text, ad.hook_text].join(" \n ");
+    const headRaw0 = [ad.headline, ad.hook_text].join(" \n ");
+    // Vẫn loại dịch vụ khác hẳn / vùng cơ thể khác — chỉ nới ở nhóm da mặt.
+    const negHard = NEG_OTHER.exec(fold(headRaw0)) || NEG_BODY_VI.exec(foldVi(headRaw0));
+    if (negHard) return { category: "other", reason: "headline_other_service", evidence: negHard[0] };
+    const negBodyFull = NEG_BODY_VI.exec(foldVi(fullRaw0));
+    if (negBodyFull && !CORE.test(fold(headRaw0))) {
+      return { category: "other", reason: "body_other_service_no_facial_headline", evidence: negBodyFull[0] };
+    }
+    // Có tín hiệu trẻ hóa lõi HOẶC tín hiệu chăm sóc da mặt → giữ.
+    const core = CORE.exec(fold(fullRaw0));
+    if (core) return { category: SERVICE_CATEGORY, reason: "core_rejuvenation_signal", evidence: core[0] };
+    const facial = FACIAL_CARE_VI.exec(foldVi(fullRaw0)) || FACIAL_CARE_VI.exec(fullRaw0);
+    if (facial) return { category: SERVICE_CATEGORY, reason: "relaxed_facial_care", evidence: facial[0] };
+    return { category: "other", reason: "no_rejuvenation_signal", evidence: "" };
+  }
+
   const headRaw = [ad.headline, ad.hook_text].join(" \n ");
   const fullRaw = [ad.headline, ad.primary_text, ad.hook_text].join(" \n ");
   const headF = fold(headRaw), fullF = fold(fullRaw);

@@ -59,3 +59,45 @@ for (const c of CASES) {
 }
 console.log(`\n${CASES.length - fail}/${CASES.length} PASS`);
 if (fail) process.exit(1);
+
+/* ── Ngoại lệ nới phạm vi theo brand (yêu cầu 04/08/2026: chỉ Sejung) ────── */
+const RELAXED_CASES = [
+  { name: "Sejung: Meso lỗ chân lông (nới -> giữ)", brand: "Sejung",
+    ad: { headline: "MESO TRẺ HÓA TẠI SEJUNG", primary_text: "Làn da xỉn màu, thiếu sức sống, lỗ chân lông to hay nền da không đều màu" }, want: "skin_rejuvenation" },
+  { name: "Sejung: trị nám (nới -> giữ)", brand: "Sejung",
+    ad: { headline: "Điều trị nám tại SeJung", primary_text: "Nám chân sâu, tàn nhang" }, want: "skin_rejuvenation" },
+  { name: "Sejung: nâng ngực (vẫn LOẠI)", brand: "Sejung",
+    ad: { headline: "Nâng ngực nội soi tại SeJung", primary_text: "Túi nâng cao cấp" }, want: "other" },
+  { name: "Sejung: giảm mỡ bụng (vẫn LOẠI)", brand: "Sejung",
+    ad: { headline: "Giảm mỡ bụng", primary_text: "Hút mỡ bụng, vòng 2 thon gọn" }, want: "other" },
+  { name: "Brand KHÁC: Meso lỗ chân lông (vẫn LOẠI)", brand: "Hải Lê",
+    ad: { headline: "MESO TRẺ HÓA", primary_text: "Làn da xỉn màu, lỗ chân lông to" }, want: "other" },
+  { name: "SERYN: trị nám (brand nhà -> GIỮ, xem nhóm own bên dưới)", brand: "SERYN",
+    ad: { headline: "Điều trị nám", primary_text: "Nám chân sâu" }, want: "skin_rejuvenation" },
+];
+let rp = 0, rf = 0;
+for (const c of RELAXED_CASES) {
+  const got = explainServiceScope({ ...c.ad, brand_name: c.brand });
+  const ok = got.category === c.want;
+  ok ? rp++ : rf++;
+  console.log(`${ok ? "PASS" : "FAIL"}  ${c.name.padEnd(46)} want=${c.want} got=${got.category} (${got.reason})`);
+}
+console.log(`\n${rp}/${rp + rf} PASS (ngoại lệ nới brand)`);
+if (rf) process.exitCode = 1;
+
+/* ── Brand nhà lấy toàn bộ quảng cáo (yêu cầu 04/08/2026: SERYN) ────────── */
+const OWN_CASES = [
+  { name: "SERYN: trị nám (giữ - brand nhà)", ad: { brand_name: "SERYN", headline: "Điều trị nám", primary_text: "Nám chân sâu" }, want: "skin_rejuvenation" },
+  { name: "SERYN: mỡ mí mắt (giữ - brand nhà)", ad: { brand_name: "SERYN", headline: "Tư vấn 0đ mỡ mí mắt", primary_text: "" }, want: "skin_rejuvenation" },
+  { name: "brand_type=own bất kỳ (giữ)", ad: { brand_name: "Phòng khám Seryn Việt Nam", brand_type: "own", headline: "Nâng ngực", primary_text: "" }, want: "skin_rejuvenation" },
+  { name: "Đối thủ tên gần giống, KHÔNG own (loại)", ad: { brand_name: "Serena Clinic", headline: "Điều trị nám", primary_text: "Nám chân sâu" }, want: "other" },
+];
+let op = 0, of_ = 0;
+for (const c of OWN_CASES) {
+  const got = explainServiceScope(c.ad);
+  const ok = got.category === c.want;
+  ok ? op++ : of_++;
+  console.log(`${ok ? "PASS" : "FAIL"}  ${c.name.padEnd(46)} want=${c.want} got=${got.category} (${got.reason})`);
+}
+console.log(`\n${op}/${op + of_} PASS (brand nhà toàn bộ)`);
+if (of_) process.exitCode = 1;
