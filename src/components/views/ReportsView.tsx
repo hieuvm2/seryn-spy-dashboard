@@ -108,28 +108,42 @@ const HEAD_BADGE: Record<string, string> = {
 function ObservationTable({ title, body }: { title?: string; body?: string }) {
   const items = parseList(body).filter((it) => !isAdsDisclaimer(it)).map((it) => humanizeText(it));
   if (!items.length) return null;
+  // Tách sẵn [đầu mục | nội dung | màu badge] để bảng (máy tính) và danh sách (điện thoại) dùng chung.
+  const rows = items.map((raw) => {
+    const pm = raw.match(/^\[(.+?)\]\s*(.*)$/);
+    const sp = pm ? null : splitHead(raw);
+    const head = pm ? pm[1] : sp?.head;
+    const rest = pm ? pm[2] : sp ? sp.rest : raw;
+    const badge = (head && (PRIO_BADGE[head.toLowerCase()] || HEAD_BADGE[head.toLowerCase()])) || "bg-slate-50 border-slate-200 text-slate-700";
+    return { head, rest, badge };
+  });
   return (
     <div>
       {title && <p className="text-[10px] uppercase font-mono tracking-wide text-slate-400 font-bold mb-1">{title}</p>}
-      <table className="w-full">
-        <tbody>
-          {items.map((raw, i) => {
-            const pm = raw.match(/^\[(.+?)\]\s*(.*)$/);
-            const sp = pm ? null : splitHead(raw);
-            const head = pm ? pm[1] : sp?.head;
-            const rest = pm ? pm[2] : sp ? sp.rest : raw;
-            const badge = (head && (PRIO_BADGE[head.toLowerCase()] || HEAD_BADGE[head.toLowerCase()])) || "bg-slate-50 border-slate-200 text-slate-700";
-            return (
+      {/* Máy tính (≥640px): giữ nguyên bảng 2 cột */}
+      <div className="hidden sm:block">
+        <table className="w-full">
+          <tbody>
+            {rows.map((row, i) => (
               <tr key={i} className="border-b border-slate-100 last:border-0 align-top">
                 <td className="py-2 pr-3 w-32 sm:w-44">
-                  {head && <span className={`inline-block px-2 py-0.5 rounded-md border text-[12px] font-bold leading-snug ${badge}`}>{head}</span>}
+                  {row.head && <span className={`inline-block px-2 py-0.5 rounded-md border text-[12px] font-bold leading-snug ${row.badge}`}>{row.head}</span>}
                 </td>
-                <td className="py-2 text-[14px] leading-relaxed text-slate-700">{rest}</td>
+                <td className="py-2 text-[14px] leading-relaxed text-slate-700">{row.rest}</td>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {/* Điện thoại (<640px): xếp dọc — nhãn ở trên, nội dung ở dưới; cột 2 của bảng bị bóp quá hẹp ở 375px */}
+      <ul className="sm:hidden divide-y divide-slate-100">
+        {rows.map((row, i) => (
+          <li key={i} className="py-2 min-w-0">
+            {row.head && <span className={`inline-block px-2 py-0.5 rounded-md border text-[12px] font-bold leading-snug break-words ${row.badge}`}>{row.head}</span>}
+            <p className={`text-[14px] leading-relaxed text-slate-700 break-words ${row.head ? "mt-1" : ""}`}>{row.rest}</p>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -422,7 +436,7 @@ export default function ReportsView({ data }: { data: SpyDashboardData }) {
             <select
               value={selected?.report_id ?? ""}
               onChange={(e) => setSelectedId(e.target.value)}
-              className="w-full bg-transparent text-[13px] font-semibold text-slate-700 focus:outline-none cursor-pointer"
+              className="hm-touch w-full bg-transparent text-[13px] font-semibold text-slate-700 focus:outline-none cursor-pointer"
             >
               {reports.map((r) => (
                 <option key={r.report_id} value={r.report_id}>{periodLabel(r)}</option>

@@ -146,6 +146,52 @@ html {
 .text-\[15px\] { font-size: 0.96rem; line-height: 1.45rem; }
 
 /* ============================================================
+   MOBILE LAYER — tiện ích dùng chung cho ĐIỆN THOẠI (hợp đồng mobile)
+   Ranh giới đúng bằng breakpoint `sm` của Tailwind (640px): mọi thứ
+   dưới 639.98px = điện thoại. Các lớp chạm CHỈ sống trong khối media
+   này nên giao diện desktop KHÔNG đổi một pixel nào.
+   ============================================================ */
+@media (max-width: 639.98px) {
+  /* Vùng chạm tối thiểu 44px — nút, link, select thường. */
+  .hm-touch { min-height: 44px; }
+  /* Nút chỉ có icon: ô vuông 44x44 để ngón tay không bấm trượt. */
+  .hm-touch-icon { min-height: 44px; min-width: 44px; }
+
+  /* Thẻ inline (<a>, <label>, <summary>) vốn bỏ qua min-height
+     -> đưa về inline-flex để chiều cao 44px có hiệu lực thật. */
+  a.hm-touch, label.hm-touch, summary.hm-touch {
+    display: inline-flex; align-items: center;
+  }
+  a.hm-touch-icon, label.hm-touch-icon, summary.hm-touch-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  /* Ô tick / radio mặc định chỉ ~13px — phóng to cho vừa ngón tay.
+     Dùng kèm .hm-touch đặt ở <label> bọc ngoài để cả dòng bấm được. */
+  .hm-touch-check { width: 20px; height: 20px; }
+
+  /* Ô nhập >= 16px thì iOS Safari KHÔNG tự phóng to trang khi bấm vào.
+     Giới hạn trong #root: bản xem trước báo cáo (.rpt-*) render bằng
+     portal ra thẳng <body> nên giữ nguyên cỡ px của bản in.
+     Bỏ qua checkbox/radio để không đụng kích thước ô tick. */
+  #root input:not([type="checkbox"]):not([type="radio"]),
+  #root select,
+  #root textarea { font-size: 16px; }
+}
+
+/* Chừa lề dưới cho máy có khuyết/thanh gạt (iPhone) — dùng cho thanh dính đáy. */
+.hm-safe-b { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* Vùng cuộn ngang cho nội dung rộng (bảng giữ nguyên ở desktop):
+   cuộn mượt trên iOS, `contain` để kéo hết bảng không lôi cả trang chạy theo. */
+.hm-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+/* ============================================================
    BÁO CÁO PDF (WeeklyReportModal) — xem trước + in/lưu PDF
    - Doc dùng px (độc lập với html 18px) -> preview == bản in.
    - Print: ẩn #root, overlay chảy luồng thường -> in nhiều trang A4.

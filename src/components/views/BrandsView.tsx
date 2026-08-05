@@ -84,8 +84,9 @@ export default function BrandsView({
         <p className="text-[15px] text-slate-600 font-medium">Nhấp vào một đối thủ để mở hồ sơ chi tiết (lượng quảng cáo · dịch vụ · nội dung · nhân rộng · phân tích content + ảnh quảng cáo). Dữ liệu của SERYN xem ở tab SERYN.</p>
       </div>
 
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-md">
+      {/* Điện thoại: ô tìm và số đếm xếp dọc cho ô nhập đủ rộng; từ sm trở lên giữ nguyên 1 hàng. */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative w-full min-w-0 sm:w-auto sm:flex-1 max-w-md">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             value={q}
@@ -102,14 +103,68 @@ export default function BrandsView({
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={`px-4 py-2 rounded-lg text-sm font-bold border transition cursor-pointer ${filter === f.id ? "bg-cyan-600 text-white border-cyan-600 shadow-sm" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
+            /* hm-touch: chỉ dưới 640px mới nâng nút lọc lên 44px cho vừa ngón tay. */
+            className={`hm-touch px-4 py-2 rounded-lg text-sm font-bold border transition cursor-pointer ${filter === f.id ? "bg-cyan-600 text-white border-cyan-600 shadow-sm" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
           >
             {f.label}
           </button>
         ))}
       </div>
 
-      <div className="hm-panel shadow-sm overflow-hidden">
+      {/* ĐIỆN THOẠI: bảng 5 cột rộng 559px không đọc được ở khổ 375px
+          -> đổi sang danh sách thẻ, cùng dữ liệu và cùng thao tác bấm mở hồ sơ.
+          Từ 640px trở lên vẫn là bảng cũ, không đổi một pixel nào. */}
+      <ul className="sm:hidden space-y-2">
+        {rows.map((r) => {
+          const ads = normalizeNumber(r.total_active_ads);
+          const isDirect = isDirectCompetitor(r.brand_name, direct);
+          const nw = normalizeNumber(r.new_ads_count);
+          const st = normalizeNumber(r.stopped_ads_count);
+          const ci = contentByBrand[r.brand_name];
+          return (
+            <li key={r.brand_name}>
+              <button
+                type="button"
+                onClick={() => onSelectBrand(r.brand_name)}
+                className={`hm-panel w-full text-left p-3.5 flex flex-col gap-2 cursor-pointer transition ${isDirect ? "bg-amber-50/50" : ""}`}
+              >
+                <div className="flex items-start justify-between gap-2.5">
+                  <span className="flex items-start gap-1.5 min-w-0">
+                    {isDirect && <Star className="w-4 h-4 fill-amber-400 text-amber-500 shrink-0 mt-0.5" />}
+                    <span className="font-extrabold text-[15px] text-slate-800 break-words">{r.brand_name}</span>
+                  </span>
+                  <span className={`font-mono font-extrabold px-2.5 py-1 rounded-lg text-sm shrink-0 tabular-nums ${ads > 0 ? "text-cyan-700 bg-cyan-50 border border-cyan-200" : "text-slate-400 bg-slate-50 border border-slate-200"}`}>{ads}</span>
+                </div>
+
+                {isDirect && <span className="self-start text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded">Trực tiếp</span>}
+
+                {nw || st ? (
+                  <div className="flex items-center gap-3 text-[13px] font-extrabold tabular-nums">
+                    <span className="inline-flex items-center gap-0.5 text-emerald-600"><TrendingUp className="w-3.5 h-3.5 shrink-0" strokeWidth={2.75} />+{nw} mới</span>
+                    <span className="inline-flex items-center gap-0.5 text-rose-600"><TrendingDown className="w-3.5 h-3.5 shrink-0" strokeWidth={2.75} />−{st} dừng</span>
+                  </div>
+                ) : <div className="text-[12px] text-slate-400 font-semibold">Không đổi tuần này</div>}
+
+                {ci && (
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                    <span className="text-[12px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">{ANGLE_VI[ci.angle] || viLabel(ci.angle)}</span>
+                    <span className="text-[11px] text-slate-500 font-semibold">{OBJ_SHORT[ci.objective] || "Chưa rõ"}</span>
+                    <span className="text-slate-300">·</span>
+                    <span className="text-[11px] text-slate-500 font-semibold">{SCALE_SHORT[ci.signal]}</span>
+                  </div>
+                )}
+
+                <Chips value={r.main_content_formats} max={3} />
+              </button>
+            </li>
+          );
+        })}
+        {!rows.length && (
+          <li className="hm-panel p-6 text-center text-slate-400 text-sm font-semibold">Không có đối thủ khớp.</li>
+        )}
+      </ul>
+
+      <div className="hm-panel shadow-sm overflow-hidden hidden sm:block">
         <div className="overflow-x-auto">
           <table className="w-full text-[15px]">
             <thead>

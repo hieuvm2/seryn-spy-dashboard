@@ -35,9 +35,11 @@ function AdRow({ ad }: { ad: MatchedAd }) {
   return (
     <div className="rounded-md border border-slate-100 bg-white p-3">
       {ad.text && <p className="text-[14px] font-bold text-slate-900 leading-snug">{ad.text}</p>}
-      <p className={`text-[13px] text-slate-700 leading-relaxed mt-0.5 whitespace-pre-wrap ${open ? "" : "line-clamp-3"}`}>{body}</p>
+      {/* break-words: chặn URL/chuỗi dài làm tràn ngang trên điện thoại */}
+      <p className={`text-[13px] text-slate-700 leading-relaxed mt-0.5 whitespace-pre-wrap break-words ${open ? "" : "line-clamp-3"}`}>{body}</p>
       {long && (
-        <button onClick={() => setOpen((v) => !v)} className="text-[12px] font-bold text-cyan-700 hover:underline mt-0.5 cursor-pointer">
+        // hm-touch: cao tối thiểu 44px dưới 640px (max-sm:inline-flex để chữ nằm giữa)
+        <button onClick={() => setOpen((v) => !v)} className="hm-touch max-sm:inline-flex max-sm:items-center text-[12px] font-bold text-cyan-700 hover:underline mt-0.5 cursor-pointer">
           {open ? "Thu gọn" : "Xem toàn văn"}
         </button>
       )}
@@ -50,7 +52,7 @@ function AdRow({ ad }: { ad: MatchedAd }) {
       </div>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2">
         {ad.adId && (
-          <button onClick={copyId} title="Sao chép ID quảng cáo" className="inline-flex items-center gap-1 text-[12px] font-mono font-bold text-slate-600 bg-slate-50 border border-slate-200 hover:bg-slate-100 px-2 py-0.5 rounded cursor-pointer">
+          <button onClick={copyId} title="Sao chép ID quảng cáo" className="hm-touch inline-flex items-center gap-1 text-[12px] font-mono font-bold text-slate-600 bg-slate-50 border border-slate-200 hover:bg-slate-100 px-2 py-0.5 rounded cursor-pointer">
             {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />} ID: {ad.adId}
           </button>
         )}
@@ -60,7 +62,7 @@ function AdRow({ ad }: { ad: MatchedAd }) {
             target="_blank"
             rel="noreferrer"
             title="Mở trên Facebook Ad Library — chỉ được nếu Meta đã index (bài đã có lượt hiển thị)"
-            className="text-[12px] font-bold text-cyan-700 hover:underline inline-flex items-center gap-0.5"
+            className="hm-touch text-[12px] font-bold text-cyan-700 hover:underline inline-flex items-center gap-0.5"
           >
             Mở trên Facebook <ExternalLink className="w-3.5 h-3.5" />
           </a>
@@ -88,7 +90,7 @@ function PhraseAdsPanel({ data, phrase }: { data: SpyDashboardData; phrase: stri
             href={serynAdLibraryUrl(data, phrase)}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-cyan-600 hover:bg-cyan-500 px-2.5 py-1 rounded-lg transition"
+            className="hm-touch inline-flex items-center gap-1 text-[11px] font-bold text-white bg-cyan-600 hover:bg-cyan-500 px-2.5 py-1 rounded-lg transition"
           >
             Mở Thư viện QC Facebook của SERYN <ExternalLink className="w-3 h-3" />
           </a>
@@ -135,7 +137,7 @@ function AlertCard({ a, data }: { a: SerynContentAlert; data: SpyDashboardData }
         {a.label && <span className="text-[12px] font-bold px-2 py-1 rounded border border-slate-200 text-slate-700">{a.label}</span>}
         {(a.adsCount ?? 0) > 1 && <span className="text-[11px] font-bold px-2 py-1 rounded border border-rose-200 bg-rose-50 text-rose-700">{a.adsCount} QC</span>}
         {a.adUrl && (
-          <a href={a.adUrl} target="_blank" rel="noreferrer" className="ml-auto text-[12px] font-bold text-cyan-700 hover:underline inline-flex items-center gap-0.5">
+          <a href={a.adUrl} target="_blank" rel="noreferrer" className="hm-touch ml-auto text-[12px] font-bold text-cyan-700 hover:underline inline-flex items-center gap-0.5">
             Mở QC <ExternalLink className="w-3.5 h-3.5" />
           </a>
         )}
@@ -164,7 +166,8 @@ function AlertCard({ a, data }: { a: SerynContentAlert; data: SpyDashboardData }
                 key={i}
                 onClick={() => setPhrase((cur) => (cur === p ? null : p))}
                 title="Bấm để xem các quảng cáo SERYN chứa cụm này"
-                className={`text-[13px] font-bold px-2.5 py-1 rounded border transition cursor-pointer inline-flex items-center gap-1 ${phrase === p ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"}`}
+                /* hm-touch: chip cao tối thiểu 44px dưới 640px; max-sm:max-w-full để cụm từ dài không tràn màn hình */
+                className={`hm-touch max-sm:max-w-full text-[13px] font-bold px-2.5 py-1 rounded border transition cursor-pointer inline-flex items-center gap-1 ${phrase === p ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"}`}
               >
                 <Search className="w-3 h-3" />“{p}”
               </button>

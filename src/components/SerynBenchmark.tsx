@@ -67,7 +67,7 @@ export function SerynSnapshotCard({ data, onOpen }: { data: SpyDashboardData; on
                     key={`${sv}-${i}`}
                     onClick={() => setSvc((cur) => (cur === sv ? null : sv))}
                     title="Bấm để xem các quảng cáo đang chạy dịch vụ này"
-                    className={`px-2.5 py-1 rounded-md text-[13px] font-semibold border transition cursor-pointer ${svc === sv ? "bg-cyan-600 text-white border-cyan-600 shadow-sm" : "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"}`}
+                    className={`hm-touch px-2.5 py-1 rounded-md text-[13px] font-semibold border transition cursor-pointer ${svc === sv ? "bg-cyan-600 text-white border-cyan-600 shadow-sm" : "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"}`}
                   >
                     {viLabel(sv)}
                   </button>
@@ -170,7 +170,7 @@ export function SerynBenchmarkCompact({ data, onOpen }: { data: SpyDashboardData
     <div className="hm-panel-peach p-6">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2"><Sparkles className="w-5 h-5 text-cyan-600" /> SERYN vs Đối thủ</h3>
-        {onOpen && <button onClick={onOpen} className="text-xs font-bold text-cyan-700 hover:underline">Chi tiết ở tab SERYN →</button>}
+        {onOpen && <button onClick={onOpen} className="hm-touch text-xs font-bold text-cyan-700 hover:underline">Chi tiết ở tab SERYN →</button>}
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <Metric label="Ads SERYN" value={cmp.serynActiveAds} />

@@ -40,7 +40,7 @@ export default function TopHeader({ dataSource, market = "Vietnam", weekDate, is
         {/* Hamburger — hiện ở MỌI kích thước để thu gọn / mở menu */}
         <button
           onClick={onMenuClick}
-          className="w-9 h-9 -ml-1 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 transition shrink-0"
+          className="hm-touch-icon w-9 h-9 -ml-1 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 transition shrink-0"
           aria-label="Mở / thu gọn menu"
           title="Mở / thu gọn menu"
         >
@@ -84,7 +84,7 @@ export default function TopHeader({ dataSource, market = "Vietnam", weekDate, is
         {onExportClick && (
           <button
             onClick={onExportClick}
-            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-2.5 sm:px-3.5 py-2 rounded-xl text-sm font-bold border border-slate-900 shadow-sm transition cursor-pointer"
+            className="hm-touch flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-2.5 sm:px-3.5 py-2 rounded-xl text-sm font-bold border border-slate-900 shadow-sm transition cursor-pointer"
             title="Xem báo cáo chi tiết và tải PDF"
           >
             <FileDown className="w-3.5 h-3.5" />
@@ -94,7 +94,7 @@ export default function TopHeader({ dataSource, market = "Vietnam", weekDate, is
         {onClear && (
           <button
             onClick={onClear}
-            className="flex items-center gap-2 bg-white hover:bg-rose-50 text-rose-600 px-2.5 sm:px-3.5 py-2 rounded-xl text-sm font-bold border border-rose-200 transition cursor-pointer"
+            className="hm-touch flex items-center gap-2 bg-white hover:bg-rose-50 text-rose-600 px-2.5 sm:px-3.5 py-2 rounded-xl text-sm font-bold border border-rose-200 transition cursor-pointer"
             title="Xóa dữ liệu đã lưu, về dữ liệu mẫu"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -104,7 +104,7 @@ export default function TopHeader({ dataSource, market = "Vietnam", weekDate, is
         {onImportClick && (
           <button
             onClick={onImportClick}
-            className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-2.5 sm:px-4 py-2 rounded-xl text-sm font-bold shadow-sm shadow-cyan-600/20 hover:shadow-md hover:shadow-cyan-600/25 transition cursor-pointer"
+            className="hm-touch flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-2.5 sm:px-4 py-2 rounded-xl text-sm font-bold shadow-sm shadow-cyan-600/20 hover:shadow-md hover:shadow-cyan-600/25 transition cursor-pointer"
             title="Nhập dữ liệu"
           >
             <Upload className="w-3.5 h-3.5" />
@@ -134,7 +134,7 @@ export default function TopHeader({ dataSource, market = "Vietnam", weekDate, is
             {onSignOut && (
               <button
                 onClick={onSignOut}
-                className="w-8 h-8 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 transition cursor-pointer"
+                className="hm-touch-icon w-8 h-8 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 transition cursor-pointer"
                 title={`Đăng xuất (${user.email})`}
                 aria-label="Đăng xuất"
               >

@@ -89,9 +89,10 @@ export default function CompetitorDiscoveryView({ data }: { data: SpyDashboardDa
     return (
       <div className="space-y-6">
         <Header writeOn={discoveryWriteConfigured()} />
-        <div className="bg-white border border-dashed border-slate-300 rounded-2xl p-10 text-center">
+        {/* Điện thoại: padding hẹp hơn + cho phép xuống dòng tên workflow. */}
+        <div className="bg-white border border-dashed border-slate-300 rounded-2xl p-6 sm:p-10 text-center">
           <Search className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-          <p className="text-sm font-bold text-slate-700">Chạy workflow <code className="font-mono text-cyan-700">Competitor Discovery Manual</code> để tìm đối thủ mới từ Exa.</p>
+          <p className="text-sm font-bold text-slate-700 break-words">Chạy workflow <code className="font-mono text-cyan-700">Competitor Discovery Manual</code> để tìm đối thủ mới từ Exa.</p>
         </div>
       </div>
     );
@@ -131,19 +132,27 @@ export default function CompetitorDiscoveryView({ data }: { data: SpyDashboardDa
         <div className="relative">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm theo brand / domain / dịch vụ..."
-            className="pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg w-64 focus:outline-none focus:ring-1 focus:ring-cyan-400" />
+            className="hm-touch pl-8 pr-3 py-1.5 text-base sm:text-xs border border-slate-200 rounded-lg w-64 focus:outline-none focus:ring-1 focus:ring-cyan-400" />
         </div>
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className="text-xs border border-slate-200 rounded-lg px-2 py-1.5">
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className="hm-touch text-base sm:text-xs border border-slate-200 rounded-lg px-2 py-1.5">
           {STATUSES.map((s) => <option key={s} value={s}>{STATUS_VI[s] || s}</option>)}
         </select>
-        <label className="text-xs flex items-center gap-1.5 text-slate-600">
-          <input type="checkbox" checked={readyOnly} onChange={(e) => setReadyOnly(e.target.checked)} /> Chỉ sẵn sàng spy
+        {/* hm-touch trên label + hm-touch-check trên ô tick: ô tick mặc định chỉ 13px, quá nhỏ để bấm bằng ngón tay. */}
+        <label className="hm-touch text-xs flex items-center gap-1.5 text-slate-600">
+          <input type="checkbox" className="hm-touch-check" checked={readyOnly} onChange={(e) => setReadyOnly(e.target.checked)} /> Chỉ sẵn sàng spy
         </label>
         {toast && <span className="text-xs text-cyan-700 font-bold ml-auto">{toast}</span>}
       </div>
 
-      {/* B. Candidate Table */}
-      <div className="hm-panel shadow-sm overflow-hidden">
+      {/* B. Candidate Table
+          ĐIỆN THOẠI: bảng 10 cột rộng ~1176px không dùng được ở khổ 375px
+          -> danh sách thẻ (cùng dữ liệu, cùng thao tác). Desktop giữ nguyên bảng. */}
+      <ul className="sm:hidden space-y-2">
+        {filtered.map((c) => <CardItem key={String(c.discovery_id)} c={c} onAct={act} />)}
+        {!filtered.length && <li className="hm-panel p-6 text-center text-slate-400 text-sm font-semibold">Không có đối thủ nào khớp bộ lọc.</li>}
+      </ul>
+
+      <div className="hm-panel shadow-sm overflow-hidden hidden sm:block">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-slate-50 text-slate-400 font-mono uppercase tracking-wider">
@@ -222,6 +231,71 @@ const Row: React.FC<{ c: CompetitorDiscoveryCandidate; onAct: (fn: () => Promise
         </div>
       </td>
     </tr>
+  );
+};
+
+/** Bản thẻ cho ĐIỆN THOẠI của một dòng trong bảng đối thủ phát hiện được.
+ *  Cùng dữ liệu và cùng 3 thao tác (duyệt / từ chối / đánh dấu trùng) như <Row>. */
+const CardItem: React.FC<{ c: CompetitorDiscoveryCandidate; onAct: (fn: () => Promise<{ message: string }>) => void }> = ({ c, onAct }) => {
+  const [editing, setEditing] = useState(false);
+  const [pid, setPid] = useState(String(c.facebook_page_id || ""));
+  const ready = computeReadyForSpy(c);
+  const st = String(c.status).toLowerCase();
+  const services = String(c.detected_services || "").split("|").filter(Boolean).slice(0, 3);
+  return (
+    <li className="hm-panel p-3.5 space-y-2.5 text-xs">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-bold text-slate-800 text-sm break-words">{c.brand_name}</p>
+          {c.duplicate_of && <p className="text-[10px] text-slate-400 break-words">trùng với {c.duplicate_of}</p>}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {ready && <span className="text-emerald-600 font-bold" title="Sẵn sàng spy">✓</span>}
+          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${STATUS_COLOR[st] || "bg-slate-100 text-slate-600"}`}>{STATUS_VI[st] || c.status}</span>
+        </div>
+      </div>
+
+      {!!c.evidence_summary && <p className="text-[11px] text-slate-400 break-words">{humanizeText(String(c.evidence_summary))}</p>}
+
+      {!!services.length && (
+        <div className="flex flex-wrap gap-1">
+          {services.map((s, i) => <span key={i} className="px-1.5 py-0.5 bg-slate-100 rounded text-[10px]">{viLabel(s)}</span>)}
+        </div>
+      )}
+
+      <div className="space-y-1 text-[11px]">
+        <p className="flex gap-1.5"><span className="text-slate-400 w-16 shrink-0">Website</span>
+          {c.website_url ? <a href={String(c.website_url)} target="_blank" rel="noreferrer" className="hm-touch text-cyan-700 break-all">{String(c.website_domain || "web")} ↗</a> : <span className="text-slate-300">—</span>}</p>
+        <p className="flex gap-1.5"><span className="text-slate-400 w-16 shrink-0">Fanpage</span>
+          {c.facebook_url ? <a href={String(c.facebook_url)} target="_blank" rel="noreferrer" className="hm-touch text-cyan-700 break-all">fanpage ↗</a> : <span className="text-slate-300">—</span>}</p>
+        <p className="flex gap-1.5"><span className="text-slate-400 w-16 shrink-0">Hotline</span>
+          <span className="font-mono text-slate-600 break-all">{c.phone ? String(c.phone) : "—"}</span></p>
+        <p className="flex gap-1.5"><span className="text-slate-400 w-16 shrink-0">Địa chỉ</span>
+          <span className="text-slate-500 break-words">{c.address ? String(c.address) : "—"}</span></p>
+      </div>
+
+      <div className="flex items-center gap-1.5 pt-0.5">
+        <span className="text-slate-400 text-[11px] shrink-0">Page ID</span>
+        {editing ? (
+          <>
+            <input value={pid} onChange={(e) => setPid(e.target.value)} className="hm-touch min-w-0 flex-1 border border-slate-200 rounded px-2 py-1 text-base sm:text-[11px]" placeholder="page_id (số)" />
+            <button aria-label="Lưu page_id" className="hm-touch-icon text-emerald-600 flex items-center justify-center" onClick={() => { onAct(() => setPageId(c, pid)); setEditing(false); }}><Check className="w-4 h-4" /></button>
+          </>
+        ) : (
+          <button className="hm-touch text-left" onClick={() => setEditing(true)}>
+            {isNumericPageId(c.facebook_page_id)
+              ? <span className="font-mono text-slate-700 break-all">{c.facebook_page_id}</span>
+              : <span className="text-orange-600 font-bold">+ page_id</span>}
+          </button>
+        )}
+      </div>
+
+      <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100">
+        <button aria-label="Duyệt" className="hm-touch-icon rounded hover:bg-emerald-50 text-emerald-600 flex items-center justify-center" onClick={() => onAct(() => approveCandidate(c))}><Check className="w-4 h-4" /></button>
+        <button aria-label="Từ chối" className="hm-touch-icon rounded hover:bg-rose-50 text-rose-500 flex items-center justify-center" onClick={() => onAct(() => rejectCandidate(c))}><X className="w-4 h-4" /></button>
+        <button aria-label="Đánh dấu trùng" className="hm-touch-icon rounded hover:bg-slate-100 text-slate-500 flex items-center justify-center" onClick={() => onAct(() => markDuplicate(c))}><Copy className="w-4 h-4" /></button>
+      </div>
+    </li>
   );
 };
 

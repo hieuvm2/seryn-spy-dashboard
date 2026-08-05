@@ -105,7 +105,7 @@ export default function Sidebar({ activeSection, setActiveSection, mobileOpen = 
         {/* Nút đóng/thu gọn drawer */}
         <button
           onClick={onClose}
-          className="ml-auto w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 transition shrink-0"
+          className="hm-touch-icon ml-auto w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 transition shrink-0"
           aria-label="Đóng menu"
         >
           <X className="w-4 h-4" />
@@ -126,7 +126,7 @@ export default function Sidebar({ activeSection, setActiveSection, mobileOpen = 
                     key={item.id}
                     id={`sidebar-nav-${item.id}`}
                     onClick={() => handleNav(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-semibold transition-all group relative ${
+                    className={`hm-touch w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-semibold transition-all group relative ${
                       isActive
                         ? "bg-cyan-50 text-cyan-700"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-50 cursor-pointer"
@@ -145,7 +145,7 @@ export default function Sidebar({ activeSection, setActiveSection, mobileOpen = 
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-3.5 border-t border-slate-100 bg-slate-50/60">
+      <div className="hm-safe-b px-4 py-3.5 border-t border-slate-100 bg-slate-50/60">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center font-mono text-xs font-bold text-cyan-700">BI</div>
           <div className="min-w-0">
