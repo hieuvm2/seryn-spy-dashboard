@@ -1,4 +1,4 @@
-# Design — SERYN Insights (Spy Ads Dashboard)
+# Design — Seryn Insight Guard (Spy Ads Dashboard)
 
 Hệ thống thiết kế KHÓA cho app. Mọi trang đọc file này trước khi sửa giao diện.
 Không tự tạo theme mới cho từng trang — mở rộng/sửa file này khi hệ thống cần lớn hơn.

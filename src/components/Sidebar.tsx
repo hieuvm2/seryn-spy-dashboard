@@ -100,7 +100,7 @@ export default function Sidebar({ activeSection, setActiveSection, mobileOpen = 
         <img src="/seryn-mark.png" alt="SERYN" className="w-9 h-9 object-contain shrink-0" />
         <div className="min-w-0">
           <h1 className="font-brand text-2xl font-bold tracking-[0.18em] text-slate-900 leading-none">SERYN</h1>
-          <p className="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold mt-1">Competitor Tracker</p>
+          <p className="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold mt-1">Insight Guard</p>
         </div>
         {/* Nút đóng/thu gọn drawer */}
         <button
@@ -149,7 +149,7 @@ export default function Sidebar({ activeSection, setActiveSection, mobileOpen = 
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center font-mono text-xs font-bold text-cyan-700">BI</div>
           <div className="min-w-0">
-            <p className="text-[13px] font-bold text-slate-800 truncate">SERYN Competitor Tracker</p>
+            <p className="text-[13px] font-bold text-slate-800 truncate">Seryn Insight Guard</p>
             <p className="text-[11px] font-mono text-slate-400 font-semibold">Thị trường Việt Nam</p>
           </div>
         </div>

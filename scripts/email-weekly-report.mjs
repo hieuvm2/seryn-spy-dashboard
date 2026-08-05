@@ -147,7 +147,7 @@ function buildEmailBody(report, hash) {
     .split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter((s) => s.length > 1).slice(0, 4);
   const li = bullets.map((b) => `<li style="margin-bottom:6px;line-height:1.55">${esc(b)}</li>`).join("");
   const html = `<div style="font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#1f2937;max-width:640px">
-  <p style="margin:0 0 4px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#e85f4b;font-weight:700">SERYN Competitor Tracker</p>
+  <p style="margin:0 0 4px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#e85f4b;font-weight:700">Seryn Insight Guard</p>
   <h1 style="margin:0 0 12px;font-size:19px;color:#1b234c">${esc(report.title || "Báo cáo Spy Ads")}</h1>
   <p style="margin:0 0 14px;font-size:13px;color:#6b7280">Kỳ ${esc(report.period_start)} → ${esc(report.period_end)} · bản phân tích mới trên dashboard.</p>
   ${li ? `<p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#1b234c">Vài ý chính</p><ul style="margin:0 0 16px;padding-left:18px;font-size:13px">${li}</ul>` : ""}

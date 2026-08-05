@@ -1,4 +1,4 @@
-# SERYN Weekly Spy Dashboard
+# Seryn Insight Guard (SERYN Weekly Spy Dashboard)
 
 Dashboard **React + Vite + TypeScript** hiển thị **kết quả spy ads đối thủ theo tuần** cho SERYN Clinic.
 SPA tĩnh thuần (không backend): đọc dữ liệu từ **Google Sheets** (online) hoặc **CSV** (local),

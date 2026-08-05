@@ -392,7 +392,7 @@ export default function ReportDocument({ m, report, logoSrc = "/seryn-mark.png" 
 
     {/* ---- Footer / caveat ---- */}
     <footer className="rpt-footer">
-      <div className="rpt-footer-brand">SERYN Clinic · Competitor Tracker</div>
+      <div className="rpt-footer-brand">SERYN Clinic · Insight Guard</div>
       <p className="rpt-footer-note">
         Chỉ tính QC <b>trẻ hóa da mặt</b> ({m.kpis.totalBrands} đối thủ; đã loại nâng ngực/hút mỡ/mũi/răng/triệt lông/filler…). SERYN tính riêng. Báo cáo nội bộ.
       </p>
