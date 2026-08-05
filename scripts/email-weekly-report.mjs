@@ -4,7 +4,7 @@
 
    Cách hoạt động
      1. Đọc dataset `weeklyReports` trên Supabase, lấy báo cáo mới nhất
-        (đúng bản mà tab "Phân tích báo cáo" đang hiện).
+        (đúng bản mà tab "Phân tích và báo cáo" đang hiện).
      2. Tính vân tay (hash) phần văn phân tích. So với nhật ký đã gửi lưu ở
         dataset `reportEmailLog` -> chưa gửi hoặc nội dung đã đổi thì mới gửi.
      3. Dựng HTML bằng CHÍNH component của dashboard (dist-ssr/report-ssr.js),

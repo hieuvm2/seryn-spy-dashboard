@@ -45,7 +45,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { id: "overview", label: "Tổng quan thị trường trẻ hóa", icon: LayoutDashboard },
       { id: "brands", label: "Theo dõi đối thủ", icon: FileSpreadsheet },
-      { id: "reports", label: "Phân tích báo cáo", icon: FileText },
+      { id: "reports", label: "Phân tích và báo cáo", icon: FileText },
       { id: "competitor-discovery", label: "Phát hiện đối thủ", icon: Search },
     ],
   },

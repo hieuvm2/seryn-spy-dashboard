@@ -22,7 +22,7 @@ const pct = (r: number) => `${Math.round((r || 0) * 100)}%`;
 const vn = (n: number) => n.toLocaleString("vi-VN");
 const trunc = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 
-/* ---- Đọc phân tích THẬT từ weeklyReports (giống tab Phân tích báo cáo) — KHÔNG template ---- */
+/* ---- Đọc phân tích THẬT từ weeklyReports (giống tab Phân tích và báo cáo) — KHÔNG template ---- */
 const parseList = (v?: string) => String(v ?? "").split("|").map((s) => s.trim()).filter(Boolean);
 const toBullets = (t?: string) =>
   String(t ?? "").replace(/\s*;?\s*\((\d+)\)\s*/g, "\n($1) ")
@@ -201,7 +201,7 @@ function TopCompetitorCharts({ brands }: { brands: ReportBrandRow[] }) {
   );
 }
 
-/** Báo cáo tuần mới nhất — đúng bản mà tab "Phân tích báo cáo" đang hiện. */
+/** Báo cáo tuần mới nhất — đúng bản mà tab "Phân tích và báo cáo" đang hiện. */
 export function latestWeeklyReport(data: SpyDashboardData): SpyReport | null {
   return [...(data.weeklyReports ?? [])].sort((a, b) =>
     String(b.period_start).localeCompare(String(a.period_start)) ||
