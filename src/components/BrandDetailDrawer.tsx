@@ -5,7 +5,7 @@ import {
   Image as ImageIcon, Filter, ExternalLink, Star,
 } from "lucide-react";
 import type { SpyDashboardData } from "../types";
-import { splitChips, orUnknown, viLabel, isMissing, isMeaningful, humanizeText } from "../utils/spyData";
+import { splitChips, orUnknown, viLabel, isMissing, isMeaningful, humanizeText, countOfferChips } from "../utils/spyData";
 import { getBrandProfile } from "../utils/brandIntelligence";
 import { isDirectCompetitor } from "../utils/directCompetitors";
 import { isOwnBrand } from "../utils/ownBrand";
@@ -42,7 +42,8 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3 py-1 border-b border-slate-100 last:border-0">
       <span className="text-[11px] text-slate-500 font-semibold uppercase shrink-0">{label}</span>
-      <span className="text-sm text-slate-800 font-bold text-right">{value}</span>
+      {/* min-w-0 + break-words: giá trị dài không đẩy tràn ngang trên điện thoại */}
+      <span className="text-sm text-slate-800 font-bold text-right min-w-0 break-words">{value}</span>
     </div>
   );
 }
@@ -136,7 +137,7 @@ function PageLinks({ pageIds, nameMap }: { pageIds: string[]; nameMap: Map<strin
       {extra > 0 && (
         <button
           onClick={() => setShowAll((v) => !v)}
-          className="text-slate-500 hover:text-slate-800 font-semibold underline decoration-dotted cursor-pointer"
+          className="hm-touch text-slate-500 hover:text-slate-800 font-semibold underline decoration-dotted cursor-pointer"
         >
           {showAll ? "Thu gọn" : `Xem thêm ${extra} page phụ`}
         </button>
@@ -173,9 +174,13 @@ export default function BrandDetailDrawer({
   // CTA chính: đếm tần suất CTA trên từng QC; fallback main_ctas của snapshot.
   const topCtas = topCounts((p?.ads ?? []).map((a) => a.cta), 3);
   const ctaFallback = splitChips(snap?.main_ctas).filter(isMeaningful);
-  // CTKM đang áp dụng: offers_detected (snapshot) + offer_detected từng QC, khử trùng lặp.
-  const offerChips = topCounts(
-    [...splitChips(snap?.offers_detected), ...(p?.ads ?? []).map((a) => a.offer_detected)],
+  // CTKM đang áp dụng: gộp offers_detected (snapshot) + offer_detected từng QC.
+  // Dùng countOfferChips (KHÔNG dùng topCounts) vì hai lý do:
+  //  1. topCounts không tách "|" -> "giảm|ưu đãi" thành MỘT chip vô nghĩa;
+  //  2. splitChips tách cả dấu phẩy -> "ưu đãi 09, K" vỡ thành chip cụt "K".
+  // countOfferChips chỉ tách "|", rồi loại token không phải tiền thật.
+  const offerChips = countOfferChips(
+    [snap?.offers_detected, ...(p?.ads ?? []).map((a) => a.offer_detected)],
     6,
   );
   // Link page đối thủ: mỗi page_id mở thẳng fanpage (chỉ hiện page có tên).
@@ -195,7 +200,7 @@ export default function BrandDetailDrawer({
             className="fixed top-0 right-0 bottom-0 w-full max-w-5xl bg-[#F5F0E8] z-50 shadow-2xl flex flex-col"
           >
             {/* Sticky header */}
-            <div className="px-6 py-4 bg-white border-b border-slate-200 shrink-0 flex items-start justify-between gap-3">
+            <div className="px-4 sm:px-6 py-4 bg-white border-b border-slate-200 shrink-0 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className={`text-[10px] uppercase font-mono tracking-widest font-bold ${isOwn ? "text-emerald-600" : "text-cyan-600"}`}>{isOwn ? "HỒ SƠ SERYN" : "HỒ SƠ ĐỐI THỦ"}</p>
                 <h3 className="text-lg font-extrabold text-slate-900 truncate flex items-center gap-2">
@@ -212,19 +217,21 @@ export default function BrandDetailDrawer({
                   {!!disc?.address && <span className="truncate max-w-[16rem]">📍 {String(disc.address)}</span>}
                 </div>
               </div>
-              <button onClick={onClose} className="w-9 h-9 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 transition shrink-0"><X className="w-4.5 h-4.5" /></button>
+              <button onClick={onClose} aria-label="Đóng" className="hm-touch-icon w-9 h-9 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 transition shrink-0"><X className="w-4.5 h-4.5" /></button>
             </div>
 
 
             {/* Body — 2 cột desktop */}
-            <div className="flex-1 overflow-y-auto p-5">
+            {/* p-4 trên điện thoại: p-5 cộng viền panel làm nội dung rộng 390px > màn 375px. */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-5">
               {!snap && !p.ads.length ? (
                 <p className="text-sm text-slate-400 font-semibold">Không có dữ liệu tổng hợp cho đối thủ này.</p>
               ) : (
                 <div className="grid lg:grid-cols-2 gap-4">
                   {/* 1. Ads overview — báo cáo tổng quan riêng của brand */}
                   <Section icon={Activity} title="Tổng quan quảng cáo">
-                    <div className="grid grid-cols-2 gap-x-6">
+                    {/* gap-x-6 bóp mỗi ô còn 126px làm nhãn+số tràn ngang -> siết còn gap-x-4 dưới 640px. */}
+                    <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6">
                       <Field label="QC đang chạy" value={orUnknown(snap?.total_active_ads)} />
                       <Field label="Đã thu thập" value={orUnknown(snap?.total_ads_collected)} />
                       <Field label="Số trang chạy" value={orUnknown(snap?.num_pages_running)} />
@@ -401,7 +408,7 @@ function ContentCard({ c }: { c: AdContentIntelligence }) {
       <div className="relative">
         <AdThumb url={c.thumbnailUrl} format={c.adFormat} />
         {c.adsCount > 1 && <span className="absolute top-2 left-2 text-[15px] font-extrabold uppercase tracking-wide text-rose-700 bg-white/95 border-2 border-rose-300 px-2.5 py-1 rounded-lg shadow-md">{c.adsCount} QC</span>}
-        {c.exampleAdUrls[0] && <a href={c.exampleAdUrls[0]} target="_blank" rel="noreferrer" className="absolute bottom-2 right-2 text-[12px] font-extrabold text-white bg-cyan-600 hover:bg-cyan-700 px-3 py-1.5 rounded-lg shadow-lg ring-2 ring-white/80 inline-flex items-center gap-1 transition-colors">Mở QC <ExternalLink className="w-3.5 h-3.5" strokeWidth={2.75} /></a>}
+        {c.exampleAdUrls[0] && <a href={c.exampleAdUrls[0]} target="_blank" rel="noreferrer" className="hm-touch absolute bottom-2 right-2 text-[12px] font-extrabold text-white bg-cyan-600 hover:bg-cyan-700 px-3 py-1.5 rounded-lg shadow-lg ring-2 ring-white/80 inline-flex items-center gap-1 transition-colors">Mở QC <ExternalLink className="w-3.5 h-3.5" strokeWidth={2.75} /></a>}
       </div>
 
       <div className="p-3 space-y-2">

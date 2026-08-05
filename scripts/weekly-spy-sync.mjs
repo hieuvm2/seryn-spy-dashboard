@@ -311,8 +311,206 @@ const HOOK_KEYWORDS = [
   ["problem_led", ["nám", "mụn", "nếp nhăn", "thâm", "lo lắng", "nỗi lo"]],
   ["curiosity", ["bí mật", "điều ít ai biết", "sự thật", "bất ngờ"]],
 ];
-const PRICE_TOKEN = /(\d[\d.,]*\s?(?:k|K|đ|tr|triệu|VNĐ|vnđ|%))/g;
-const OFFER_WORDS = ["giảm", "ưu đãi", "tặng", "miễn phí", "combo", "trọn gói", "khuyến mãi"];
+/* ============================================================
+   PRICE & OFFER DETECTION — precision-first
+   ------------------------------------------------------------
+   Bản cũ bắt mọi "số + chữ cái" nên nuốt cả địa chỉ ("09, KĐT"),
+   hotline ("1900.55.55.55 để"), giờ ("24/7 đội"), nhóm tuổi
+   ("U60 trẻ") → 198/267 token giá là RÁC. Bản này đi 3 bước:
+     1) maskNoise(): bôi trắng vùng CHẮC CHẮN không phải tiền
+     2) quét token tiền với ranh giới chặt hai đầu + ngưỡng đơn vị
+     3) đọc NGỮ CẢNH quanh token để gán nhãn CTKM
+   Nguyên tắc: thà bỏ sót còn hơn hiện chip sai.
+   ============================================================ */
+const VN_NUM = String.raw`(?:\d{1,3}(?:\.\d{3})+|\d+(?:,\d{1,2})?)`;
+const UNIT = String.raw`(?:vn[dđ]|đồng|triệu|nghìn|ngàn|tr|k|đ)`;
+
+function blank(s, re) { return s.replace(re, (m) => " ".repeat(m.length)); }
+
+/** Bôi trắng (giữ nguyên độ dài để offset không lệch) các vùng nhiễu:
+ *  hashtag, hotline, giờ mở cửa, ngày tháng, năm, nhóm tuổi U40, tỉ lệ 1:1,
+ *  "5in1", và block địa chỉ ở chân bài. */
+function maskNoise(input) {
+  let s = String(input || "");
+  s = blank(s, /#[^\s#]+/gu);                                   // #kangnam190truongchinh
+  s = s.replace(                                                // "HOTLINE: 1900.55.55.55"
+    /(?:hotline|hot ?line|tổng đài|sđt|sdt|số điện thoại|điện thoại|zalo|tel|call|liên hệ|inbox|nhắn tin|☎|📞|📲|📱)\s*[:\-–]?\s*[+\d][\d.\s\-()]{5,22}/giu,
+    (m) => { const head = m.match(/^[^\d+]*/u)[0]; return head + " ".repeat(m.length - head.length); }
+  );
+  s = s.replace(/(?<![\d.,])\+?\d[\d.\s-]{6,}\d(?![\d])/gu, (m) => {
+    if (/^\d{1,3}(\.\d{3})+$/.test(m.trim())) return m;         // 2.999.000 là TIỀN, giữ
+    return m.replace(/[^\d]/g, "").length >= 9 ? " ".repeat(m.length) : m; // >=9 chữ số = SĐT
+  });
+  s = blank(s, /(?<![\d.,])\d{1,2}\s?[h:]\s?\d{2}(?![\d])/gu);  // 08h00 - 18h00
+  s = blank(s, /(?<![\d.,])\d{1,2}\s?h(?![\p{L}])/gu);
+  s = blank(s, /(?<![\d.,])\d{1,2}\s?\/\s?\d{1,2}(?:\s?\/\s?\d{2,4})?(?![\d.,])/gu); // 24/7, 03/05
+  s = blank(s, /(?<![\d.,])\d{1,2}[.\-]\d{1,2}[.\-]\d{2,4}(?![\d.,])/gu);
+  s = blank(s, /(?<![\d.,])(?:19|20)\d{2}(?![\d.,])(?!\s?(?:k|đ|tr|triệu|vn[dđ]|nghìn|ngàn)(?![\p{L}]))/giu); // năm 2026
+  s = blank(s, /[UuƯư]\s?\d{2}(?![\d])/gu);                     // U30, U60, U70
+  s = blank(s, /(?<![\d.,])\d{1,3}\s?[:x]\s?\d{1,3}(?![\d])/gu); // 1:1
+  s = blank(s, /\d+\s?in\s?\d+/giu);                            // 5in1
+  s = blank(s, /(?:📍|🌏|🏢|🏠|🏥|địa chỉ|đ\/c|trụ sở|cơ sở\s*\d|chi nhánh|\bcn\b|\bkđt\b|\blô\s?\d)[^\n]{0,140}/giu);
+  return s;
+}
+
+/* "2Tr999K", "6TR850K" — tiền viết dính, phải gộp TRƯỚC, nếu không
+   regex thường chỉ nhặt được "999K"/"850K" (sai giá 3x đến 8x). */
+const COMPOUND_RE = new RegExp(
+  String.raw`(?<![\p{L}\d])(\d{1,3})\s?(?:tr|triệu)\.?\s?(\d{3})\s?(?:k|nghìn|ngàn)?(?![\p{L}\d])`, "giu");
+/* Ranh giới hai đầu là thứ giết sạch rác địa chỉ:
+   - đầu:  (?<![\p{L}\d])  -> "5in1 tr", "2Tr999K" trượt
+   - đuôi: (?![\p{L}\d])   -> đơn vị KHÔNG được là chữ đầu của từ khác
+     => "09, KĐT", "229 Khuất", "10 khu", "20 khách", "200KM", "60 trẻ",
+        "7 đội", "578 đường", "689 để" đều trượt.
+   Dấu phẩy/chấm treo cũng trượt vì chỉ cho phép tối đa MỘT dấu cách. */
+const MONEY_RE = new RegExp(String.raw`(?<![\p{L}\d])(${VN_NUM})\s?(${UNIT})(?![\p{L}\d]|[.,]\d)`, "giu");
+
+/** Ngưỡng theo đơn vị: k>=10 (loại "4K","5 k"), đ>=1000 (loại "0đ","7 đ"),
+ *  tr/triệu trong 1..500 (loại "2026 tr"). Trả 0 = không phải tiền. */
+function moneyValue(numRaw, unitRaw) {
+  const unit = unitRaw.toLowerCase();
+  const n = Number(numRaw.replace(/\./g, "").replace(",", "."));
+  if (!Number.isFinite(n)) return 0;
+  if (unit === "k" || unit === "nghìn" || unit === "ngàn") return n >= 10 && n <= 100000 ? n * 1000 : 0;
+  if (unit === "tr" || unit === "triệu") return n >= 1 && n <= 500 ? Math.round(n * 1e6) : 0;
+  return n >= 1000 && n <= 5e9 ? n : 0;
+}
+
+/** Chuẩn hoá hiển thị — TUYỆT ĐỐI không sinh dấu phẩy (dashboard tách chip theo ","). */
+function formatVnd(v) {
+  if (v >= 1e6 && v % 1e6 === 0) return `${v / 1e6} triệu`;
+  return `${v.toLocaleString("vi-VN").replace(/[^\d.]/g, "")}đ`;
+}
+
+/** Trả [{value, index, label}] theo thứ tự xuất hiện, gộp trùng theo GIÁ TRỊ
+ *  (nhờ vậy "127k" và "127K" trong cùng 1 ad chỉ còn 1 chip). */
+function extractPrices(text) {
+  let s = maskNoise(text);
+  const out = [];
+  const push = (v, i) => { if (v > 0) out.push({ value: v, index: i }); };
+  s = s.replace(COMPOUND_RE, (m, a, b, off) => {
+    if (Number(a) >= 1 && Number(a) <= 500) push(Number(a) * 1e6 + Number(b) * 1000, off);
+    return " ".repeat(m.length);
+  });
+  for (const m of s.matchAll(MONEY_RE)) push(moneyValue(m[1], m[2]), m.index);
+  const seen = new Set();
+  return out.sort((a, b) => a.index - b.index)
+    .filter((x) => (seen.has(x.value) ? false : seen.add(x.value)))
+    .map((x) => ({ value: x.value, index: x.index, label: formatVnd(x.value) }));
+}
+
+function detectPrice(text) {
+  const p = extractPrices(text);
+  return p.length ? p.slice(0, 3).map((x) => x.label).join("|") : "unknown";
+}
+
+/* % chỉ là GIẢM GIÁ khi có tín hiệu giảm ngay trước nó; "100% bác sĩ",
+   "99% khách hàng", "hoàn tiền 100%", "trả góp 0%" phải trượt. */
+const PCT_RE = /(?<![\d.,])(\d{1,2})\s?%/gu;
+const PCT_CUE = /(?:gi[aả]m|off|sale|ưu đãi|khuyến mãi|deal|tiết kiệm|discount)\s*(?:giá|chi phí|sốc|sâu|ngay|thêm|tới|đến|lên đến|lên tới|chỉ|còn|từ|khi|cho|:|~|–|-)*\s*$|[-–]\s?$/iu;
+const PCT_BAD_BEFORE = /(?:hiệu quả|cam kết|hoàn tiền|thành công|tương thích|hài lòng|tỷ lệ|độ chính xác|an toàn|khách hàng|bác sĩ|cải thiện|đạt|chuẩn|tự nhiên|trả góp|lãi suất)[^%]{0,20}$/iu;
+const PCT_BAD_AFTER = /^\s*(?:khách hàng|hài lòng|hiệu quả|thành công|tự nhiên|bác sĩ|an toàn|tương thích|hoàn tiền|cam kết|nếp nhăn|cải thiện|tỷ lệ|người|ca |bảo hành|chính quy|vô trùng)/iu;
+
+function detectDiscountPercent(text) {
+  const s = maskNoise(text);
+  const out = [];
+  for (const m of s.matchAll(PCT_RE)) {
+    const n = Number(m[1]);
+    if (n < 5 || n > 90) continue;                                     // loại 0%, 99%, 100%
+    const before = s.slice(Math.max(0, m.index - 30), m.index);
+    const after = s.slice(m.index + m[0].length, m.index + m[0].length + 25);
+    if (PCT_BAD_BEFORE.test(before) || PCT_BAD_AFTER.test(after)) continue;
+    if (!PCT_CUE.test(before)) continue;
+    out.push(n);
+  }
+  return [...new Set(out)].sort((a, b) => b - a);
+}
+
+/* Nhãn CTKM: tiếng Việt, KHÔNG chứa "|" và KHÔNG chứa ","
+   (uniqJoin nối bằng "|", dashboard tách chip bằng "|" và ","). */
+const GIFT_NOUN = "(?:soi da|chăm sóc da|phân tích da|xe đưa đón|đưa đón|bảo dưỡng|liệu trình|buổi|mặt nạ|phác đồ|quà|voucher|thẻ|combo)";
+const GIFT_CUE = "(?:miễn phí|free|tặng(?: ngay| thêm| kèm)?)";
+const GIFT_RE = new RegExp(`${GIFT_CUE}[^\\n]{0,16}${GIFT_NOUN}|${GIFT_NOUN}[^\\n]{0,16}(?:miễn phí|free)`, "giu");
+const GIFT_BAD = /tặng\s+(?:vợ|chồng|mẹ|bố|ba|bà|ông|con|cháu|người yêu|bạn gái|bạn trai)(?![\p{L}])/iu;
+const PRICE_CUE = /(?<!trị\s)(?:chỉ|còn|từ|giá|ưu đãi|sale|off|suất)\s*(?:từ|còn|chỉ)?\s*[:\-–~]?\s*$/iu;
+const GIFT_PRICE_CUE = /(?:trị giá|tặng|miễn phí|free|quà)[^\n]{0,25}$/iu;
+const CUT_PRICE_CUE = /(?:gi[aả]m|trợ giá|tiết kiệm|off|sale)\s*(?:ngay|thêm|tới|đến|lên đến|chỉ)?\s*[:\-–~]?\s*$/iu;
+const SLOT_RE = /(?<![\d.,])0?(\d{1,3})\s*suất/giu;
+const SLOT_CUE_BEFORE = /(?:chỉ|còn|duy nhất|giới hạn|nhanh tay|cuối cùng|hot|deal|số lượng|tặng|ưu đãi|dành riêng cho|áp dụng)\s*(?:còn|áp dụng cho|dành cho)?\s*[:\-–~]?\s*$/iu;
+const SLOT_CUE_AFTER = /^\s*(?:đầu tiên|cuối cùng|duy nhất|cuối|còn lại|sớm nhất)/iu;
+/* "tư vấn miễn phí / tư vấn 0đ" là câu chân bài của cả ngành -> mặc định
+   KHÔNG tính là CTKM. Bật cờ này nếu sau muốn đếm nó. */
+const FREE_CONSULT_AS_OFFER = true;
+
+/** Trả 1 nhãn CTKM chuẩn hoá (tối đa 2 vế nối bằng " + "), hoặc "no_clear_offer".
+ *  Chỉ nhận khi có TÍN HIỆU ĐỊNH LƯỢNG: %, số tiền, số suất, mua-1-tặng-1, quà tặng.
+ *  Riêng từ "giảm" trơn KHÔNG còn được tính -> hết cảnh "giảm viêm/giảm mỡ" bị
+ *  gắn nhãn khuyến mãi. */
+function detectOffer(text) {
+  const raw = String(text || "");
+  const s = maskNoise(raw);
+  const parts = [];
+  const pct = detectDiscountPercent(raw);
+  if (pct.length) parts.push(`giảm ${pct[0]}%`);
+  const prices = extractPrices(raw);
+  if (prices.length) {
+    const near = (p, n) => s.slice(Math.max(0, p.index - n), p.index);
+    const cut = prices.find((p) => CUT_PRICE_CUE.test(near(p, 14)));      // "TRỢ GIÁ 3 Triệu"
+    const gifted = prices.find((p) => GIFT_PRICE_CUE.test(near(p, 30)));  // "trị giá 13tr"
+    const priced = prices.find((p) => PRICE_CUE.test(near(p, 22)));       // "chỉ từ 6TR850K"
+    if (cut && !pct.length) parts.push(`giảm ${cut.label}`);
+    else if (gifted) parts.push(`tặng quà trị giá ${gifted.label}`);
+    else if (priced) parts.push(`giá từ ${priced.label}`);
+  }
+  const bogo = s.match(/mua\s*0?1\s*[-–—:]?\s*(tặng|được)\s*0?([12])/iu);
+  if (bogo) parts.push(bogo[1].toLowerCase() === "được" ? `mua 1 được ${bogo[2]}` : "mua 1 tặng 1");
+  const hasGift = [...s.matchAll(GIFT_RE)].some((m) => !GIFT_BAD.test(m[0]));
+  if (!parts.some((p) => p.startsWith("tặng quà")) && hasGift) parts.push("tặng kèm miễn phí");
+  for (const m of s.matchAll(SLOT_RE)) {                                  // "suất" phải có tín hiệu khan hiếm
+    const n = Number(m[1]);
+    if (n < 1 || n > 200) continue;
+    const before = s.slice(Math.max(0, m.index - 18), m.index);
+    const after = s.slice(m.index + m[0].length, m.index + m[0].length + 14);
+    if (!SLOT_CUE_BEFORE.test(before) && !SLOT_CUE_AFTER.test(after)) continue;
+    parts.push(`giới hạn ${n} suất`);
+    break;
+  }
+  if (/trả góp\s*0\s?%/iu.test(s)) parts.push("trả góp 0%");
+
+  /* Buổi tư vấn / thăm khám miễn phí LÀ khuyến mãi thật ở ngành này
+     (SERYN "tặng 9 suất tư vấn miễn phí", Gangwhoo "miễn phí bác sĩ thăm khám").
+     Gộp luôn số suất vào một nhãn cho gọn thay vì tách hai vế rời rạc. */
+  if (FREE_CONSULT_AS_OFFER && FREE_CONSULT_RE.test(s) && !NEGATED_OFFER.test(s)) {
+    const slot = parts.findIndex((p) => p.startsWith("giới hạn "));
+    const n = slot >= 0 ? parts[slot].match(/\d+/)[0] : "";
+    if (slot >= 0) parts.splice(slot, 1, `tặng ${n} suất tư vấn miễn phí`);
+    else parts.push("miễn phí tư vấn");
+  }
+
+  /* Quảng cáo nói thẳng "NHẬN ƯU ĐÃI TẠI ĐÂY" nhưng không nêu mức: vẫn là CTKM
+     thật, chỉ là mơ hồ -> giữ, ghi rõ chưa nêu mức để không nhầm với giảm giá.
+     Chặn câu phủ định kiểu "giảm giá đậm sâu thì bên em KHÔNG CÓ". */
+  // headline đứng đầu chuỗi (adText nối headline trước primary_text) -> lấy 90 ký tự đầu.
+  const headline = s.slice(0, 90);
+  if (!parts.length && !NEGATED_OFFER.test(s) && (VAGUE_OFFER.test(s) || HEADLINE_OFFER.test(headline))) parts.push("có ưu đãi (chưa nêu mức)");
+
+  if (!parts.length) return "no_clear_offer";
+  return parts.slice(0, 2).join(" + ");
+}
+
+/* Buổi tư vấn / thăm khám / soi da không mất tiền. */
+const FREE_CONSULT_RE = /(?:tư vấn|thăm khám|khám|soi da|phân tích da)[^\n]{0,14}(?:miễn phí|0\s?đ|free)|(?:miễn phí|0\s?đ|free)[^\n]{0,14}(?:tư vấn|thăm khám|khám|soi da|phân tích da)/iu;
+
+/* Có chương trình ưu đãi nhưng không nêu con số. */
+const VAGUE_OFFER = /(?:nhận|có|chương trình|đang có|áp dụng|săn|nhận ngay)\s*(?:thêm\s*)?ưu đãi|ưu đãi\s*(?:tại đây|hôm nay|đặc biệt|có hạn|cuối|dành riêng|lớn)|khuyến mãi\s*(?:hot|lớn|đặc biệt|có hạn|hôm nay)|giá\s*(?:siêu\s*tốt|tốt nhất|ưu đãi|sốc)|trọn gói|combo/iu;
+
+/* Từ khuyến mãi nằm ngay TIÊU ĐỀ (vd "ƯU ĐÃI DỊCH VỤ CĂNG DA NỘI SOI SMAS")
+   -> đây là bài chạy khuyến mãi thật, dù không nêu con số. Khác hẳn chữ
+   "ưu đãi" nằm ở chân bài mà quảng cáo nào cũng có. */
+const HEADLINE_OFFER = /ưu đãi|khuyến mãi|trợ giá|giảm giá|sale\b/iu;
+
+/* "Giảm giá đậm sâu thì bên em Hiếu KHÔNG CÓ" — phủ định, tuyệt đối không gắn nhãn CTKM. */
+const NEGATED_OFFER = /(?:không có|không chạy|không áp dụng|chẳng có|không hề có)\s*(?:chương trình\s*)?(?:khuyến mãi|ưu đãi|giảm giá|giảm)|(?:giảm giá|khuyến mãi|ưu đãi)[^\n]{0,24}(?:thì|là)?[^\n]{0,12}không có/iu;
 
 function lc(s) { return String(s || "").toLowerCase(); }
 function matchFirst(text, table, fallback) {
@@ -320,19 +518,7 @@ function matchFirst(text, table, fallback) {
   for (const [label, kws] of table) if (kws.some((k) => t.includes(k))) return label;
   return fallback;
 }
-function detectPrice(text) {
-  const m = String(text || "").match(PRICE_TOKEN);
-  if (!m) return "unknown";
-  const prices = [...new Set(m.map((x) => x.trim()).filter((x) => /\d/.test(x) && (/k|đ|tr|triệu|vnđ/i.test(x))))];
-  return prices.length ? prices.slice(0, 3).join("|") : "unknown";
-}
-function detectOffer(text) {
-  const t = lc(text);
-  const hit = OFFER_WORDS.filter((w) => t.includes(w));
-  if (!hit.length) return "no_clear_offer";
-  const price = detectPrice(text);
-  return price !== "unknown" ? `${hit[0]} ${price.split("|")[0]}` : hit.join("|");
-}
+
 
 const ANGLE_BY_HOOK = {
   fear_based: "fear_aging", offer_led: "price_promotion", doctor_authority: "medical_authority",

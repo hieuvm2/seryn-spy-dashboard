@@ -533,6 +533,106 @@ export function isMeaningful(value?: unknown): boolean {
   return !!s && s !== "unknown" && s !== "chưa rõ" && s !== "no_clear_offer" && s !== "no_clear_proof" && s !== "none" && s !== "n/a";
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   CTKM (offer) — chuẩn hoá + lọc rác lúc HIỂN THỊ.
+
+   Vì sao cần lọc ở đây dù pipeline đã sửa: dữ liệu ĐÃ LƯU trong Supabase vẫn là
+   bản cũ cho tới lần crawl kế tiếp. Bản cũ ghép "<từ CTKM> <token giá>" bằng regex
+   thô nên nuốt nhầm địa chỉ, hotline, nhóm tuổi:
+     "Manhatan 09, KĐT…"    -> "ưu đãi 09, K"   (ad 1349183997044653, Hoàng Tuấn)
+     "219-229 Khuất Duy Tiến"-> "giảm 229 K"    (ad 1367610952163272, Hải Lê)
+     "U70 trẻ đẹp"           -> "tặng 70 tr"    (ad 1468283555125558, SERYN)
+     "4 điều QUAN TRỌNG"     -> "ưu đãi 4 đ"    (ad 2006307997438831, Thu Cúc)
+   Nguyên tắc: THÀ BỎ NHẦM CÒN HƠN ĐỂ LỌT RÁC — chip sai tệ hơn không có chip.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/** Nhãn do pipeline MỚI sinh: đã chuẩn hoá và kiểm chứng ở nguồn -> giữ nguyên. */
+/* Số tiền do pipeline mới CHUẨN HOÁ ra: "3 triệu" hoặc "2.999.000đ".
+   Bắt buộc khớp đúng dạng này, KHÔNG chấp nhận "09, K" / "2 đ" / "60 tr" của bản cũ. */
+const NEW_MONEY = String.raw`(?:\d{1,3} triệu|\d{1,3}(?:\.\d{3})+đ)`;
+/** Nhãn do pipeline MỚI sinh: đã chuẩn hoá và kiểm chứng ở nguồn -> giữ nguyên.
+ *  Neo cả hai đầu (^...$) để rác cũ dạng "giảm 09, K" không lọt qua cửa này. */
+const NEW_OFFER_LABEL = new RegExp(
+  String.raw`^(?:giảm (?:\d{1,2}%|${NEW_MONEY})|giá từ ${NEW_MONEY}|tặng quà trị giá ${NEW_MONEY}`
+  + String.raw`|tặng kèm miễn phí|tặng \d{1,3} suất tư vấn miễn phí|giới hạn \d{1,3} suất`
+  + String.raw`|miễn phí tư vấn|mua 1 (?:tặng 1|được \d)|trả góp 0%|có ưu đãi \(chưa nêu mức\))$`, "i");
+
+/** Từ CTKM tự nó đã đủ nghĩa — hiện được một mình. */
+const OFFER_STANDALONE = ["miễn phí", "tặng", "combo", "trọn gói", "khuyến mãi", "đồng giá", "trợ giá"];
+/** Từ chỉ có nghĩa khi kèm con số: gần như mọi quảng cáo đều nói "ưu đãi"/"giảm"
+ *  ở chân bài mà không nói bao nhiêu -> đứng trơ một mình là chữ rỗng. */
+const OFFER_NEED_NUMBER = ["giảm", "ưu đãi", "chỉ từ"];
+const OFFER_WORDS_ALL = [...OFFER_STANDALONE, ...OFFER_NEED_NUMBER].sort((a, b) => b.length - a.length);
+
+/** Token sau từ CTKM có thật là tiền/% không? Chốt theo HÌNH DẠNG, vì lúc hiển thị
+ *  không còn câu gốc để đối chiếu:
+ *   - có dấu phẩy -> địa chỉ ("09, K")                                    -> loại
+ *   - đơn vị phải DÍNH LIỀN số; có dấu cách nghĩa là chữ Việt bị cắt cụt
+ *     (K = Khách/Không/KĐT/Khuất · đ = đến/điều/đường/đội · tr = trẻ/trị)  -> loại
+ *   - "k" cần >= 3 chữ số hoặc nhóm nghìn ("200K","2.999K"); "4K" là công nghệ
+ *   - "đ" cần >= 4 chữ số hoặc nhóm nghìn ("668.000đ"); "7 đ" là "7 đội"
+ *   - "tr" 1-2 chữ số ("13tr"); "190tr" là hashtag
+ *   - "%" là ký hiệu nên cho phép dấu cách, nhưng chỉ nhận 5-95 (99%/100% là
+ *     "99% khách hàng", "cam kết 100%") */
+export function isRealPriceToken(raw?: unknown): boolean {
+  const t = String(raw ?? "").trim().replace(/\s+/g, " ");
+  if (!t || t.includes(",")) return false;
+  const m = t.match(/^(\d[\d.]*)\s?(k|đ|tr|triệu|vnđ|%)$/i);
+  if (!m) return false;
+  const num = m[1];
+  const unit = m[2].toLowerCase();
+  const spaced = /\s/.test(t);
+  const digits = num.replace(/\./g, "");
+  const grouped = /^\d{1,3}(\.\d{3})+$/.test(num);
+  if (unit === "%") { const v = Number(num); return Number.isInteger(v) && v >= 5 && v <= 95; }
+  if (unit === "k") return !spaced && (grouped || digits.length >= 3);
+  if (unit === "đ") return !spaced && (grouped || digits.length >= 4);
+  if (unit === "tr") return !spaced && /^\d{1,2}$/.test(num);
+  return grouped || digits.length >= 4;
+}
+
+/** Làm sạch MỘT nhãn CTKM; trả "" nếu là rác (chip bị bỏ hẳn).
+ *  "giảm 200K" -> giữ · "ưu đãi 09, K" -> "" · "miễn phí 4K" -> "miễn phí"
+ *  "ưu đãi" -> "" (thiếu số) · "K" -> "" · "giá từ 2.999.000đ" -> giữ nguyên (bản mới) */
+export function cleanOfferLabel(raw?: unknown): string {
+  const t = String(raw ?? "").trim().replace(/\s+/g, " ");
+  if (!t || isMissing(t) || !isMeaningful(t)) return "";
+  // Bản mới có thể ghép 2 vế bằng " + " — chỉ giữ khi MỌI vế đều là nhãn chuẩn.
+  if (t.split(" + ").every((p) => NEW_OFFER_LABEL.test(p.trim()))) return t;
+  const low = t.toLowerCase();
+  const word = OFFER_WORDS_ALL.find((w) => low.startsWith(w));
+  if (!word) return "";
+  const shown = t.slice(0, word.length);
+  const rest = t.slice(word.length).trim();
+  // Quét MỌI token trong phần còn lại, không chỉ khớp trọn vẹn — để nhãn có chữ
+  // chen giữa ("giảm sốc 50%", "đồng giá 588K") vẫn giữ được, mà rác ("giảm 229 K",
+  // "ưu đãi 09, K") vẫn trượt vì từng token đều không qua isRealPriceToken.
+  const hit = (rest.match(/\d[\d.]*\s?(?:k|đ|tr|triệu|vnđ|%)/gi) || []).some(isRealPriceToken);
+  if (hit) return t;
+  return OFFER_STANDALONE.includes(word) ? shown : "";
+}
+
+/** Tách chuỗi CTKM. CHỈ tách "|" và ";" — KHÔNG tách dấu phẩy, vì chính việc
+ *  tách phẩy đẻ ra chip cụt "K" (từ "ưu đãi 09, K"). */
+export function splitOfferChips(value?: unknown): string[] {
+  return String(value ?? "").split(/[|;]/).map((x) => x.trim()).filter(Boolean);
+}
+
+/** Đếm CTKM đã lọc rác, gộp trùng không phân biệt hoa/thường, trả top-n. */
+export function countOfferChips(values: (string | undefined)[], n: number): { label: string; count: number }[] {
+  const map = new Map<string, { label: string; count: number }>();
+  for (const raw of values) {
+    for (const piece of splitOfferChips(raw)) {
+      const label = cleanOfferLabel(piece);
+      if (!label) continue;
+      const key = label.toLowerCase();
+      const cur = map.get(key);
+      if (cur) cur.count += 1; else map.set(key, { label, count: 1 });
+    }
+  }
+  return [...map.values()].sort((a, b) => b.count - a.count).slice(0, n);
+}
+
 /* Cụm tiếng Anh do script server sinh ra (dữ liệu cũ trên Sheet) -> dịch lúc hiển thị.
    Áp cho free-text như why_it_is_scaling / seryn_reframe / scale_reason. */
 const FREE_TEXT_EN: Array<[RegExp, string]> = [
