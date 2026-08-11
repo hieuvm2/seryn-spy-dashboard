@@ -11,6 +11,7 @@
 import type { SpyDashboardData, AdLevelAnalysis } from "../types";
 import { viLabel, isMeaningful, humanizeText } from "./spyData";
 import { getBrandScaledContent, getBrandAds, getBrandSnapshot, getBrandVisualSummary } from "./brandIntelligence";
+import { extractNamedInAd } from "./namedServices";
 
 /* ---------- types ---------- */
 export type AdContentPsychology = {
@@ -37,6 +38,10 @@ export type AdContentIntelligence = {
   visualAngle: string; visualFormat: string;
   thumbnailUrl?: string;
   adsCount: number; activeDays: number; exampleAdIds: string[]; exampleAdUrls: string[];
+  /** Tên dịch vụ nêu NGUYÊN VĂN trong quảng cáo (rỗng = quảng cáo không nêu tên). */
+  namedServices: string[];
+  /** Tên công nghệ/thiết bị/sản phẩm nêu NGUYÊN VĂN trong quảng cáo. */
+  namedTechnologies: string[];
   /** Content CHƯA từng quét ở kỳ nào trước (first_seen_week === tuần đang xem). */
   isNewContent: boolean;
   /** Kỳ đầu tiên quét thấy content này ("" nếu dữ liệu cũ chưa có cột). */
@@ -448,6 +453,16 @@ export function buildAdContentIntelligenceForBrand(
     const id = String(a.ad_id || "").trim();
     if (id) firstSeenByAdId.set(id, String(a.first_seen_week || "").slice(0, 10));
   }
+
+  // TOÀN VĂN quảng cáo theo ad_id — dùng để trích tên dịch vụ/công nghệ. Phải
+  // dùng bản đầy đủ (headline + primary_text) chứ KHÔNG dùng câu mở đầu hiển thị
+  // trên thẻ: câu đó bị cắt ~160 ký tự nên tên công nghệ nằm ở thân bài sẽ bị sót.
+  const fullTextByAdId = new Map<string, string>();
+  for (const a of ads) {
+    const id = String(a.ad_id || "").trim();
+    if (!id) continue;
+    fullTextByAdId.set(id, [a.headline, a.primary_text, a.hook_raw_text].filter(Boolean).join(" \n "));
+  }
   /** Thiếu dữ liệu (ad cũ chưa có cột first_seen_week, hoặc không tra được ad đại
    *  diện của cụm) -> xếp vào "cũ", KHÔNG đoán là mới: thà bỏ sót còn hơn báo nhầm
    *  một content cũ là mới. */
@@ -537,6 +552,12 @@ export function buildAdContentIntelligenceForBrand(
       adFormat, inferredObjective: objective,
       visualAngle: visualAngle ? viLabel(visualAngle) : "", visualFormat: visualFormat, thumbnailUrl,
       adsCount: s.ads, activeDays: s.days, exampleAdIds: ex.ids, exampleAdUrls: ex.urls,
+      // Trích trên TOÀN VĂN của ad đại diện; không có toàn văn thì đành dùng câu
+      // hiển thị. Không khớp -> mảng rỗng, giao diện hiện "không nêu tên".
+      ...(() => {
+        const named = extractNamedInAd(fullTextByAdId.get(String(s.repId)) || text);
+        return { namedServices: named.services, namedTechnologies: named.technologies };
+      })(),
       isNewContent: s.isNew, firstSeenWeek: s.firstSeenWeek,
       repetitionSignal: repetitionOf(s.ads), scaleSignal: scaleSignalOf(s.ads, s.days), riskLevel: risk,
     };

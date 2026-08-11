@@ -444,6 +444,18 @@ function ContentCard({ c }: { c: AdContentIntelligence }) {
     { k: "breakdown", label: "Bóc tách" }, { k: "psych", label: "Tâm lý" }, { k: "seryn", label: "SERYN" }, { k: "evidence", label: "Bằng chứng" },
   ];
   const KV = ({ k, v }: { k: string; v?: string }) => <p className="text-[11px] text-slate-600"><b className="text-slate-500">{k}:</b> {v && isMeaningful(v) ? v : "N/A"}</p>;
+  /** Danh sách tên trích NGUYÊN VĂN: rỗng thì ghi rõ quảng cáo không nêu tên,
+   *  không được điền tên suy đoán vào chỗ trống. */
+  const NamedList = ({ k, items }: { k: string; items: string[] }) => (
+    <div className="text-[11px] text-slate-600 flex flex-wrap items-baseline gap-x-1 gap-y-1">
+      <b className="text-slate-500">{k}:</b>
+      {items.length
+        ? items.map((it) => (
+            <span key={it} className="font-semibold px-1.5 py-0.5 rounded border bg-[#FDF4EE] text-[#C2492F] border-[#F4B3A4]">{it}</span>
+          ))
+        : <span className="text-slate-400 italic">quảng cáo không nêu tên</span>}
+    </div>
+  );
   return (
     <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
       {/* Thumbnail QC + overlay: số lượng QC, scale, content signal */}
@@ -480,6 +492,11 @@ function ContentCard({ c }: { c: AdContentIntelligence }) {
           <KV k="Nỗi đau" v={c.painPoint} /><KV k="Mong muốn" v={c.desiredOutcome} />
           <KV k="Cơ chế" v={b.mechanism} /><KV k="Bằng chứng" v={b.proofElement} />
           <KV k="Ưu đãi" v={b.offerElement} /><KV k="CTA" v={b.ctaElement} />
+          {/* Tên dịch vụ / công nghệ: CHỈ những tên xuất hiện nguyên văn trong
+              quảng cáo. Không khớp được -> nói thẳng là quảng cáo không nêu tên,
+              KHÔNG suy từ nhãn phân loại. */}
+          <NamedList k="Dịch vụ nêu trong QC" items={c.namedServices} />
+          <NamedList k="Công nghệ nêu trong QC" items={c.namedTechnologies} />
           <p className="text-[11px] text-slate-500 mt-1">Cấu trúc: {b.contentStructure.join(" → ")}</p>
         </div>
       )}
