@@ -37,6 +37,10 @@ export type AdContentIntelligence = {
   visualAngle: string; visualFormat: string;
   thumbnailUrl?: string;
   adsCount: number; activeDays: number; exampleAdIds: string[]; exampleAdUrls: string[];
+  /** Content CHƯA từng quét ở kỳ nào trước (first_seen_week === tuần đang xem). */
+  isNewContent: boolean;
+  /** Kỳ đầu tiên quét thấy content này ("" nếu dữ liệu cũ chưa có cột). */
+  firstSeenWeek: string;
   repetitionSignal: "Low" | "Medium" | "High";
   scaleSignal: "Weak Signal" | "Repeated Content" | "Long-running Content" | "Strong Content Pattern";
   riskLevel: "Low" | "Medium" | "High";
@@ -403,7 +407,18 @@ function buildThumbIndex(data: SpyDashboardData): Map<string, string> {
 }
 const isTrueish = (v: unknown) => v === true || /^(true|yes|1|active|đang|có)/i.test(String(v ?? "").trim());
 
-export function buildAdContentIntelligenceForBrand(brandName: string, data: SpyDashboardData, limit = 10): AdContentIntelligence[] {
+/** Chế độ lọc content ở tab "Theo dõi đối thủ".
+ *  - `new`: chỉ content chưa từng quét ở kỳ trước, xếp SỐ NGÀY CHẠY TĂNG DẦN (mới nhất lên đầu).
+ *  - `old`: chỉ content đã quét từ các kỳ trước, xếp theo số lượng QC (như cũ).
+ *  - `all`: giữ nguyên hành vi cũ (số lượng QC nhiều nhất lên đầu). */
+export type ContentFilterMode = "new" | "old" | "all";
+
+export function buildAdContentIntelligenceForBrand(
+  brandName: string,
+  data: SpyDashboardData,
+  limit = 10,
+  mode: ContentFilterMode = "all",
+): AdContentIntelligence[] {
   const scaled = getBrandScaledContent(brandName, data);
   const ads = getBrandAds(brandName, data);
   const snap = getBrandSnapshot(brandName, data);
@@ -415,11 +430,32 @@ export function buildAdContentIntelligenceForBrand(brandName: string, data: SpyD
 
   // Mỗi nguồn = 1 quảng cáo/nội dung tiêu biểu. `ads` = số lượng QC chạy (số ad
   // tương tự trong cụm) → dùng để xếp hạng "số lượng QC nhiều nhất".
-  type Src = { text: string; service: string; format: string; angle: string; offer: string; price: string; proof: string; cta: string; ads: number; days: number; id: string; repId: string };
+  type Src = { text: string; service: string; format: string; angle: string; offer: string; price: string; proof: string; cta: string; ads: number; days: number; id: string; repId: string; isNew: boolean; firstSeenWeek: string };
   const sources: Src[] = [];
   const seenHooks = new Set<string>();
   const seenAdIds = new Set<string>();
   const hookKey = (s: string) => lc(s).replace(/[^a-z0-9à-ỹ ]/gi, "").slice(0, 60).trim();
+
+  // ---- Mới vs cũ: dựa vào first_seen_week (kỳ ĐẦU TIÊN quét thấy quảng cáo).
+  // Kỳ đang xem = week_date lớn nhất trong ads của brand. Quảng cáo có
+  // first_seen_week === kỳ đang xem => content chưa từng quét kỳ nào trước.
+  const curWeek = ads.reduce((mx, a) => {
+    const w = String(a.week_date || "").slice(0, 10);
+    return w > mx ? w : mx;
+  }, "");
+  const firstSeenByAdId = new Map<string, string>();
+  for (const a of ads) {
+    const id = String(a.ad_id || "").trim();
+    if (id) firstSeenByAdId.set(id, String(a.first_seen_week || "").slice(0, 10));
+  }
+  /** Thiếu dữ liệu (ad cũ chưa có cột first_seen_week, hoặc không tra được ad đại
+   *  diện của cụm) -> xếp vào "cũ", KHÔNG đoán là mới: thà bỏ sót còn hơn báo nhầm
+   *  một content cũ là mới. */
+  const newnessOf = (adId: string): { isNew: boolean; firstSeenWeek: string } => {
+    const fw = firstSeenByAdId.get(String(adId || "").trim()) || "";
+    return { isNew: !!fw && !!curWeek && fw === curWeek, firstSeenWeek: fw };
+  };
+  const keepByMode = (isNew: boolean) => mode === "all" || (mode === "new" ? isNew : !isNew);
 
   // 1) Nguồn chính: cụm nội dung nhân rộng (scaled), số ad tương tự = số lượng QC.
   for (let i = 0; i < scaled.length; i++) {
@@ -427,6 +463,8 @@ export function buildAdContentIntelligenceForBrand(brandName: string, data: SpyD
     const text = String(c.representative_hook || "");
     const repId = String(c.representative_ad_id || "");
     const hk = hookKey(text);
+    const fresh = newnessOf(repId);
+    if (!keepByMode(fresh.isNew)) continue;
     if (hk) { if (seenHooks.has(hk)) continue; seenHooks.add(hk); }
     if (repId) seenAdIds.add(repId);
     sources.push({
@@ -435,20 +473,26 @@ export function buildAdContentIntelligenceForBrand(brandName: string, data: SpyD
       proof: String(c.proof_point || ""), cta: "",
       ads: num(c.number_of_similar_ads) || 1, days: num(c.longest_days_active),
       id: String(c.content_cluster_id || c.representative_ad_id || `sc-${i}`), repId,
+      isNew: fresh.isNew, firstSeenWeek: fresh.firstSeenWeek,
     });
   }
 
   // 2) Bổ sung quảng cáo lẻ tốt nhất (ad-level) cho đủ ~limit — ưu tiên ad nhân
   //    rộng / chạy dài ngày / đang active. Bỏ trùng hook & ad đã có ở cụm.
   if (sources.length < limit && ads.length) {
-    const ranked = ads.slice().sort((x, y) =>
-      (num(y.scale_level) * 20 + (isTrueish(y.is_likely_scaled) ? 30 : 0) + Math.min(num(y.days_active), 60)) -
-      (num(x.scale_level) * 20 + (isTrueish(x.is_likely_scaled) ? 30 : 0) + Math.min(num(x.days_active), 60)),
-    );
+    // Chế độ "content mới": xếp SỐ NGÀY CHẠY TĂNG DẦN để quảng cáo vừa tung lên đầu.
+    // Hai chế độ còn lại giữ nguyên cách xếp cũ (nhân rộng / chạy dài ngày lên đầu).
+    const ranked = mode === "new"
+      ? ads.slice().sort((x, y) => num(x.days_active) - num(y.days_active))
+      : ads.slice().sort((x, y) =>
+        (num(y.scale_level) * 20 + (isTrueish(y.is_likely_scaled) ? 30 : 0) + Math.min(num(y.days_active), 60)) -
+        (num(x.scale_level) * 20 + (isTrueish(x.is_likely_scaled) ? 30 : 0) + Math.min(num(x.days_active), 60)),
+      );
     for (const a of ranked) {
       if (sources.length >= limit + 4) break;
       const adId = String(a.ad_id || "");
       if (adId && seenAdIds.has(adId)) continue;
+      if (!keepByMode(newnessOf(adId).isNew)) continue;
       const text = String(a.hook_raw_text || a.hook_text || a.headline || "");
       if (!text) continue; // bỏ ad không có nội dung để hiển thị (tránh card trống)
       const hk = hookKey(text);
@@ -461,6 +505,7 @@ export function buildAdContentIntelligenceForBrand(brandName: string, data: SpyD
         proof: String(a.proof_point || ""), cta: String(a.cta || ""),
         ads: 1, days: num(a.days_active), // ad lẻ = 1 QC (adsCount = số lượng QC thật, không phải scale_level)
         id: adId || `ad-${sources.length}`, repId: adId,
+        ...newnessOf(adId),
       });
     }
   }
@@ -492,6 +537,7 @@ export function buildAdContentIntelligenceForBrand(brandName: string, data: SpyD
       adFormat, inferredObjective: objective,
       visualAngle: visualAngle ? viLabel(visualAngle) : "", visualFormat: visualFormat, thumbnailUrl,
       adsCount: s.ads, activeDays: s.days, exampleAdIds: ex.ids, exampleAdUrls: ex.urls,
+      isNewContent: s.isNew, firstSeenWeek: s.firstSeenWeek,
       repetitionSignal: repetitionOf(s.ads), scaleSignal: scaleSignalOf(s.ads, s.days), riskLevel: risk,
     };
     const item: AdContentIntelligence = {
@@ -504,10 +550,29 @@ export function buildAdContentIntelligenceForBrand(brandName: string, data: SpyD
     return item;
   });
 
-  // Xếp theo SỐ LƯỢNG QC nhiều nhất, rồi tới content signal.
+  // "Content mới": xếp SỐ NGÀY CHẠY TĂNG DẦN (vừa tung lên đầu) — đúng thứ tự cần
+  // để thấy đối thủ vừa ra content gì. Hai chế độ còn lại giữ cách cũ: số lượng QC
+  // nhiều nhất lên đầu, rồi tới content signal.
   return out
-    .sort((a, b) => (b.adsCount - a.adsCount) || (b.contentScore - a.contentScore))
+    .sort((a, b) => (mode === "new"
+      ? (a.activeDays - b.activeDays) || (b.adsCount - a.adsCount)
+      : (b.adsCount - a.adsCount) || (b.contentScore - a.contentScore)))
     .slice(0, limit);
+}
+
+/** Đếm nhanh số content mới / cũ của 1 brand (để hiện số trên nút lọc). */
+export function countContentByNewness(brandName: string, data: SpyDashboardData): { moi: number; cu: number } {
+  const ads = getBrandAds(brandName, data);
+  const curWeek = ads.reduce((mx, a) => {
+    const w = String(a.week_date || "").slice(0, 10);
+    return w > mx ? w : mx;
+  }, "");
+  let moi = 0, cu = 0;
+  for (const a of ads) {
+    const fw = String(a.first_seen_week || "").slice(0, 10);
+    if (fw && curWeek && fw === curWeek) moi++; else cu++;
+  }
+  return { moi, cu };
 }
 
 export { ANGLE_VI };
