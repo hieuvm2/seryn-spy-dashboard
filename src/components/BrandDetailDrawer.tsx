@@ -13,8 +13,8 @@ import { buildSerynVsCompetitorComparison, buildSerynSnapshot } from "../utils/s
 import { buildPageNameMap } from "../utils/pageNames";
 import { Sparkles } from "lucide-react";
 import {
-  buildAdContentIntelligenceForBrand, ANGLE_VI,
-  type AdContentIntelligence,
+  buildAdContentIntelligenceForBrand, countContentByNewness, ANGLE_VI,
+  type AdContentIntelligence, type ContentFilterMode,
 } from "../utils/adContentIntelligence";
 
 const num = (v: unknown) => { const n = Number(String(v ?? "").replace(/[^\d.-]/g, "")); return Number.isFinite(n) ? n : 0; };
@@ -152,7 +152,14 @@ export default function BrandDetailDrawer({
 
   const isOwn = brandName ? isOwnBrand(brandName, data.ownBrandPages ?? []) : false;
   const p = brandName ? getBrandProfile(brandName, data) : null;
-  const content = brandName ? buildAdContentIntelligenceForBrand(brandName, data, 10) : [];
+  // Bộ lọc content: mặc định "mới" — thứ đối thủ VỪA tung ra trong kỳ này, thay vì
+  // lặp lại các quảng cáo chạy dài ngày đã đọc ở những kỳ trước.
+  const [contentMode, setContentMode] = useState<ContentFilterMode>("new");
+  const content = brandName ? buildAdContentIntelligenceForBrand(brandName, data, 10, contentMode) : [];
+  const contentCount = useMemo(
+    () => (brandName ? countContentByNewness(brandName, data) : { moi: 0, cu: 0 }),
+    [brandName, data],
+  );
   const snap = p?.snapshot;
   const disc = p?.discovery;
   const skinN = num(snap?.skin_rejuvenation_ads_count);
@@ -296,12 +303,47 @@ export default function BrandDetailDrawer({
                   {/* 4. Phân tích content quảng cáo (section chính, full width) — gồm
                        luôn các quảng cáo tốt nhất (số lượng QC nhiều nhất) + ảnh thumbnail. */}
                   <Section icon={FileText} title="Phân tích content quảng cáo" accent full>
-                    <p className="text-[10px] text-slate-400 mb-3 italic">~10 quảng cáo có số lượng QC nhiều nhất của brand — kèm ảnh + bóc tách nội dung.</p>
+                    {/* Lọc 2 nhóm: content MỚI của kỳ này vs content đã quét từ các kỳ trước. */}
+                    <div className="flex flex-wrap gap-2 mb-2.5">
+                      {([
+                        { k: "new", label: "Content mới", n: contentCount.moi },
+                        { k: "old", label: "Đã quét kỳ trước", n: contentCount.cu },
+                        { k: "all", label: "Tất cả", n: contentCount.moi + contentCount.cu },
+                      ] as { k: ContentFilterMode; label: string; n: number }[]).map((f) => (
+                        <button
+                          key={f.k}
+                          type="button"
+                          onClick={() => setContentMode(f.k)}
+                          className={`hm-touch px-3 py-1.5 rounded-lg text-[12px] font-bold border transition cursor-pointer ${
+                            contentMode === f.k
+                              ? "bg-[#F47E6A] text-white border-[#E85F4B] shadow-sm"
+                              : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                          }`}
+                        >
+                          {f.label} <span className="tabular-nums font-mono opacity-80">{f.n}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mb-3 italic">
+                      {contentMode === "new"
+                        ? "Quảng cáo lần đầu quét thấy ở kỳ này — xếp số ngày chạy tăng dần, thứ vừa tung ra lên đầu."
+                        : contentMode === "old"
+                          ? "Quảng cáo đã xuất hiện từ các kỳ trước — xếp theo số lượng QC nhiều nhất."
+                          : "Toàn bộ content của brand — xếp theo số lượng QC nhiều nhất."}
+                    </p>
                     {content.length ? (
                       <div className="grid md:grid-cols-2 gap-3">
                         {content.slice(0, 10).map((c) => <div key={c.id}><ContentCard c={c} /></div>)}
                       </div>
-                    ) : <p className="text-xs text-slate-400">Chưa đủ dữ liệu để dựng content pattern cho brand này.</p>}
+                    ) : (
+                      <p className="text-xs text-slate-400">
+                        {contentMode === "new"
+                          ? "Kỳ này brand không có content mới — toàn bộ quảng cáo đang chạy đều đã quét từ các kỳ trước."
+                          : contentMode === "old"
+                            ? "Brand chưa có content nào từ các kỳ trước (mới bắt đầu theo dõi)."
+                            : "Chưa đủ dữ liệu để dựng content pattern cho brand này."}
+                      </p>
+                    )}
                   </Section>
 
                   {/* 5. Visual */}
@@ -414,6 +456,10 @@ function ContentCard({ c }: { c: AdContentIntelligence }) {
       <div className="p-3 space-y-2">
       <p className="text-xs font-bold text-slate-800 leading-snug">{c.contentSummary}</p>
       <div className="flex flex-wrap gap-1.5 text-[10px]">
+        {/* Nhãn mới/cũ: "mới" = chưa từng quét ở kỳ nào trước (first_seen_week = kỳ này). */}
+        {c.isNewContent
+          ? <span className="font-bold px-2 py-0.5 rounded border bg-[#FDF4EE] text-[#C2492F] border-[#F4B3A4]">Mới · {c.activeDays} ngày</span>
+          : <span className="font-bold px-2 py-0.5 rounded border bg-slate-100 text-slate-600 border-slate-200">Đã quét kỳ trước</span>}
         <span className={`font-bold px-2 py-0.5 rounded border ${SCALE_TONE[c.scaleSignal]}`}>{SCALE_VI[c.scaleSignal]}</span>
         <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{ANGLE_VI[c.contentAngle] || viLabel(c.contentAngle)}</span>
         <span className="font-semibold px-2 py-0.5 rounded border border-slate-200 text-slate-600">{FMT_VI[c.adFormat]}</span>

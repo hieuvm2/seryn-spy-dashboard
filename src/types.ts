@@ -175,6 +175,10 @@ export type AdLevelAnalysis = {
   funnel_stage?: string;
   is_new_this_week?: string | boolean;
   was_seen_previous_week?: string | boolean;
+  /** Kỳ (week_date) ĐẦU TIÊN quét thấy quảng cáo này, lấy từ Raw Ads Archive.
+   *  Bằng week_date của dòng => content MỚI (chưa từng quét ở kỳ nào trước).
+   *  Khác `is_new_this_week` (chỉ so với đúng 1 tuần liền trước). */
+  first_seen_week?: string;
   is_likely_scaled?: string | boolean;
   scale_level?: number | string;
   scale_reason?: string;

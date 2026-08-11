@@ -893,6 +893,11 @@ function analyzeAd(raw, brand, weekDate, prevAdIds, opts = {}) {
     funnel_stage: ta.funnel_stage,
     is_new_this_week: prevAdIds.has(adId) ? "false" : "true",
     was_seen_previous_week: prevAdIds.has(adId) ? "true" : "false",
+    // Kỳ ĐẦU TIÊN quét thấy ad này (từ Raw Ads Archive). Khác is_new_this_week —
+    // cái đó chỉ so với 1 tuần trước, nên ad chạy tháng 6, nghỉ, quay lại vẫn bị
+    // tính "mới". first_seen_week === weekDate mới là content CHƯA từng quét kỳ nào.
+    // Điền ở analyzeWithCache (nơi có archiveFirstWeek); mặc định = tuần hiện tại.
+    first_seen_week: weekDate,
     is_likely_scaled: "false", // điều chỉnh sau khi cluster
     scale_level: sc.level,
     scale_reason: "",
@@ -975,7 +980,7 @@ function applyScale(ads) {
    AGGREGATE — Snapshot / Scaled / Recommendations
    ============================================================ */
 const HEADERS = {
-  ad: "week_date,brand_name,page_id,page_name,ad_id,ad_snapshot_url,status,start_date,days_active,media_type,platforms,headline,primary_text,hook_text,hook_type,service_or_product,price_detected,offer_detected,content_format,content_angle,proof_point,cta,funnel_stage,is_new_this_week,was_seen_previous_week,is_likely_scaled,scale_level,scale_reason,notes,content_hash,visual_hash,analysis_status,reused_from_cache,analysis_version,last_analyzed_at,ad_format,ad_format_confidence,has_video,has_image,has_carousel,media_asset_quality,inferred_objective,objective_confidence,objective_evidence,destination_type,destination_url,service_category,hook_raw_text,hook_normalized,hook_category,hook_subcategory,hook_formula,hook_emotional_trigger,hook_pain_point,hook_desired_outcome,hook_promise,hook_proof_type,hook_offer_linked,hook_target_audience,hook_funnel_stage,hook_angle,hook_strength_score,hook_clarity_score,hook_specificity_score,hook_urgency_score,hook_trust_score,hook_risk_score,hook_confidence_score,hook_evidence,brand_type".split(","),
+  ad: "week_date,brand_name,page_id,page_name,ad_id,ad_snapshot_url,status,start_date,days_active,media_type,platforms,headline,primary_text,hook_text,hook_type,service_or_product,price_detected,offer_detected,content_format,content_angle,proof_point,cta,funnel_stage,is_new_this_week,was_seen_previous_week,first_seen_week,is_likely_scaled,scale_level,scale_reason,notes,content_hash,visual_hash,analysis_status,reused_from_cache,analysis_version,last_analyzed_at,ad_format,ad_format_confidence,has_video,has_image,has_carousel,media_asset_quality,inferred_objective,objective_confidence,objective_evidence,destination_type,destination_url,service_category,hook_raw_text,hook_normalized,hook_category,hook_subcategory,hook_formula,hook_emotional_trigger,hook_pain_point,hook_desired_outcome,hook_promise,hook_proof_type,hook_offer_linked,hook_target_audience,hook_funnel_stage,hook_angle,hook_strength_score,hook_clarity_score,hook_specificity_score,hook_urgency_score,hook_trust_score,hook_risk_score,hook_confidence_score,hook_evidence,brand_type".split(","),
   snapshot: "week_date,brand_name,page_urls,page_ids,total_active_ads,total_ads_collected,num_pages_running,services_running,prices_detected,offers_detected,main_content_formats,main_hooks,main_angles,main_proof_points,main_ctas,scaled_content_count,new_ads_count,stopped_ads_count,content_strategy_summary,weekly_change_summary,seryn_opportunity,skin_rejuvenation_ads_count,skin_rejuvenation_image_ads,skin_rejuvenation_video_ads,skin_rejuvenation_carousel_ads,skin_rejuvenation_image_rate,skin_rejuvenation_video_rate,skin_rejuvenation_carousel_rate,skin_rejuvenation_messenger_ads,skin_rejuvenation_landing_page_conversion_ads,skin_rejuvenation_lead_form_ads,skin_rejuvenation_phone_call_ads,skin_rejuvenation_unknown_objective_ads,skin_rejuvenation_messenger_rate,skin_rejuvenation_landing_page_conversion_rate,skin_rejuvenation_lead_form_rate,skin_rejuvenation_phone_call_rate,skin_rejuvenation_unknown_objective_rate,skin_rejuvenation_top_format,skin_rejuvenation_top_inferred_objective,skin_rejuvenation_format_objective_pattern,skin_rejuvenation_confidence_score,brand_type".split(","),
   scaled: "week_date,brand_name,content_cluster_id,representative_ad_id,representative_hook,service_or_product,price_detected,offer_detected,content_format,content_angle,proof_point,number_of_similar_ads,longest_days_active,average_days_active,scale_level,why_it_is_scaling,competitor_strategy_interpretation,seryn_should_copy_adapt_counter_avoid,seryn_reframe".split(","),
   change: "week_date,brand_name,active_ads_change,new_ads_count,stopped_ads_count,new_services_detected,removed_services,new_offers_detected,removed_offers,new_content_angles,removed_content_angles,scaled_content_new,scaled_content_still_running,strategic_change_type,change_summary,seryn_implication".split(","),
@@ -1650,6 +1655,14 @@ async function main() {
   const prevAdIds = new Set(prevAds.map((r) => r.ad_id).filter(Boolean));
   const cacheById = {}; for (const r of prevCache) cacheById[r.ad_id] = r;
   const archiveFirstSeen = {}; for (const r of prevArchive) if (!archiveFirstSeen[r.ad_id]) archiveFirstSeen[r.ad_id] = r.first_seen_date || r.week_date;
+  // Kỳ (week_date) SỚM NHẤT từng quét thấy mỗi ad — prevArchive đọc TRƯỚC khi ghi
+  // tuần này nên ad không có trong map = lần đầu xuất hiện ở kỳ hiện tại.
+  const archiveFirstWeek = {};
+  for (const r of prevArchive) {
+    const w = String(r.week_date || "").slice(0, 10);
+    if (!r.ad_id || !w) continue;
+    if (!archiveFirstWeek[r.ad_id] || w < archiveFirstWeek[r.ad_id]) archiveFirstWeek[r.ad_id] = w;
+  }
   const patternFirstSeen = {}; for (const r of prevPattern) patternFirstSeen[r.pattern_hash] = r.first_seen_date;
 
   // Tự import đối thủ đã duyệt (Phát hiện đối thủ -> Competitors) trước khi spy.
@@ -1695,6 +1708,7 @@ async function main() {
     else if (hit) { ad.analysis_status = "reused_from_cache"; ad.reused_from_cache = "true"; ad.last_analyzed_at = c.last_analyzed_at || nowISO(); reusedCount++; }
     else { ad.analysis_status = "changed_reanalyzed"; ad.reused_from_cache = "false"; ad.last_analyzed_at = nowISO(); changedCount++; }
     ad.analysis_version = ANALYSIS_VER;
+    ad.first_seen_week = archiveFirstWeek[r.ad_id] || weekDate;
     return ad;
   }
 
