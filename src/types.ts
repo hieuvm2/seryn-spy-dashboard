@@ -391,6 +391,28 @@ export type SpyDashboardData = {
   pageDirectory?: PageDirectoryEntry[];
   /** Kết quả rà soát pháp lý content trên Trello (scripts/trello-legal-screen.mjs --push). */
   trelloLegalScreen?: TrelloLegalCard[];
+  /** Bóc tách video quảng cáo đối thủ theo trục thời gian (6 khung/video, tách bằng ffmpeg). */
+  videoTeardown?: VideoTeardown[];
+};
+
+/** 1 video quảng cáo đối thủ đã được bóc tách theo mốc thời gian. */
+export type VideoTeardown = {
+  ad_id: string;
+  brand: string;
+  thoi_luong_giay: number;
+  so_khung?: number;
+  url?: string;
+  tieu_de?: string;
+  /** Diễn biến theo mốc giây: mở đầu -> thân -> kết. */
+  cau_truc?: string;
+  co_doi_canh?: string;
+  chu_tren_hinh?: string;
+  truoc_sau?: string;
+  do_hoa_chen?: string;
+  ba_giay_dau?: string;
+  diem_dang_hoc?: string;
+  diem_nen_tranh?: string;
+  quet_luc?: string;
 };
 
 /** 1 dòng lỗi câu chữ do bộ sàng lọc pháp lý bắt được (khớp nguyên văn). */

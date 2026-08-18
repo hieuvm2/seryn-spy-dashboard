@@ -17,7 +17,7 @@ import type {
   WeeklyStrategyChange, SerynContentRecommendation, VisualAnalysis, BrandVisualSummary,
   VisualPattern, WeeklyChangeInsight, CrawlRun, MarketIntelligenceItem,
   CompetitorDiscoveryCandidate, HookCluster, WeeklySummary, ActionPlanItem, SwipeSuggestion,
-  SpyReport, OwnBrandPage, PageDirectoryEntry, TrelloLegalCard,
+  SpyReport, OwnBrandPage, PageDirectoryEntry, TrelloLegalCard, VideoTeardown,
 } from "../types";
 
 export { isSupabaseConfigured };
@@ -54,5 +54,6 @@ export async function fetchSupabaseSpyData(): Promise<SpyDashboardData> {
     ownBrandPages: asRows<OwnBrandPage>(d.ownBrandPages),
     pageDirectory: asRows<PageDirectoryEntry>(d.pageDirectory),
     trelloLegalScreen: asRows<TrelloLegalCard>(d.trelloLegalScreen),
+    videoTeardown: asRows<VideoTeardown>(d.videoTeardown),
   };
 }

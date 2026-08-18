@@ -6,6 +6,7 @@ import { normalizeNumber, splitChips, viLabel } from "../../utils/spyData";
 import { useDirectCompetitors, isDirectCompetitor } from "../../utils/directCompetitors";
 import { buildAdContentIntelligenceForBrand, ANGLE_VI } from "../../utils/adContentIntelligence";
 import { isOwnBrand } from "../../utils/ownBrand";
+import VideoTeardownPanel from "../VideoTeardownPanel";
 
 const SCALE_SHORT: Record<string, string> = {
   "Weak Signal": "Tín hiệu yếu", "Repeated Content": "Content lặp lại",
@@ -110,6 +111,9 @@ export default function BrandsView({
           </button>
         ))}
       </div>
+
+      {/* Boc tach video quang cao doi thu (an neu chua co du lieu) */}
+      <VideoTeardownPanel data={data} />
 
       {/* ĐIỆN THOẠI: bảng 5 cột rộng 559px không đọc được ở khổ 375px
           -> đổi sang danh sách thẻ, cùng dữ liệu và cùng thao tác bấm mở hồ sơ.
