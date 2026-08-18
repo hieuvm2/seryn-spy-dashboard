@@ -389,6 +389,44 @@ export type SpyDashboardData = {
   ownBrandPages?: OwnBrandPage[];
   /* ---- Page Directory (page_id -> tên page; hiện tên thay vì ID) ---- */
   pageDirectory?: PageDirectoryEntry[];
+  /** Kết quả rà soát pháp lý content trên Trello (scripts/trello-legal-screen.mjs --push). */
+  trelloLegalScreen?: TrelloLegalCard[];
+};
+
+/** 1 dòng lỗi câu chữ do bộ sàng lọc pháp lý bắt được (khớp nguyên văn). */
+export type TrelloLegalIssue = {
+  loai?: string;      // "tiền lệ Pháp chế" | "hướng dẫn v2.0"
+  id?: string;
+  nhom: string;       // tên nhóm lỗi
+  canCu?: string;     // căn cứ: mục hướng dẫn hoặc case Pháp chế
+  muc: "Cao" | "Trung bình" | "Thấp";
+  cum_khop?: string;  // cụm từ khớp nguyên văn
+  trich_dan?: string; // trích dẫn quanh vị trí khớp
+  cach_sua?: string;
+};
+
+/** 1 yếu tố BẮT BUỘC còn thiếu (disclaimer, giấy phép, đối chiếu khuyến mại). */
+export type TrelloLegalMissing = {
+  muc: "Cao" | "Trung bình" | "Thấp";
+  thieu_gi: string;
+  canCu?: string;
+  cach_sua?: string;
+};
+
+/** 1 card Trello đã được rà soát. */
+export type TrelloLegalCard = {
+  card_id: string;
+  card_name: string;
+  card_url: string;
+  cot: string;                      // tên cột Trello (ĐÃ DUYỆT - HN / HCM…)
+  tong_rui_ro: "Cao" | "Trung bình" | "Thấp";
+  la_kbcb?: boolean;                // có dấu hiệu khám bệnh, chữa bệnh
+  co_khuyen_mai?: boolean;
+  so_loi?: number;
+  so_thieu?: number;
+  loi: TrelloLegalIssue[];
+  thieu: TrelloLegalMissing[];
+  quet_luc?: string;                // ISO timestamp lần quét
 };
 
 /** 5 bảng CSV gốc (dùng cho import thủ công / health-check). Các tab v2

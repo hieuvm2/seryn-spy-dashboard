@@ -6,6 +6,7 @@ import { viLabel } from "../../utils/spyData";
 import { buildSerynSnapshot, getSerynRecommendedTests } from "../../utils/serynBenchmark";
 import { buildSerynAlerts, findOwnAdsByPhrase, serynAdLibraryUrl, adLibraryAdUrl, adLibraryPhraseSearchUrl, CATEGORY_VI, type AlertCategory, type SerynContentAlert, type MatchedAd } from "../../utils/serynAlerts";
 import { SerynSnapshotCard, TestRow } from "../SerynBenchmark";
+import TrelloLegalPanel from "../TrelloLegalPanel";
 
 const SEV_VI: Record<string, string> = { High: "Cảnh báo cao", Medium: "Cần review" };
 const SEV_TONE: Record<string, string> = {
@@ -210,6 +211,9 @@ export default function SerynView({
 
       {/* Snapshot nhanh + nút mở hồ sơ phân tích đầy đủ */}
       <SerynSnapshotCard data={data} onOpen={() => onSelectBrand(serynName)} />
+
+      {/* Ra soat phap ly content tren Trello (truoc khi dang) */}
+      <TrelloLegalPanel data={data} />
 
       {/* CẢNH BÁO — máy quét tuân thủ (luật VN / Meta / thương hiệu) + ghi nhận từ báo cáo tuần */}
       <div className="space-y-4">

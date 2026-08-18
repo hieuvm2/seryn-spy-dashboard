@@ -30,7 +30,9 @@
     "seryn:pages": "node scripts/sync-seryn-pages.mjs",
     "seryn:pages:write": "node scripts/sync-seryn-pages.mjs --write",
     "build:report-ssr": "vite build --ssr src/report-ssr.tsx --outDir dist-ssr --emptyOutDir",
-    "report:email": "npm run build:report-ssr --silent && node scripts/email-weekly-report.mjs"
+    "report:email": "npm run build:report-ssr --silent && node scripts/email-weekly-report.mjs",
+    "trello:check": "node scripts/trello-check.mjs",
+    "legal:trello": "node scripts/trello-legal-screen.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
